@@ -4,6 +4,18 @@ import { Hd3Series } from './Hd3Series';
 import type { RenderableI } from '../interfaces/RenderableI';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
+
+export interface Hd3SeriesRendererStyle {
+  color?: string;
+}
+
+export interface Hd3SeriesRendererOptions {
+  series: Hd3Series;
+  xAxis?: Hd3XAxis;
+  yAxis?: Hd3YAxis;
+  style?: Hd3SeriesRendererStyle;
+}
 
 /**
  * Base class for series visual representations.
@@ -14,12 +26,15 @@ export abstract class Hd3SeriesRenderer implements RenderableI {
   protected yAxis?: Hd3YAxis;
   protected group?: d3.Selection<SVGGElement, unknown, null, undefined>;
   protected color: string;
+  private seriesBusEndpoint?: Hd3BusEndpoint;
+  private xAxisBusEndpoint?: Hd3BusEndpoint;
+  private yAxisBusEndpoint?: Hd3BusEndpoint;
 
-  constructor(series: Hd3Series, xAxis?: Hd3XAxis, yAxis?: Hd3YAxis, color?: string) {
-    this.series = series;
-    this.xAxis = xAxis;
-    this.yAxis = yAxis;
-    this.color = color || this.getDefaultColor();
+  constructor(options: Hd3SeriesRendererOptions) {
+    this.series = options.series;
+    this.xAxis = options.xAxis;
+    this.yAxis = options.yAxis;
+    this.color = options.style?.color || this.getDefaultColor();
   }
 
   private getDefaultColor(): string {
@@ -40,20 +55,35 @@ export abstract class Hd3SeriesRenderer implements RenderableI {
 
     this.renderData();
 
-    // Listen to data changes
-    this.series.on('dataChanged', () => this.renderData());
-    this.series.on('visibilityChanged', (visible: unknown) => {
-      this.setVisible(visible as boolean);
+    // Connect to series bus
+    this.seriesBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        dataChanged: () => this.renderData(),
+        visibilityChanged: (visible: unknown) => this.setVisible(visible as boolean)
+      }
     });
+    this.seriesBusEndpoint.bus = this.series.getBus();
 
-    // Listen to axis changes
+    // Connect to X axis bus
     if (this.xAxis) {
-      this.xAxis.on('domainChanged', () => this.renderData());
-      this.xAxis.on('rangeChanged', () => this.renderData());
+      this.xAxisBusEndpoint = new Hd3BusEndpoint({
+        listeners: {
+          domainChanged: () => this.renderData(),
+          rangeChanged: () => this.renderData()
+        }
+      });
+      this.xAxisBusEndpoint.bus = this.xAxis.getBus();
     }
+
+    // Connect to Y axis bus
     if (this.yAxis) {
-      this.yAxis.on('domainChanged', () => this.renderData());
-      this.yAxis.on('rangeChanged', () => this.renderData());
+      this.yAxisBusEndpoint = new Hd3BusEndpoint({
+        listeners: {
+          domainChanged: () => this.renderData(),
+          rangeChanged: () => this.renderData()
+        }
+      });
+      this.yAxisBusEndpoint.bus = this.yAxis.getBus();
     }
   }
 
@@ -75,5 +105,14 @@ export abstract class Hd3SeriesRenderer implements RenderableI {
     if (!this.yAxis) return 0;
     const scale = this.yAxis.scale as d3.ScaleLinear<number, number>;
     return scale(d[1]);
+  }
+
+  destroy(): void {
+    this.seriesBusEndpoint?.destroy();
+    this.xAxisBusEndpoint?.destroy();
+    this.yAxisBusEndpoint?.destroy();
+    if (this.group) {
+      this.group.remove();
+    }
   }
 }

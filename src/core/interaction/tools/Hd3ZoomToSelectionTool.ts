@@ -4,6 +4,14 @@ import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
 import type { Hd3XAxis } from '../../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+
+export interface Hd3ZoomToSelectionToolOptions {
+  chart: Hd3Chart;
+  interactionArea: Hd3InteractionArea;
+  toolState: Hd3ToolState;
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+}
 
 /**
  * Zoom to selection tool - drag to select area and zoom to it.
@@ -15,26 +23,35 @@ export class Hd3ZoomToSelectionTool {
   private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private isActive: boolean = false;
   private selectionRect?: d3.Selection<SVGRectElement, unknown, null, undefined>;
+  private toolStateBusEndpoint: Hd3BusEndpoint;
+  private interactionBusEndpoint: Hd3BusEndpoint;
 
-  constructor(
-    chart: Hd3Chart,
-    interactionArea: Hd3InteractionArea,
-    toolState: Hd3ToolState,
-    axes: { x: Hd3XAxis[]; y: Hd3YAxis[] }
-  ) {
-    this.chart = chart;
-    this.interactionArea = interactionArea;
-    this.toolState = toolState;
-    this.axes = axes;
+  constructor(options: Hd3ZoomToSelectionToolOptions) {
+    this.chart = options.chart;
+    this.interactionArea = options.interactionArea;
+    this.toolState = options.toolState;
+    this.axes = options.axes;
 
-    this.toolState.on('toolChanged', (data: unknown) => {
-      const change = data as { old: string; new: string };
-      this.isActive = change.new === 'zoom-selection';
+    // Connect to tool state bus
+    this.toolStateBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        toolChanged: (data: unknown) => {
+          const change = data as { old: string; new: string };
+          this.isActive = change.new === 'zoom-selection';
+        }
+      }
     });
+    this.toolStateBusEndpoint.bus = this.toolState.getBus();
 
-    this.interactionArea.on('mousedown', this.handleMouseDown.bind(this));
-    this.interactionArea.on('drag', this.handleDrag.bind(this));
-    this.interactionArea.on('dragend', this.handleDragEnd.bind(this));
+    // Connect to interaction bus
+    this.interactionBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        mousedown: (data: unknown) => this.handleMouseDown(data),
+        drag: (data: unknown) => this.handleDrag(data),
+        dragend: (data: unknown) => this.handleDragEnd(data)
+      }
+    });
+    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
   private handleMouseDown(data: unknown): void {
@@ -106,6 +123,14 @@ export class Hd3ZoomToSelectionTool {
         const newDomain: [number, number] = [scale.invert(y2), scale.invert(y1)];
         yAxis.domain = newDomain;
       }
+    }
+  }
+
+  destroy(): void {
+    this.toolStateBusEndpoint.destroy();
+    this.interactionBusEndpoint.destroy();
+    if (this.selectionRect) {
+      this.selectionRect.remove();
     }
   }
 }

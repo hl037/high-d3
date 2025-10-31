@@ -2,6 +2,13 @@ import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
 import type { Hd3XAxis } from '../../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+
+export interface Hd3PanToolOptions {
+  interactionArea: Hd3InteractionArea;
+  toolState: Hd3ToolState;
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+}
 
 /**
  * Pan tool for dragging the chart view.
@@ -12,24 +19,34 @@ export class Hd3PanTool {
   private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private isActive: boolean = false;
   private initialDomains: Map<string, [number | Date | string, number | Date | string] | [number, number]> | null = null;
+  private toolStateBusEndpoint: Hd3BusEndpoint;
+  private interactionBusEndpoint: Hd3BusEndpoint;
 
-  constructor(
-    interactionArea: Hd3InteractionArea,
-    toolState: Hd3ToolState,
-    axes: { x: Hd3XAxis[]; y: Hd3YAxis[] }
-  ) {
-    this.interactionArea = interactionArea;
-    this.toolState = toolState;
-    this.axes = axes;
+  constructor(options: Hd3PanToolOptions) {
+    this.interactionArea = options.interactionArea;
+    this.toolState = options.toolState;
+    this.axes = options.axes;
 
-    this.toolState.on('toolChanged', (data: unknown) => {
-      const change = data as { old: string; new: string };
-      this.isActive = change.new === 'pan';
+    // Connect to tool state bus
+    this.toolStateBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        toolChanged: (data: unknown) => {
+          const change = data as { old: string; new: string };
+          this.isActive = change.new === 'pan';
+        }
+      }
     });
+    this.toolStateBusEndpoint.bus = this.toolState.getBus();
 
-    this.interactionArea.on('mousedown', this.handleMouseDown.bind(this));
-    this.interactionArea.on('drag', this.handleDrag.bind(this));
-    this.interactionArea.on('dragend', this.handleDragEnd.bind(this));
+    // Connect to interaction bus
+    this.interactionBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        mousedown: () => this.handleMouseDown(),
+        drag: (data: unknown) => this.handleDrag(data),
+        dragend: () => this.handleDragEnd()
+      }
+    });
+    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
   private handleMouseDown(): void {
@@ -89,5 +106,10 @@ export class Hd3PanTool {
 
   private handleDragEnd(): void {
     this.initialDomains = null;
+  }
+
+  destroy(): void {
+    this.toolStateBusEndpoint.destroy();
+    this.interactionBusEndpoint.destroy();
   }
 }

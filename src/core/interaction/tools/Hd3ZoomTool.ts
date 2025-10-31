@@ -2,6 +2,13 @@ import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
 import type { Hd3XAxis } from '../../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+
+export interface Hd3ZoomToolOptions {
+  interactionArea: Hd3InteractionArea;
+  toolState: Hd3ToolState;
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+}
 
 /**
  * Zoom tool for zooming in/out with mouse wheel or click.
@@ -12,24 +19,34 @@ export class Hd3ZoomTool {
   private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private zoomInActive: boolean = false;
   private zoomOutActive: boolean = false;
+  private toolStateBusEndpoint: Hd3BusEndpoint;
+  private interactionBusEndpoint: Hd3BusEndpoint;
 
-  constructor(
-    interactionArea: Hd3InteractionArea,
-    toolState: Hd3ToolState,
-    axes: { x: Hd3XAxis[]; y: Hd3YAxis[] }
-  ) {
-    this.interactionArea = interactionArea;
-    this.toolState = toolState;
-    this.axes = axes;
+  constructor(options: Hd3ZoomToolOptions) {
+    this.interactionArea = options.interactionArea;
+    this.toolState = options.toolState;
+    this.axes = options.axes;
 
-    this.toolState.on('toolChanged', (data: unknown) => {
-      const change = data as { old: string; new: string };
-      this.zoomInActive = change.new === 'zoom-in';
-      this.zoomOutActive = change.new === 'zoom-out';
+    // Connect to tool state bus
+    this.toolStateBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        toolChanged: (data: unknown) => {
+          const change = data as { old: string; new: string };
+          this.zoomInActive = change.new === 'zoom-in';
+          this.zoomOutActive = change.new === 'zoom-out';
+        }
+      }
     });
+    this.toolStateBusEndpoint.bus = this.toolState.getBus();
 
-    this.interactionArea.on('wheel', this.handleWheel.bind(this));
-    this.interactionArea.on('mousedown', this.handleClick.bind(this));
+    // Connect to interaction bus
+    this.interactionBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        wheel: (data: unknown) => this.handleWheel(data),
+        mousedown: (data: unknown) => this.handleClick(data)
+      }
+    });
+    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
   private handleWheel(data: unknown): void {
@@ -86,5 +103,10 @@ export class Hd3ZoomTool {
         centerValue + newHeight * (1 - bottomRatio)
       ];
     }
+  }
+
+  destroy(): void {
+    this.toolStateBusEndpoint.destroy();
+    this.interactionBusEndpoint.destroy();
   }
 }

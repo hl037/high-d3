@@ -4,15 +4,34 @@ import type { Hd3Series } from './Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
 
+export interface Hd3ScatterStyle {
+  color?: string;
+  radius?: number;
+}
+
+export interface Hd3ScatterOptions {
+  series: Hd3Series;
+  xAxis?: Hd3XAxis;
+  yAxis?: Hd3YAxis;
+  style?: Hd3ScatterStyle;
+}
+
 /**
  * Scatter series renderer.
  */
 export class Hd3Scatter extends Hd3SeriesRenderer {
   private radius: number;
 
-  constructor(series: Hd3Series, xAxis?: Hd3XAxis, yAxis?: Hd3YAxis, color?: string, radius: number = 4) {
-    super(series, xAxis, yAxis, color);
-    this.radius = radius;
+  constructor(options: Hd3ScatterOptions) {
+    super({
+      series: options.series,
+      xAxis: options.xAxis,
+      yAxis: options.yAxis,
+      style: {
+        color: options.style?.color
+      }
+    });
+    this.radius = options.style?.radius || 4;
   }
 
   protected renderData(): void {

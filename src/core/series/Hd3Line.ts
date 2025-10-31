@@ -4,15 +4,34 @@ import type { Hd3Series } from './Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
 
+export interface Hd3LineStyle {
+  color?: string;
+  strokeWidth?: number;
+}
+
+export interface Hd3LineOptions {
+  series: Hd3Series;
+  xAxis?: Hd3XAxis;
+  yAxis?: Hd3YAxis;
+  style?: Hd3LineStyle;
+}
+
 /**
  * Line series renderer.
  */
 export class Hd3Line extends Hd3SeriesRenderer {
   private strokeWidth: number;
 
-  constructor(series: Hd3Series, xAxis?: Hd3XAxis, yAxis?: Hd3YAxis, color?: string, strokeWidth: number = 2) {
-    super(series, xAxis, yAxis, color);
-    this.strokeWidth = strokeWidth;
+  constructor(options: Hd3LineOptions) {
+    super({
+      series: options.series,
+      xAxis: options.xAxis,
+      yAxis: options.yAxis,
+      style: {
+        color: options.style?.color
+      }
+    });
+    this.strokeWidth = options.style?.strokeWidth || 2;
   }
 
   protected renderData(): void {

@@ -4,15 +4,34 @@ import type { Hd3Series } from './Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
 
+export interface Hd3BarsStyle {
+  color?: string;
+  barWidth?: number;
+}
+
+export interface Hd3BarsOptions {
+  series: Hd3Series;
+  xAxis?: Hd3XAxis;
+  yAxis?: Hd3YAxis;
+  style?: Hd3BarsStyle;
+}
+
 /**
  * Bar series renderer.
  */
 export class Hd3Bars extends Hd3SeriesRenderer {
   private barWidth: number;
 
-  constructor(series: Hd3Series, xAxis?: Hd3XAxis, yAxis?: Hd3YAxis, color?: string, barWidth?: number) {
-    super(series, xAxis, yAxis, color);
-    this.barWidth = barWidth || 20;
+  constructor(options: Hd3BarsOptions) {
+    super({
+      series: options.series,
+      xAxis: options.xAxis,
+      yAxis: options.yAxis,
+      style: {
+        color: options.style?.color
+      }
+    });
+    this.barWidth = options.style?.barWidth || 20;
   }
 
   protected renderData(): void {

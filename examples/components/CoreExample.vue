@@ -166,10 +166,30 @@ onMounted(() => {
   series3 = new Hd3Series({ name: 'Bars', data: barData });
   series4 = new Hd3Series({ name: 'Scatter', data: scatterData });
 
-  const line1 = new Hd3Line(series1, xAxis1, yAxis1, '#e74c3c', 2);
-  const area1 = new Hd3Area(series2, xAxis1, yAxis1, '#3498db', 0.3);
-  const bars1 = new Hd3Bars(series3, xAxis1, yAxis1, '#2ecc71', 15);
-  const scatter1 = new Hd3Scatter(series4, xAxis1, yAxis1, '#f39c12', 5);
+  const line1 = new Hd3Line({
+    series: series1,
+    xAxis: xAxis1,
+    yAxis: yAxis1,
+    style: { color: '#e74c3c', strokeWidth: 2 }
+  });
+  const area1 = new Hd3Area({
+    series: series2,
+    xAxis: xAxis1,
+    yAxis: yAxis1,
+    style: { color: '#3498db', opacity: 0.3 }
+  });
+  const bars1 = new Hd3Bars({
+    series: series3,
+    xAxis: xAxis1,
+    yAxis: yAxis1,
+    style: { color: '#2ecc71', barWidth: 15 }
+  });
+  const scatter1 = new Hd3Scatter({
+    series: series4,
+    xAxis: xAxis1,
+    yAxis: yAxis1,
+    style: { color: '#f39c12', radius: 5 }
+  });
 
   const xAxisRenderer1 = new Hd3XAxisRenderer({ axis: xAxis1, position: 'bottom' });
   const yAxisRenderer1 = new Hd3YAxisRenderer({ axis: yAxis1, position: 'left' });
@@ -209,7 +229,12 @@ onMounted(() => {
   });
 
   const series5 = new Hd3Series({ name: 'Exponential', data: expData });
-  const line2 = new Hd3Line(series5, xAxis2, yAxis2, '#9b59b6', 3);
+  const line2 = new Hd3Line({
+    series: series5,
+    xAxis: xAxis2,
+    yAxis: yAxis2,
+    style: { color: '#9b59b6', strokeWidth: 3 }
+  });
 
   const xAxisRenderer2 = new Hd3XAxisRenderer({ axis: xAxis2, position: 'bottom' });
   const yAxisRenderer2 = new Hd3YAxisRenderer({ axis: yAxis2, position: 'left' });
@@ -229,25 +254,25 @@ onMounted(() => {
   toolState = new Hd3ToolState();
 
   // Tools for chart 1
-  new Hd3PanTool(interactionArea1, toolState, { x: [xAxis1], y: [yAxis1] });
-  new Hd3ZoomTool(interactionArea1, toolState, { x: [xAxis1], y: [yAxis1] });
-  new Hd3ZoomToSelectionTool(chart1, interactionArea1, toolState, { x: [xAxis1], y: [yAxis1] });
-  new Hd3ResetTool(toolState, { x: [xAxis1], y: [yAxis1] });
+  new Hd3PanTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
+  new Hd3ZoomTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
+  new Hd3ZoomToSelectionTool({ chart: chart1, interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
+  new Hd3ResetTool({ toolState, axes: { x: [xAxis1], y: [yAxis1] } });
 
   // Tools for chart 2
-  new Hd3PanTool(interactionArea2, toolState, { x: [xAxis2], y: [yAxis2] });
-  new Hd3ZoomTool(interactionArea2, toolState, { x: [xAxis2], y: [yAxis2] });
-  new Hd3ZoomToSelectionTool(chart2, interactionArea2, toolState, { x: [xAxis2], y: [yAxis2] });
-  new Hd3ResetTool(toolState, { x: [xAxis2], y: [yAxis2] });
+  new Hd3PanTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
+  new Hd3ZoomTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
+  new Hd3ZoomToSelectionTool({ chart: chart2, interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
+  new Hd3ResetTool({ toolState, axes: { x: [xAxis2], y: [yAxis2] } });
 
   // Tooltip for chart 1
-  const tooltipManager1 = new Hd3TooltipManager(
-    chart1,
-    interactionArea1,
-    [series1, series2, series3, series4],
-    xAxis1,
-    yAxis1
-  );
+  const tooltipManager1 = new Hd3TooltipManager({
+    chart: chart1,
+    interactionArea: interactionArea1,
+    series: [series1, series2, series3, series4],
+    xAxis: xAxis1,
+    yAxis: yAxis1
+  });
 
   tooltipManager1.on('show', (data: any) => {
     tooltipVisible.value = true;
@@ -262,13 +287,13 @@ onMounted(() => {
   });
 
   // Tooltip for chart 2
-  const tooltipManager2 = new Hd3TooltipManager(
-    chart2,
-    interactionArea2,
-    [series5],
-    xAxis2,
-    yAxis2
-  );
+  const tooltipManager2 = new Hd3TooltipManager({
+    chart: chart2,
+    interactionArea: interactionArea2,
+    series: [series5],
+    xAxis: xAxis2,
+    yAxis: yAxis2
+  });
 
   tooltipManager2.on('show', (data: any) => {
     tooltipVisible.value = true;

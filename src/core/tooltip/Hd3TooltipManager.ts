@@ -3,7 +3,8 @@ import type { Hd3InteractionArea } from '../interaction/Hd3InteractionArea';
 import type { Hd3Series } from '../series/Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
-import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
+import { createHd3Bus, type Hd3Bus } from '../bus/Hd3Bus';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface TooltipData {
   x: number;
@@ -19,6 +20,14 @@ export interface TooltipData {
   }>;
 }
 
+export interface Hd3TooltipManagerOptions {
+  chart: Hd3Chart;
+  interactionArea: Hd3InteractionArea;
+  series: Hd3Series[];
+  xAxis: Hd3XAxis;
+  yAxis: Hd3YAxis;
+}
+
 /**
  * Tooltip manager that emits show/hide events with series data.
  * Connects to interaction area and series to provide tooltip information.
@@ -30,23 +39,24 @@ export class Hd3TooltipManager {
   private xAxis: Hd3XAxis;
   private yAxis: Hd3YAxis;
   private bus: Hd3Bus;
+  private interactionBusEndpoint: Hd3BusEndpoint;
 
-  constructor(
-    chart: Hd3Chart,
-    interactionArea: Hd3InteractionArea,
-    series: Hd3Series[],
-    xAxis: Hd3XAxis,
-    yAxis: Hd3YAxis
-  ) {
-    this.chart = chart;
-    this.interactionArea = interactionArea;
-    this.series = series;
-    this.xAxis = xAxis;
-    this.yAxis = yAxis;
+  constructor(options: Hd3TooltipManagerOptions) {
+    this.chart = options.chart;
+    this.interactionArea = options.interactionArea;
+    this.series = options.series;
+    this.xAxis = options.xAxis;
+    this.yAxis = options.yAxis;
     this.bus = createHd3Bus();
 
-    this.interactionArea.on('mousemove', this.handleMouseMove.bind(this));
-    this.interactionArea.on('mouseleave', this.handleMouseLeave.bind(this));
+    // Connect to interaction bus
+    this.interactionBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        mousemove: (data: unknown) => this.handleMouseMove(data),
+        mouseleave: () => this.handleMouseLeave()
+      }
+    });
+    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
   private handleMouseMove(data: unknown): void {
@@ -114,5 +124,9 @@ export class Hd3TooltipManager {
 
   off(event: string, handler: (data?: unknown) => void): void {
     this.bus.off(event, handler);
+  }
+
+  destroy(): void {
+    this.interactionBusEndpoint.destroy();
   }
 }

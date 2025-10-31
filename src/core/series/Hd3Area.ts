@@ -4,15 +4,34 @@ import type { Hd3Series } from './Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
 
+export interface Hd3AreaStyle {
+  color?: string;
+  opacity?: number;
+}
+
+export interface Hd3AreaOptions {
+  series: Hd3Series;
+  xAxis?: Hd3XAxis;
+  yAxis?: Hd3YAxis;
+  style?: Hd3AreaStyle;
+}
+
 /**
  * Area series renderer.
  */
 export class Hd3Area extends Hd3SeriesRenderer {
   private opacity: number;
 
-  constructor(series: Hd3Series, xAxis?: Hd3XAxis, yAxis?: Hd3YAxis, color?: string, opacity: number = 0.5) {
-    super(series, xAxis, yAxis, color);
-    this.opacity = opacity;
+  constructor(options: Hd3AreaOptions) {
+    super({
+      series: options.series,
+      xAxis: options.xAxis,
+      yAxis: options.yAxis,
+      style: {
+        color: options.style?.color
+      }
+    });
+    this.opacity = options.style?.opacity || 0.5;
   }
 
   protected renderData(): void {
