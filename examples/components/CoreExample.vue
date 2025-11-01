@@ -283,9 +283,10 @@ onMounted(() => {
     style: { color: '#e67e22', strokeWidth: 2 }
   });
 
+  const xAxisRenderer3 = new Hd3XAxisRenderer({ axis: xAxis1, position: 'bottom' });
   const yAxisRenderer3 = new Hd3YAxisRenderer({ axis: yAxis3, position: 'left' });
 
-  chart3.emit('addRenderer', xAxisRenderer1);
+  chart3.emit('addRenderer', xAxisRenderer3);
   chart3.emit('addRenderer', yAxisRenderer3);
   chart3.emit('addRenderer', line3);
   chart3.emit('addRenderer', line4);
