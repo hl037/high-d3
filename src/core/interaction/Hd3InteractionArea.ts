@@ -120,4 +120,10 @@ export class Hd3InteractionArea implements RenderableI {
   emit(event: string, data?: unknown): void {
     this.bus.emit(event, data);
   }
+
+  destroy(): void {
+    if (this.rect) {
+      this.rect.remove();
+    }
+  }
 }

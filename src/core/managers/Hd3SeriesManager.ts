@@ -1,5 +1,6 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3Series } from '../series/Hd3Series';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 /**
  * Manager that keeps track of series added to the chart.
@@ -8,11 +9,19 @@ import { Hd3Series } from '../series/Hd3Series';
 export class Hd3SeriesManager {
   private chart: Hd3Chart;
   private series: Map<string, Hd3Series> = new Map();
+  private chartBusEndpoint: Hd3BusEndpoint;
 
   constructor(chart: Hd3Chart) {
     this.chart = chart;
-    this.chart.on('addSeries', this.handleAddSeries.bind(this));
-    this.chart.on('removeSeries', this.handleRemoveSeries.bind(this));
+    
+    // Connect to chart bus
+    this.chartBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        addSeries: (series: unknown) => this.handleAddSeries(series),
+        removeSeries: (series: unknown) => this.handleRemoveSeries(series)
+      }
+    });
+    this.chartBusEndpoint.bus = this.chart.getBus();
   }
 
   private handleAddSeries(series: unknown): void {
@@ -38,6 +47,7 @@ export class Hd3SeriesManager {
   }
 
   destroy(): void {
+    this.chartBusEndpoint.destroy();
     this.series.clear();
   }
 }

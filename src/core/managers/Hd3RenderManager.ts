@@ -1,23 +1,42 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import type { RenderableI } from '../interfaces/RenderableI';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 /**
  * Manager that handles rendering of objects on the chart.
- * Listens for 'addRenderer' events and calls render() on renderable objects.
+ * Listens for 'addRenderer' and 'removeRenderer' events.
  */
 export class Hd3RenderManager {
   private chart: Hd3Chart;
-  private renderables: Set<RenderableI> = new Set();
+  private renderables: Map<RenderableI, boolean> = new Map();
+  private chartBusEndpoint: Hd3BusEndpoint;
 
   constructor(chart: Hd3Chart) {
     this.chart = chart;
-    this.chart.on('addRenderer', this.handleAddRenderer.bind(this));
+    
+    // Connect to chart bus
+    this.chartBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        addRenderer: (renderable: unknown) => this.handleAddRenderer(renderable),
+        removeRenderer: (renderable: unknown) => this.handleRemoveRenderer(renderable)
+      }
+    });
+    this.chartBusEndpoint.bus = this.chart.getBus();
   }
 
   private handleAddRenderer(renderable: unknown): void {
     if (this.isRenderable(renderable)) {
-      this.renderables.add(renderable);
+      this.renderables.set(renderable, true);
       renderable.render(this.chart);
+    }
+  }
+
+  private handleRemoveRenderer(renderable: unknown): void {
+    if (this.isRenderable(renderable)) {
+      this.renderables.delete(renderable);
+      if ('destroy' in renderable && typeof renderable.destroy === 'function') {
+        renderable.destroy();
+      }
     }
   }
 
@@ -26,6 +45,7 @@ export class Hd3RenderManager {
   }
 
   destroy(): void {
+    this.chartBusEndpoint.destroy();
     this.renderables.clear();
   }
 }

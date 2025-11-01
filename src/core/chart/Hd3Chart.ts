@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
 import { Hd3RenderManager } from '../managers/Hd3RenderManager';
 import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface Hd3ChartOptions {
   width?: number;
@@ -20,6 +21,10 @@ export class Hd3Chart {
   private bus: Hd3Bus;
   private renderManager: Hd3RenderManager;
   private seriesManager: Hd3SeriesManager;
+  private resizeObserver?: ResizeObserver;
+  private resizeBusEndpoint: Hd3BusEndpoint;
+  private autoWidth: boolean;
+  private autoHeight: boolean;
   
   public width: number;
   public height: number;
@@ -32,8 +37,11 @@ export class Hd3Chart {
       ? document.querySelector(container)! 
       : container;
     
-    this.width = options.width || 800;
-    this.height = options.height || 600;
+    this.autoWidth = options.width === undefined;
+    this.autoHeight = options.height === undefined;
+    
+    this.width = options.width || this.container.clientWidth || 800;
+    this.height = options.height || this.container.clientHeight || 600;
     this.margin = options.margin || { top: 20, right: 20, bottom: 40, left: 60 };
     this.innerWidth = this.width - this.margin.left - this.margin.right;
     this.innerHeight = this.height - this.margin.top - this.margin.bottom;
@@ -53,6 +61,41 @@ export class Hd3Chart {
     // Initialize managers
     this.renderManager = new Hd3RenderManager(this);
     this.seriesManager = new Hd3SeriesManager(this);
+
+    // Listen to resize events and update SVG
+    this.resizeBusEndpoint = new Hd3BusEndpoint({
+      listeners: {
+        resize: (data: unknown) => this.handleResize(data)
+      }
+    });
+    this.resizeBusEndpoint.bus = this.bus;
+
+    // Setup ResizeObserver if width or height is auto
+    if (this.autoWidth || this.autoHeight) {
+      this.setupResizeObserver();
+    }
+  }
+
+  private setupResizeObserver(): void {
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const newWidth = this.autoWidth ? entry.contentRect.width : this.width;
+        const newHeight = this.autoHeight ? entry.contentRect.height : this.height;
+        
+        if (newWidth !== this.width || newHeight !== this.height) {
+          this.resize(newWidth, newHeight);
+        }
+      }
+    });
+    this.resizeObserver.observe(this.container);
+  }
+
+  private handleResize(data: unknown): void {
+    const resizeData = data as { width: number; height: number };
+    
+    this.svg
+      .attr('width', resizeData.width)
+      .attr('height', resizeData.height);
   }
 
   /**
@@ -106,10 +149,7 @@ export class Hd3Chart {
     this.innerWidth = width - this.margin.left - this.margin.right;
     this.innerHeight = height - this.margin.top - this.margin.bottom;
     
-    this.svg
-      .attr('width', width)
-      .attr('height', height);
-    
+    // Emit resize event - listeners will handle the actual resizing
     this.emit('resize', { width, height });
   }
 
@@ -117,6 +157,8 @@ export class Hd3Chart {
    * Destroy the chart and cleanup
    */
   destroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeBusEndpoint.destroy();
     this.renderManager.destroy();
     this.seriesManager.destroy();
     this.svg.remove();
