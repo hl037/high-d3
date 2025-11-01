@@ -41,6 +41,13 @@ export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTo
 export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
 export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';
 export { Hd3ResetTool, type Hd3ResetToolOptions } from './interaction/tools/Hd3ResetTool';
+export { 
+  Hd3CursorIndicator, 
+  type Hd3CursorIndicatorOptions,
+  type Hd3CursorIndicatorCrossStyle,
+  type Hd3CursorIndicatorAxisLabelStyle,
+  type Hd3CursorIndicatorMarkerStyle
+} from './interaction/Hd3CursorIndicator';
 
 // Tooltip
 export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';

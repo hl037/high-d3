@@ -39,86 +39,74 @@ export interface ScaleFactoryOptions {
   exponent?: number;
 }
 
-export const scaleFactory = (type: ScaleType, options: ScaleFactoryOptions): D3Scale => {
-  const { domain, range, base = 10, exponent = 2 } = options;
+type ScaleFactoryFn = (options: ScaleFactoryOptions) => D3Scale;
 
-  switch (type) {
-    case 'linear':
-      return d3.scaleLinear()
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'log':
-      return d3.scaleLog()
-        .base(base)
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'pow':
-      return d3.scalePow()
-        .exponent(exponent)
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'sqrt':
-      return d3.scaleSqrt()
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'time':
-      return d3.scaleTime()
-        .domain(domain as [Date, Date])
-        .range(range);
-    
-    case 'utc':
-      return d3.scaleUtc()
-        .domain(domain as [Date, Date])
-        .range(range);
-    
-    case 'symlog':
-      return d3.scaleSymlog()
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'radial':
-      return d3.scaleRadial()
-        .domain(domain as [number, number])
-        .range(range);
-    
-    case 'sequential':
-      return d3.scaleSequential(d3.interpolateViridis)
-        .domain(domain as [number, number]);
-    
-    case 'quantize':
-      return d3.scaleQuantize()
-        .domain(domain as [number, number])
-        .range(range as unknown as number[]);
-    
-    case 'quantile':
-      return d3.scaleQuantile()
-        .domain(domain as number[])
-        .range(range as unknown as number[]);
-    
-    case 'threshold':
-      return d3.scaleThreshold()
-        .domain(domain as number[])
-        .range(range as unknown as number[]);
-    
-    case 'ordinal':
-      return d3.scaleOrdinal()
-        .domain(domain as string[]);
-    
-    case 'point':
-      return d3.scalePoint()
-        .domain(domain as string[])
-        .range(range);
-    
-    case 'band':
-      return d3.scaleBand()
-        .domain(domain as string[])
-        .range(range);
-    
-    default:
-      throw new Error(`Unknown scale type: ${type}`);
+export const scaleFactories: Record<ScaleType, ScaleFactoryFn> = {
+  linear: (options) => d3.scaleLinear()
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  log: (options) => d3.scaleLog()
+    .base(options.base || 10)
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  pow: (options) => d3.scalePow()
+    .exponent(options.exponent || 2)
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  sqrt: (options) => d3.scaleSqrt()
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  time: (options) => d3.scaleTime()
+    .domain(options.domain as [Date, Date])
+    .range(options.range),
+  
+  utc: (options) => d3.scaleUtc()
+    .domain(options.domain as [Date, Date])
+    .range(options.range),
+  
+  symlog: (options) => d3.scaleSymlog()
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  radial: (options) => d3.scaleRadial()
+    .domain(options.domain as [number, number])
+    .range(options.range),
+  
+  sequential: (options) => d3.scaleSequential(d3.interpolateViridis)
+    .domain(options.domain as [number, number]),
+  
+  quantize: (options) => d3.scaleQuantize()
+    .domain(options.domain as [number, number])
+    .range(options.range as unknown as number[]),
+  
+  quantile: (options) => d3.scaleQuantile()
+    .domain(options.domain as number[])
+    .range(options.range as unknown as number[]),
+  
+  threshold: (options) => d3.scaleThreshold()
+    .domain(options.domain as number[])
+    .range(options.range as unknown as number[]),
+  
+  ordinal: (options) => d3.scaleOrdinal()
+    .domain(options.domain as string[]),
+  
+  point: (options) => d3.scalePoint()
+    .domain(options.domain as string[])
+    .range(options.range),
+  
+  band: (options) => d3.scaleBand()
+    .domain(options.domain as string[])
+    .range(options.range)
+};
+
+export const scaleFactory = (type: ScaleType, options: ScaleFactoryOptions): D3Scale => {
+  const factory = scaleFactories[type];
+  if (!factory) {
+    throw new Error(`Unknown scale type: ${type}`);
   }
+  return factory(options);
 };

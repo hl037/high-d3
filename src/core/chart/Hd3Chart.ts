@@ -27,6 +27,8 @@ export class Hd3Chart {
   private resizeBusEndpoint: Hd3BusEndpoint;
   private autoWidth: boolean;
   private autoHeight: boolean;
+  private resizeTimeout?: number;
+  private resizeDebounceMs: number = 100;
   
   public width: number;
   public height: number;
@@ -86,7 +88,13 @@ export class Hd3Chart {
         const newHeight = this.autoHeight ? entry.contentRect.height : this.height;
         
         if (newWidth !== this.width || newHeight !== this.height) {
-          this.resize(newWidth, newHeight);
+          // Debounce resize calls
+          if (this.resizeTimeout) {
+            clearTimeout(this.resizeTimeout);
+          }
+          this.resizeTimeout = window.setTimeout(() => {
+            this.resize(newWidth, newHeight);
+          }, this.resizeDebounceMs);
         }
       }
     });
@@ -160,11 +168,88 @@ export class Hd3Chart {
    * Destroy the chart and cleanup
    */
   destroy(): void {
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
     this.resizeObserver?.disconnect();
     this.resizeBusEndpoint.destroy();
     this.renderManager.destroy();
     this.seriesManager.destroy();
     this.axisManager.destroy();
     this.svg.remove();
+  }
+
+  /**
+   * Export chart as SVG string
+   */
+  exportSVG(): string {
+    const svgNode = this.svg.node();
+    if (!svgNode) {
+      throw new Error('SVG node not found');
+    }
+    
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svgNode);
+  }
+
+  /**
+   * Download chart as SVG file
+   */
+  downloadSVG(filename: string = 'chart.svg'): void {
+    const svgString = this.exportSVG();
+    const blob = new Blob([svgString], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Export chart as PNG (returns a Promise with data URL)
+   */
+  async exportPNG(scale: number = 2): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const svgString = this.exportSVG();
+      const canvas = document.createElement('canvas');
+      canvas.width = this.width * scale;
+      canvas.height = this.height * scale;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      const img = new Image();
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+
+      img.onload = () => {
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Failed to load image'));
+      };
+
+      img.src = url;
+    });
+  }
+
+  /**
+   * Download chart as PNG file
+   */
+  async downloadPNG(filename: string = 'chart.png', scale: number = 2): Promise<void> {
+    const dataUrl = await this.exportPNG(scale);
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    link.click();
   }
 }

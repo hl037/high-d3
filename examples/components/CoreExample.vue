@@ -28,6 +28,45 @@
 
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Grid Options</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" v-model="gridOptions.enabled" />
+            <span>Show Grid</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px;">
+            <span>Opacity:</span>
+            <input type="range" min="0" max="1" step="0.1" v-model.number="gridOptions.opacity" style="flex: 1;" />
+            <span>{{ gridOptions.opacity }}</span>
+          </label>
+        </div>
+      </div>
+      
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Cursor Indicator Options</h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" v-model="cursorOptions.showCrossX" />
+            <span>Show Cross X</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" v-model="cursorOptions.showCrossY" />
+            <span>Show Cross Y</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" v-model="cursorOptions.showAxisLabels" />
+            <span>Show Axis Labels</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 5px;">
+            <input type="checkbox" v-model="cursorOptions.showMarkers" />
+            <span>Show Markers</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Chart 1 - Multiple Series Types</h3>
         <div ref="chartContainer1" style="width: 100%; height: 400px;"></div>
       </div>
@@ -89,7 +128,8 @@ import {
   Hd3ResetTool,
   Hd3TooltipManager,
   Hd3XAxis,
-  Hd3YAxis
+  Hd3YAxis,
+  Hd3CursorIndicator
 } from '../../src/core/index';
 
 const chartContainer1 = ref<HTMLElement>();
@@ -115,6 +155,18 @@ const seriesVisibility = ref([
   { name: 'Bars', visible: true },
   { name: 'Scatter', visible: true }
 ]);
+
+const gridOptions = ref({
+  enabled: true,
+  opacity: 0.7
+});
+
+const cursorOptions = ref({
+  showCrossX: true,
+  showCrossY: true,
+  showAxisLabels: true,
+  showMarkers: true
+});
 
 function setTool(tool: string) {
   currentTool.value = tool;
@@ -171,7 +223,11 @@ onMounted(() => {
     axis: xAxisDom1,
     scaleType: 'linear',
     range: [0, chart1.innerWidth],
-    position: 'bottom'
+    position: 'bottom',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   const yAxis1 = new Hd3YAxis({
@@ -179,7 +235,11 @@ onMounted(() => {
     axis: yAxisDom1,
     scaleType: 'linear',
     range: [chart1.innerHeight, 0],
-    position: 'left'
+    position: 'left',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   series1 = new Hd3Series({ name: 'Sin Wave', data: sinData });
@@ -248,7 +308,11 @@ onMounted(() => {
     axis: xAxisDom2,
     scaleType: 'linear',
     range: [0, chart2.innerWidth],
-    position: 'bottom'
+    position: 'bottom',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   const yAxis2 = new Hd3YAxis({
@@ -257,7 +321,11 @@ onMounted(() => {
     scaleType: 'log',
     range: [chart2.innerHeight, 0],
     scaleOptions: { base: 10 },
-    position: 'left'
+    position: 'left',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   const series5 = new Hd3Series({ name: 'Exponential', data: expData });
@@ -292,7 +360,11 @@ onMounted(() => {
     axis: xAxisDom1,
     scaleType: 'linear',
     range: [0, chart3.innerWidth],
-    position: 'bottom'
+    position: 'bottom',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   const yAxis3 = new Hd3YAxis({
@@ -300,7 +372,11 @@ onMounted(() => {
     axis: yAxisDom3,
     scaleType: 'linear',
     range: [chart3.innerHeight, 0],
-    position: 'left'
+    position: 'left',
+    grid: {
+      enabled: gridOptions.value.enabled,
+      opacity: gridOptions.value.opacity
+    }
   });
 
   // Create complementary series for chart 3
@@ -424,6 +500,43 @@ onMounted(() => {
   tooltipManager3.on('hide', () => {
     tooltipVisible.value = false;
   });
+
+  // Cursor indicators
+  const cursor1 = new Hd3CursorIndicator({
+    interactionArea: interactionArea1,
+    series: [series1, series2, series3, series4],
+    xAxis: xAxis1,
+    yAxis: yAxis1,
+    showCrossX: cursorOptions.value.showCrossX,
+    showCrossY: cursorOptions.value.showCrossY,
+    showAxisLabels: cursorOptions.value.showAxisLabels,
+    showMarkers: cursorOptions.value.showMarkers
+  });
+  chart1.emit('addRenderer', cursor1);
+
+  const cursor2 = new Hd3CursorIndicator({
+    interactionArea: interactionArea2,
+    series: [series5],
+    xAxis: xAxis2,
+    yAxis: yAxis2,
+    showCrossX: cursorOptions.value.showCrossX,
+    showCrossY: cursorOptions.value.showCrossY,
+    showAxisLabels: cursorOptions.value.showAxisLabels,
+    showMarkers: cursorOptions.value.showMarkers
+  });
+  chart2.emit('addRenderer', cursor2);
+
+  const cursor3 = new Hd3CursorIndicator({
+    interactionArea: interactionArea3,
+    series: [series6, series7],
+    xAxis: xAxis3,
+    yAxis: yAxis3,
+    showCrossX: cursorOptions.value.showCrossX,
+    showCrossY: cursorOptions.value.showCrossY,
+    showAxisLabels: cursorOptions.value.showAxisLabels,
+    showMarkers: cursorOptions.value.showMarkers
+  });
+  chart3.emit('addRenderer', cursor3);
 });
 </script>
 
