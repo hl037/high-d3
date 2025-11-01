@@ -1,16 +1,16 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
-import { Hd3XAxisRenderer } from '../axis/Hd3XAxisRenderer';
-import { Hd3YAxisRenderer } from '../axis/Hd3YAxisRenderer';
+import { Hd3XAxis } from '../axis/Hd3XAxis';
+import { Hd3YAxis } from '../axis/Hd3YAxis';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
-import type { AxisRenderersState, GetAxisRenderersCallback } from './managerInterfaces';
+import type { AxesState, GetAxesCallback } from './managerInterfaces';
 
 /**
  * Manager that keeps track of axis renderers added to the chart.
  */
 export class Hd3AxisManager {
   private chart: Hd3Chart;
-  private xAxisRenderers: Map<string, Hd3XAxisRenderer> = new Map();
-  private yAxisRenderers: Map<string, Hd3YAxisRenderer> = new Map();
+  private xAxes: Map<string, Hd3XAxis> = new Map();
+  private yAxes: Map<string, Hd3YAxis> = new Map();
   private chartBusEndpoint: Hd3BusEndpoint;
 
   constructor(chart: Hd3Chart) {
@@ -18,81 +18,81 @@ export class Hd3AxisManager {
     
     this.chartBusEndpoint = new Hd3BusEndpoint({
       listeners: {
-        addXAxisRenderer: (renderer: unknown) => this.handleAddXAxisRenderer(renderer),
-        removeXAxisRenderer: (renderer: unknown) => this.handleRemoveXAxisRenderer(renderer),
-        addYAxisRenderer: (renderer: unknown) => this.handleAddYAxisRenderer(renderer),
-        removeYAxisRenderer: (renderer: unknown) => this.handleRemoveYAxisRenderer(renderer),
-        getAxisRenderers: (callback: unknown) => this.handleGetAxisRenderers(callback)
+        addXAxis: (renderer: unknown) => this.handleAddXAxis(renderer),
+        removeXAxis: (renderer: unknown) => this.handleRemoveXAxis(renderer),
+        addYAxis: (renderer: unknown) => this.handleAddYAxis(renderer),
+        removeYAxis: (renderer: unknown) => this.handleRemoveYAxis(renderer),
+        getAxes: (callback: unknown) => this.handleGetAxes(callback)
       }
     });
     this.chartBusEndpoint.bus = this.chart.getBus();
   }
 
-  private handleAddXAxisRenderer(renderer: unknown): void {
-    if (renderer instanceof Hd3XAxisRenderer) {
-      this.xAxisRenderers.set(renderer.name, renderer);
-      this.notifyAxisRenderersChanged();
+  private handleAddXAxis(renderer: unknown): void {
+    if (renderer instanceof Hd3XAxis) {
+      this.xAxes.set(renderer.name, renderer);
+      this.notifyAxesChanged();
     }
   }
 
-  private handleRemoveXAxisRenderer(renderer: unknown): void {
-    if (renderer instanceof Hd3XAxisRenderer) {
-      this.xAxisRenderers.delete(renderer.name);
-      this.notifyAxisRenderersChanged();
+  private handleRemoveXAxis(renderer: unknown): void {
+    if (renderer instanceof Hd3XAxis) {
+      this.xAxes.delete(renderer.name);
+      this.notifyAxesChanged();
     }
   }
 
-  private handleAddYAxisRenderer(renderer: unknown): void {
-    if (renderer instanceof Hd3YAxisRenderer) {
-      this.yAxisRenderers.set(renderer.name, renderer);
-      this.notifyAxisRenderersChanged();
+  private handleAddYAxis(renderer: unknown): void {
+    if (renderer instanceof Hd3YAxis) {
+      this.yAxes.set(renderer.name, renderer);
+      this.notifyAxesChanged();
     }
   }
 
-  private handleRemoveYAxisRenderer(renderer: unknown): void {
-    if (renderer instanceof Hd3YAxisRenderer) {
-      this.yAxisRenderers.delete(renderer.name);
-      this.notifyAxisRenderersChanged();
+  private handleRemoveYAxis(renderer: unknown): void {
+    if (renderer instanceof Hd3YAxis) {
+      this.yAxes.delete(renderer.name);
+      this.notifyAxesChanged();
     }
   }
 
-  private handleGetAxisRenderers(callback: unknown): void {
-    if (callback && typeof callback === 'object' && 'setAxisRenderers' in callback) {
-      const cb = callback as GetAxisRenderersCallback;
-      cb.setAxisRenderers(this.getAxisRenderersState());
+  private handleGetAxes(callback: unknown): void {
+    if (callback && typeof callback === 'object' && 'setAxes' in callback) {
+      const cb = callback as GetAxesCallback;
+      cb.setAxes(this.getAxesState());
     }
   }
 
-  private notifyAxisRenderersChanged(): void {
-    this.chart.emit('axisRenderersListChanged', this.getAxisRenderersState());
+  private notifyAxesChanged(): void {
+    this.chart.emit('axesListChanged', this.getAxesState());
   }
 
-  private getAxisRenderersState(): AxisRenderersState {
+  private getAxesState(): AxesState {
     return {
-      x: Array.from(this.xAxisRenderers.values()),
-      y: Array.from(this.yAxisRenderers.values())
+      x: Array.from(this.xAxes.values()),
+      y: Array.from(this.yAxes.values())
     };
   }
 
-  getXAxisRenderers(): Hd3XAxisRenderer[] {
-    return Array.from(this.xAxisRenderers.values());
+  getXAxes(): Hd3XAxis[] {
+    return Array.from(this.xAxes.values());
   }
 
-  getYAxisRenderers(): Hd3YAxisRenderer[] {
-    return Array.from(this.yAxisRenderers.values());
+  getYAxes(): Hd3YAxis[] {
+    return Array.from(this.yAxes.values());
   }
 
-  getXAxisRendererByName(name: string): Hd3XAxisRenderer | undefined {
-    return this.xAxisRenderers.get(name);
+  getXAxisByName(name: string): Hd3XAxis | undefined {
+    return this.xAxes.get(name);
   }
 
-  getYAxisRendererByName(name: string): Hd3YAxisRenderer | undefined {
-    return this.yAxisRenderers.get(name);
+  getYAxisByName(name: string): Hd3YAxis | undefined {
+    return this.yAxes.get(name);
   }
 
   destroy(): void {
     this.chartBusEndpoint.destroy();
-    this.xAxisRenderers.clear();
-    this.yAxisRenderers.clear();
+    this.xAxes.clear();
+    this.yAxes.clear();
   }
 }

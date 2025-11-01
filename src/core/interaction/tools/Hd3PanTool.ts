@@ -1,14 +1,14 @@
 import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxisRenderer } from '../../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../../axis/Hd3YAxisRenderer';
-import type { Hd3Axis } from '../../axis/Hd3Axis';
+import type { Hd3XAxis } from '../../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
 
 export interface Hd3PanToolOptions {
   interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
 }
 
 /**
@@ -17,7 +17,7 @@ export interface Hd3PanToolOptions {
 export class Hd3PanTool {
   private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private isActive: boolean = false;
   private initialDomains: Map<string, [number | Date | string, number | Date | string] | string[]> | null = null;
   private toolStateBusEndpoint: Hd3BusEndpoint;
@@ -26,7 +26,7 @@ export class Hd3PanTool {
   constructor(options: Hd3PanToolOptions) {
     this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axisRenderers = options.axisRenderers;
+    this.axes = options.axes;
 
     // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
@@ -50,8 +50,8 @@ export class Hd3PanTool {
     this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
-  private getAxis(renderer: Hd3XAxisRenderer | Hd3YAxisRenderer): Hd3Axis {
-    return (renderer as any).axis as Hd3Axis;
+  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
+    return (renderer as any).axis as Hd3AxisDomain;
   }
 
   private handleMouseDown(): void {
@@ -59,13 +59,13 @@ export class Hd3PanTool {
 
     // Store initial domains
     this.initialDomains = new Map();
-    for (const xAxisRenderer of this.axisRenderers.x) {
-      const axis = this.getAxis(xAxisRenderer);
-      this.initialDomains.set(`x-${xAxisRenderer.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
+    for (const xAxis of this.axes.x) {
+      const axis = this.getAxis(xAxis);
+      this.initialDomains.set(`x-${xAxis.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
     }
-    for (const yAxisRenderer of this.axisRenderers.y) {
-      const axis = this.getAxis(yAxisRenderer);
-      this.initialDomains.set(`y-${yAxisRenderer.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
+    for (const yAxis of this.axes.y) {
+      const axis = this.getAxis(yAxis);
+      this.initialDomains.set(`y-${yAxis.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
     }
   }
 
@@ -75,12 +75,12 @@ export class Hd3PanTool {
     const dragData = data as { dx: number; dy: number };
 
     // Pan X axes
-    for (const xAxisRenderer of this.axisRenderers.x) {
-      const axis = this.getAxis(xAxisRenderer);
-      const initialDomain = this.initialDomains.get(`x-${xAxisRenderer.name}`) as [number, number];
+    for (const xAxis of this.axes.x) {
+      const axis = this.getAxis(xAxis);
+      const initialDomain = this.initialDomains.get(`x-${xAxis.name}`) as [number, number];
       if (!initialDomain) continue;
 
-      const scale = xAxisRenderer.scale as any;
+      const scale = xAxis.scale as any;
       const dx = dragData.dx;
       
       const minPixel = scale(initialDomain[0]);
@@ -93,12 +93,12 @@ export class Hd3PanTool {
     }
 
     // Pan Y axes
-    for (const yAxisRenderer of this.axisRenderers.y) {
-      const axis = this.getAxis(yAxisRenderer);
-      const initialDomain = this.initialDomains.get(`y-${yAxisRenderer.name}`) as [number, number];
+    for (const yAxis of this.axes.y) {
+      const axis = this.getAxis(yAxis);
+      const initialDomain = this.initialDomains.get(`y-${yAxis.name}`) as [number, number];
       if (!initialDomain) continue;
 
-      const scale = yAxisRenderer.scale as any;
+      const scale = yAxis.scale as any;
       const dy = dragData.dy;
       
       const minPixel = scale(initialDomain[0]);

@@ -1,14 +1,14 @@
 import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxisRenderer } from '../../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../../axis/Hd3YAxisRenderer';
-import type { Hd3Axis } from '../../axis/Hd3Axis';
+import type { Hd3XAxis } from '../../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import type { Hd3AxisDomain } from '../../axis/Hd3Axis';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
 
 export interface Hd3ZoomToolOptions {
   interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
 }
 
 /**
@@ -17,7 +17,7 @@ export interface Hd3ZoomToolOptions {
 export class Hd3ZoomTool {
   private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private zoomInActive: boolean = false;
   private zoomOutActive: boolean = false;
   private toolStateBusEndpoint: Hd3BusEndpoint;
@@ -26,7 +26,7 @@ export class Hd3ZoomTool {
   constructor(options: Hd3ZoomToolOptions) {
     this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axisRenderers = options.axisRenderers;
+    this.axes = options.axes;
 
     // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
@@ -50,8 +50,8 @@ export class Hd3ZoomTool {
     this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
-  private getAxis(renderer: Hd3XAxisRenderer | Hd3YAxisRenderer): Hd3Axis {
-    return (renderer as any).axis as Hd3Axis;
+  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
+    return (renderer as any).axis as Hd3AxisDomain;
   }
 
   private handleWheel(data: unknown): void {
@@ -70,10 +70,10 @@ export class Hd3ZoomTool {
 
   private zoom(centerX: number, centerY: number, factor: number): void {
     // Zoom X axes
-    for (const xAxisRenderer of this.axisRenderers.x) {
-      const axis = this.getAxis(xAxisRenderer);
+    for (const xAxis of this.axes.x) {
+      const axis = this.getAxis(xAxis);
       const domain = axis.domain as [number, number];
-      const scale = xAxisRenderer.scale as { invert: (x: number) => number };
+      const scale = xAxis.scale as { invert: (x: number) => number };
       const centerValue = scale.invert(centerX);
       
       const domainWidth = domain[1] - domain[0];
@@ -87,10 +87,10 @@ export class Hd3ZoomTool {
     }
 
     // Zoom Y axes
-    for (const yAxisRenderer of this.axisRenderers.y) {
-      const axis = this.getAxis(yAxisRenderer);
+    for (const yAxis of this.axes.y) {
+      const axis = this.getAxis(yAxis);
       const domain = axis.domain as [number, number];
-      const scale = yAxisRenderer.scale as { invert: (y: number) => number };
+      const scale = yAxis.scale as { invert: (y: number) => number };
       const centerValue = scale.invert(centerY);
       
       const domainHeight = domain[1] - domain[0];

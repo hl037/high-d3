@@ -1,16 +1,16 @@
-import type { Hd3XAxisRenderer } from '../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../axis/Hd3YAxisRenderer';
+import type { Hd3XAxis } from '../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../axis/Hd3YAxis';
 import type { Hd3Series } from '../series/Hd3Series';
 
 // Interfaces for manager callback patterns
 
-export interface AxisRenderersState {
-  x: Hd3XAxisRenderer[];
-  y: Hd3YAxisRenderer[];
+export interface AxesState {
+  x: Hd3XAxis[];
+  y: Hd3YAxis[];
 }
 
-export interface GetAxisRenderersCallback {
-  setAxisRenderers(state: AxisRenderersState): void;
+export interface GetAxesCallback {
+  setAxes(state: AxesState): void;
 }
 
 export interface SeriesState {

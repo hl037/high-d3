@@ -1,8 +1,8 @@
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import type { Hd3InteractionArea } from '../interaction/Hd3InteractionArea';
 import type { Hd3Series } from '../series/Hd3Series';
-import type { Hd3XAxisRenderer } from '../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../axis/Hd3YAxisRenderer';
+import type { Hd3XAxis } from '../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../axis/Hd3YAxis';
 import { createHd3Bus, type Hd3Bus } from '../bus/Hd3Bus';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
@@ -24,8 +24,8 @@ export interface Hd3TooltipManagerOptions {
   chart: Hd3Chart;
   interactionArea: Hd3InteractionArea;
   series: Hd3Series[];
-  xAxisRenderer: Hd3XAxisRenderer;
-  yAxisRenderer: Hd3YAxisRenderer;
+  xAxis: Hd3XAxis;
+  yAxis: Hd3YAxis;
 }
 
 /**
@@ -36,8 +36,8 @@ export class Hd3TooltipManager {
   private chart: Hd3Chart;
   private interactionArea: Hd3InteractionArea;
   private series: Hd3Series[];
-  private xAxisRenderer: Hd3XAxisRenderer;
-  private yAxisRenderer: Hd3YAxisRenderer;
+  private xAxis: Hd3XAxis;
+  private yAxis: Hd3YAxis;
   private bus: Hd3Bus;
   private interactionBusEndpoint: Hd3BusEndpoint;
 
@@ -45,8 +45,8 @@ export class Hd3TooltipManager {
     this.chart = options.chart;
     this.interactionArea = options.interactionArea;
     this.series = options.series;
-    this.xAxisRenderer = options.xAxisRenderer;
-    this.yAxisRenderer = options.yAxisRenderer;
+    this.xAxis = options.xAxis;
+    this.yAxis = options.yAxis;
     this.bus = createHd3Bus();
 
     // Connect to interaction bus
@@ -63,8 +63,8 @@ export class Hd3TooltipManager {
     const mouseData = data as { x: number; y: number };
     
     // Convert pixel to data coordinates
-    const xScale = this.xAxisRenderer.scale as { invert: (x: number) => number };
-    const yScale = this.yAxisRenderer.scale as { invert: (y: number) => number };
+    const xScale = this.xAxis.scale as { invert: (x: number) => number };
+    const yScale = this.yAxis.scale as { invert: (y: number) => number };
     
     const xValue = xScale.invert(mouseData.x);
     const yValue = yScale.invert(mouseData.y);

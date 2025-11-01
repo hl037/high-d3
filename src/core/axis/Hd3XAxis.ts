@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
-import { Hd3AxisRenderer, Hd3AxisRendererOptions } from './Hd3AxisRenderer';
+import { Hd3Axis, Hd3AxisOptions } from './Hd3Axis';
 import type { Hd3Chart } from '../chart/Hd3Chart';
 
-export interface Hd3XAxisRendererOptions extends Hd3AxisRendererOptions {
+export interface Hd3XAxisOptions extends Hd3AxisOptions {
   position?: 'bottom' | 'top';
   tickCount?: number;
 }
@@ -10,13 +10,13 @@ export interface Hd3XAxisRendererOptions extends Hd3AxisRendererOptions {
 /**
  * Renders an X axis on the chart.
  */
-export class Hd3XAxisRenderer extends Hd3AxisRenderer {
+export class Hd3XAxis extends Hd3Axis {
   private position: 'bottom' | 'top';
   private tickCount: number;
   private group?: d3.Selection<SVGGElement, unknown, null, undefined>;
   private visible: boolean = true;
 
-  constructor(options: Hd3XAxisRendererOptions) {
+  constructor(options: Hd3XAxisOptions) {
     super(options);
     this.position = options.position || 'bottom';
     this.tickCount = options.tickCount || 10;

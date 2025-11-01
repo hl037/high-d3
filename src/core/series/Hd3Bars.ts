@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
 import { Hd3SeriesRenderer } from './Hd3SeriesRenderer';
 import type { Hd3Series } from './Hd3Series';
-import type { Hd3XAxisRenderer } from '../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../axis/Hd3YAxisRenderer';
+import type { Hd3XAxis } from '../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../axis/Hd3YAxis';
 
 export interface Hd3BarsStyle {
   color?: string;
@@ -11,8 +11,8 @@ export interface Hd3BarsStyle {
 
 export interface Hd3BarsOptions {
   series: Hd3Series;
-  xAxisRenderer?: Hd3XAxisRenderer | string;
-  yAxisRenderer?: Hd3YAxisRenderer | string;
+  xAxis?: Hd3XAxis | string;
+  yAxis?: Hd3YAxis | string;
   style?: Hd3BarsStyle;
 }
 
@@ -25,8 +25,8 @@ export class Hd3Bars extends Hd3SeriesRenderer {
   constructor(options: Hd3BarsOptions) {
     super({
       series: options.series,
-      xAxisRenderer: options.xAxisRenderer,
-      yAxisRenderer: options.yAxisRenderer,
+      xAxis: options.xAxis,
+      yAxis: options.yAxis,
       style: {
         color: options.style?.color
       }
@@ -35,10 +35,10 @@ export class Hd3Bars extends Hd3SeriesRenderer {
   }
 
   protected renderData(): void {
-    if (!this.group || !this.xAxisRenderer || !this.yAxisRenderer) return;
+    if (!this.group || !this.xAxis || !this.yAxis) return;
 
     const data = this.series.data;
-    const yScale = this.yAxisRenderer.scale as d3.ScaleLinear<number, number>;
+    const yScale = this.yAxis.scale as d3.ScaleLinear<number, number>;
     const y0 = yScale(0);
 
     // Remove existing bars

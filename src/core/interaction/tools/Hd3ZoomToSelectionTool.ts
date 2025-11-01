@@ -2,16 +2,16 @@ import * as d3 from 'd3';
 import { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxisRenderer } from '../../axis/Hd3XAxisRenderer';
-import type { Hd3YAxisRenderer } from '../../axis/Hd3YAxisRenderer';
-import type { Hd3Axis } from '../../axis/Hd3Axis';
+import type { Hd3XAxis } from '../../axis/Hd3XAxis';
+import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import type { Hd3AxisDomain } from '../../axis/Hd3Axis';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
 
 export interface Hd3ZoomToSelectionToolOptions {
   chart: Hd3Chart;
   interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
 }
 
 /**
@@ -21,7 +21,7 @@ export class Hd3ZoomToSelectionTool {
   private chart: Hd3Chart;
   private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
+  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
   private isActive: boolean = false;
   private selectionRect?: d3.Selection<SVGRectElement, unknown, null, undefined>;
   private toolStateBusEndpoint: Hd3BusEndpoint;
@@ -31,7 +31,7 @@ export class Hd3ZoomToSelectionTool {
     this.chart = options.chart;
     this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axisRenderers = options.axisRenderers;
+    this.axes = options.axes;
 
     // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
@@ -55,8 +55,8 @@ export class Hd3ZoomToSelectionTool {
     this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
-  private getAxis(renderer: Hd3XAxisRenderer | Hd3YAxisRenderer): Hd3Axis {
-    return (renderer as any).axis as Hd3Axis;
+  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
+    return (renderer as any).axis as Hd3AxisDomain;
   }
 
   private handleMouseDown(data: unknown): void {
@@ -116,17 +116,17 @@ export class Hd3ZoomToSelectionTool {
     // Zoom to selection
     if (Math.abs(x2 - x1) > 5 && Math.abs(y2 - y1) > 5) {
       // Zoom X axes
-      for (const xAxisRenderer of this.axisRenderers.x) {
-        const axis = this.getAxis(xAxisRenderer);
-        const scale = xAxisRenderer.scale as { invert: (x: number) => number };
+      for (const xAxis of this.axes.x) {
+        const axis = this.getAxis(xAxis);
+        const scale = xAxis.scale as { invert: (x: number) => number };
         const newDomain: [number, number] = [scale.invert(x1), scale.invert(x2)];
         axis.domain = newDomain;
       }
 
       // Zoom Y axes
-      for (const yAxisRenderer of this.axisRenderers.y) {
-        const axis = this.getAxis(yAxisRenderer);
-        const scale = yAxisRenderer.scale as { invert: (y: number) => number };
+      for (const yAxis of this.axes.y) {
+        const axis = this.getAxis(yAxis);
+        const scale = yAxis.scale as { invert: (y: number) => number };
         const newDomain: [number, number] = [scale.invert(y2), scale.invert(y1)];
         axis.domain = newDomain;
       }
