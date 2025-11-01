@@ -16,12 +16,15 @@ export { Hd3Chart, type Hd3ChartOptions } from './chart/Hd3Chart';
 // Managers
 export { Hd3RenderManager } from './managers/Hd3RenderManager';
 export { Hd3SeriesManager } from './managers/Hd3SeriesManager';
+export { Hd3AxisManager } from './managers/Hd3AxisManager';
+export type { AxisRenderersState, GetAxisRenderersCallback, SeriesState, GetSeriesCallback } from './managers/managerInterfaces';
 
 // Axis
-export { Hd3XAxis, type Hd3XAxisOptions } from './axis/Hd3XAxis';
-export { Hd3YAxis, type Hd3YAxisOptions } from './axis/Hd3YAxis';
+export { Hd3Axis, type Hd3AxisOptions } from './axis/Hd3Axis';
+export { Hd3AxisRenderer, type Hd3AxisRendererOptions } from './axis/Hd3AxisRenderer';
 export { Hd3XAxisRenderer, type Hd3XAxisRendererOptions } from './axis/Hd3XAxisRenderer';
 export { Hd3YAxisRenderer, type Hd3YAxisRendererOptions } from './axis/Hd3YAxisRenderer';
+export { scaleFactory, type ScaleType, type D3Scale, type ScaleFactoryOptions } from './axis/scaleFactory';
 
 // Series
 export { Hd3Series, type Hd3SeriesOptions } from './series/Hd3Series';

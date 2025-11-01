@@ -1,13 +1,14 @@
 import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxis } from '../../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import type { Hd3XAxisRenderer } from '../../axis/Hd3XAxisRenderer';
+import type { Hd3YAxisRenderer } from '../../axis/Hd3YAxisRenderer';
+import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
 
 export interface Hd3PanToolOptions {
   interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
 }
 
 /**
@@ -16,16 +17,16 @@ export interface Hd3PanToolOptions {
 export class Hd3PanTool {
   private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  private axisRenderers: { x: Hd3XAxisRenderer[]; y: Hd3YAxisRenderer[] };
   private isActive: boolean = false;
-  private initialDomains: Map<string, [number | Date | string, number | Date | string] | [number, number]> | null = null;
+  private initialDomains: Map<string, [number | Date | string, number | Date | string] | string[]> | null = null;
   private toolStateBusEndpoint: Hd3BusEndpoint;
   private interactionBusEndpoint: Hd3BusEndpoint;
 
   constructor(options: Hd3PanToolOptions) {
     this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axes = options.axes;
+    this.axisRenderers = options.axisRenderers;
 
     // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
@@ -49,16 +50,22 @@ export class Hd3PanTool {
     this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
+  private getAxis(renderer: Hd3XAxisRenderer | Hd3YAxisRenderer): Hd3Axis {
+    return (renderer as any).axis as Hd3Axis;
+  }
+
   private handleMouseDown(): void {
     if (!this.isActive) return;
 
     // Store initial domains
     this.initialDomains = new Map();
-    for (const xAxis of this.axes.x) {
-      this.initialDomains.set(`x-${xAxis.name}`, [...xAxis.domain]);
+    for (const xAxisRenderer of this.axisRenderers.x) {
+      const axis = this.getAxis(xAxisRenderer);
+      this.initialDomains.set(`x-${xAxisRenderer.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
     }
-    for (const yAxis of this.axes.y) {
-      this.initialDomains.set(`y-${yAxis.name}`, [...yAxis.domain]);
+    for (const yAxisRenderer of this.axisRenderers.y) {
+      const axis = this.getAxis(yAxisRenderer);
+      this.initialDomains.set(`y-${yAxisRenderer.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
     }
   }
 
@@ -68,39 +75,39 @@ export class Hd3PanTool {
     const dragData = data as { dx: number; dy: number };
 
     // Pan X axes
-    for (const xAxis of this.axes.x) {
-      const initialDomain = this.initialDomains.get(`x-${xAxis.name}`) as [number, number];
+    for (const xAxisRenderer of this.axisRenderers.x) {
+      const axis = this.getAxis(xAxisRenderer);
+      const initialDomain = this.initialDomains.get(`x-${xAxisRenderer.name}`) as [number, number];
       if (!initialDomain) continue;
 
-      const scale = xAxis.scale as any;
+      const scale = xAxisRenderer.scale as any;
       const dx = dragData.dx;
       
-      // Work in viewport space: convert initial domain to pixels, apply shift, convert back
       const minPixel = scale(initialDomain[0]);
       const maxPixel = scale(initialDomain[1]);
       
       const newMinPixel = minPixel - dx;
       const newMaxPixel = maxPixel - dx;
       
-      xAxis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
+      axis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
     }
 
-    // Pan Y axes (scale already handles Y inversion via range)
-    for (const yAxis of this.axes.y) {
-      const initialDomain = this.initialDomains.get(`y-${yAxis.name}`) as [number, number];
+    // Pan Y axes
+    for (const yAxisRenderer of this.axisRenderers.y) {
+      const axis = this.getAxis(yAxisRenderer);
+      const initialDomain = this.initialDomains.get(`y-${yAxisRenderer.name}`) as [number, number];
       if (!initialDomain) continue;
 
-      const scale = yAxis.scale as any;
+      const scale = yAxisRenderer.scale as any;
       const dy = dragData.dy;
       
-      // Work in viewport space: convert initial domain to pixels, apply shift, convert back
       const minPixel = scale(initialDomain[0]);
       const maxPixel = scale(initialDomain[1]);
       
       const newMinPixel = minPixel - dy;
       const newMaxPixel = maxPixel - dy;
       
-      yAxis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
+      axis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
     }
   }
 

@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
 import { Hd3RenderManager } from '../managers/Hd3RenderManager';
 import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
+import { Hd3AxisManager } from '../managers/Hd3AxisManager';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface Hd3ChartOptions {
@@ -21,6 +22,7 @@ export class Hd3Chart {
   private bus: Hd3Bus;
   private renderManager: Hd3RenderManager;
   private seriesManager: Hd3SeriesManager;
+  private axisManager: Hd3AxisManager;
   private resizeObserver?: ResizeObserver;
   private resizeBusEndpoint: Hd3BusEndpoint;
   private autoWidth: boolean;
@@ -61,6 +63,7 @@ export class Hd3Chart {
     // Initialize managers
     this.renderManager = new Hd3RenderManager(this);
     this.seriesManager = new Hd3SeriesManager(this);
+    this.axisManager = new Hd3AxisManager(this);
 
     // Listen to resize events and update SVG
     this.resizeBusEndpoint = new Hd3BusEndpoint({
@@ -161,6 +164,7 @@ export class Hd3Chart {
     this.resizeBusEndpoint.destroy();
     this.renderManager.destroy();
     this.seriesManager.destroy();
+    this.axisManager.destroy();
     this.svg.remove();
   }
 }

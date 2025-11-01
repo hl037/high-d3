@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
 import { Hd3SeriesRenderer } from './Hd3SeriesRenderer';
 import type { Hd3Series } from './Hd3Series';
-import type { Hd3XAxis } from '../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../axis/Hd3YAxis';
+import type { Hd3XAxisRenderer } from '../axis/Hd3XAxisRenderer';
+import type { Hd3YAxisRenderer } from '../axis/Hd3YAxisRenderer';
 
 export interface Hd3AreaStyle {
   color?: string;
@@ -11,8 +11,8 @@ export interface Hd3AreaStyle {
 
 export interface Hd3AreaOptions {
   series: Hd3Series;
-  xAxis?: Hd3XAxis;
-  yAxis?: Hd3YAxis;
+  xAxisRenderer?: Hd3XAxisRenderer | string;
+  yAxisRenderer?: Hd3YAxisRenderer | string;
   style?: Hd3AreaStyle;
 }
 
@@ -25,8 +25,8 @@ export class Hd3Area extends Hd3SeriesRenderer {
   constructor(options: Hd3AreaOptions) {
     super({
       series: options.series,
-      xAxis: options.xAxis,
-      yAxis: options.yAxis,
+      xAxisRenderer: options.xAxisRenderer,
+      yAxisRenderer: options.yAxisRenderer,
       style: {
         color: options.style?.color
       }
@@ -35,10 +35,10 @@ export class Hd3Area extends Hd3SeriesRenderer {
   }
 
   protected renderData(): void {
-    if (!this.group || !this.xAxis || !this.yAxis) return;
+    if (!this.group || !this.xAxisRenderer || !this.yAxisRenderer) return;
 
     const data = this.series.data;
-    const yScale = this.yAxis.scale as d3.ScaleLinear<number, number>;
+    const yScale = this.yAxisRenderer.scale as d3.ScaleLinear<number, number>;
     const y0 = yScale(0);
     
     const area = d3.area<[unknown, number]>()

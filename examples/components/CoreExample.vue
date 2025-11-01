@@ -75,8 +75,7 @@
 import { ref, onMounted } from 'vue';
 import {
   Hd3Chart,
-  Hd3XAxis,
-  Hd3YAxis,
+  Hd3Axis,
   Hd3XAxisRenderer,
   Hd3YAxisRenderer,
   Hd3Series,
@@ -157,17 +156,30 @@ onMounted(() => {
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
 
-  const xAxis1 = new Hd3XAxis({
+  const xAxis1 = new Hd3Axis({
     name: 'x1',
-    type: 'linear',
-    domain: [0, 4 * Math.PI],
-    range: [0, chart1.innerWidth]
+    domain: [0, 4 * Math.PI]
   });
 
-  const yAxis1 = new Hd3YAxis({
+  const yAxis1 = new Hd3Axis({
     name: 'y1',
-    domain: [-1.5, 1.5],
-    range: [chart1.innerHeight, 0]
+    domain: [-1.5, 1.5]
+  });
+
+  const xAxisRenderer1 = new Hd3XAxisRenderer({
+    name: 'x1',
+    axis: xAxis1,
+    scaleType: 'linear',
+    range: [0, chart1.innerWidth],
+    position: 'bottom'
+  });
+
+  const yAxisRenderer1 = new Hd3YAxisRenderer({
+    name: 'y1',
+    axis: yAxis1,
+    scaleType: 'linear',
+    range: [chart1.innerHeight, 0],
+    position: 'left'
   });
 
   series1 = new Hd3Series({ name: 'Sin Wave', data: sinData });
@@ -177,32 +189,31 @@ onMounted(() => {
 
   const line1 = new Hd3Line({
     series: series1,
-    xAxis: xAxis1,
-    yAxis: yAxis1,
+    xAxisRenderer: 'x1',
+    yAxisRenderer: 'y1',
     style: { color: '#e74c3c', strokeWidth: 2 }
   });
   const area1 = new Hd3Area({
     series: series2,
-    xAxis: xAxis1,
-    yAxis: yAxis1,
+    xAxisRenderer: 'x1',
+    yAxisRenderer: 'y1',
     style: { color: '#3498db', opacity: 0.3 }
   });
   const bars1 = new Hd3Bars({
     series: series3,
-    xAxis: xAxis1,
-    yAxis: yAxis1,
+    xAxisRenderer: 'x1',
+    yAxisRenderer: 'y1',
     style: { color: '#2ecc71', barWidth: 15 }
   });
   const scatter1 = new Hd3Scatter({
     series: series4,
-    xAxis: xAxis1,
-    yAxis: yAxis1,
+    xAxisRenderer: 'x1',
+    yAxisRenderer: 'y1',
     style: { color: '#f39c12', radius: 5 }
   });
 
-  const xAxisRenderer1 = new Hd3XAxisRenderer({ axis: xAxis1, position: 'bottom' });
-  const yAxisRenderer1 = new Hd3YAxisRenderer({ axis: yAxis1, position: 'left' });
-
+  chart1.emit('addXAxisRenderer', xAxisRenderer1);
+  chart1.emit('addYAxisRenderer', yAxisRenderer1);
   chart1.emit('addRenderer', xAxisRenderer1);
   chart1.emit('addRenderer', yAxisRenderer1);
   chart1.emit('addRenderer', line1);
@@ -222,32 +233,43 @@ onMounted(() => {
     margin: { top: 20, right: 20, bottom: 40, left: 80 }
   });
 
-  const xAxis2 = new Hd3XAxis({
+  const xAxis2 = new Hd3Axis({
     name: 'x2',
-    type: 'linear',
-    domain: [0, 4 * Math.PI],
-    range: [0, chart2.innerWidth]
+    domain: [0, 4 * Math.PI]
   });
 
-  const yAxis2 = new Hd3YAxis({
+  const yAxis2 = new Hd3Axis({
     name: 'y2',
-    domain: [0.1, 100],
+    domain: [0.1, 100]
+  });
+
+  const xAxisRenderer2 = new Hd3XAxisRenderer({
+    name: 'x2',
+    axis: xAxis2,
+    scaleType: 'linear',
+    range: [0, chart2.innerWidth],
+    position: 'bottom'
+  });
+
+  const yAxisRenderer2 = new Hd3YAxisRenderer({
+    name: 'y2',
+    axis: yAxis2,
+    scaleType: 'log',
     range: [chart2.innerHeight, 0],
-    logarithmic: true,
-    logBase: 10
+    scaleOptions: { base: 10 },
+    position: 'left'
   });
 
   const series5 = new Hd3Series({ name: 'Exponential', data: expData });
   const line2 = new Hd3Line({
     series: series5,
-    xAxis: xAxis2,
-    yAxis: yAxis2,
+    xAxisRenderer: 'x2',
+    yAxisRenderer: 'y2',
     style: { color: '#9b59b6', strokeWidth: 3 }
   });
 
-  const xAxisRenderer2 = new Hd3XAxisRenderer({ axis: xAxis2, position: 'bottom' });
-  const yAxisRenderer2 = new Hd3YAxisRenderer({ axis: yAxis2, position: 'left' });
-
+  chart2.emit('addXAxisRenderer', xAxisRenderer2);
+  chart2.emit('addYAxisRenderer', yAxisRenderer2);
   chart2.emit('addRenderer', xAxisRenderer2);
   chart2.emit('addRenderer', yAxisRenderer2);
   chart2.emit('addRenderer', line2);
@@ -260,10 +282,25 @@ onMounted(() => {
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
 
-  const yAxis3 = new Hd3YAxis({
+  const yAxis3 = new Hd3Axis({
     name: 'y3',
-    domain: [-1.5, 1.5],
-    range: [chart3.innerHeight, 0]
+    domain: [-1.5, 1.5]
+  });
+
+  const xAxisRenderer3 = new Hd3XAxisRenderer({
+    name: 'x1-chart3',
+    axis: xAxis1,
+    scaleType: 'linear',
+    range: [0, chart3.innerWidth],
+    position: 'bottom'
+  });
+
+  const yAxisRenderer3 = new Hd3YAxisRenderer({
+    name: 'y3',
+    axis: yAxis3,
+    scaleType: 'linear',
+    range: [chart3.innerHeight, 0],
+    position: 'left'
   });
 
   // Create complementary series for chart 3
@@ -272,20 +309,19 @@ onMounted(() => {
 
   const line3 = new Hd3Line({
     series: series6,
-    xAxis: xAxis1,
-    yAxis: yAxis3,
+    xAxisRenderer: 'x1-chart3',
+    yAxisRenderer: 'y3',
     style: { color: '#16a085', strokeWidth: 2 }
   });
   const line4 = new Hd3Line({
     series: series7,
-    xAxis: xAxis1,
-    yAxis: yAxis3,
+    xAxisRenderer: 'x1-chart3',
+    yAxisRenderer: 'y3',
     style: { color: '#e67e22', strokeWidth: 2 }
   });
 
-  const xAxisRenderer3 = new Hd3XAxisRenderer({ axis: xAxis1, position: 'bottom' });
-  const yAxisRenderer3 = new Hd3YAxisRenderer({ axis: yAxis3, position: 'left' });
-
+  chart3.emit('addXAxisRenderer', xAxisRenderer3);
+  chart3.emit('addYAxisRenderer', yAxisRenderer3);
   chart3.emit('addRenderer', xAxisRenderer3);
   chart3.emit('addRenderer', yAxisRenderer3);
   chart3.emit('addRenderer', line3);
@@ -308,30 +344,30 @@ onMounted(() => {
   toolState = new Hd3ToolState();
 
   // Tools for chart 1
-  new Hd3PanTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ZoomToSelectionTool({ chart: chart1, interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis1], y: [yAxis1] } });
+  new Hd3PanTool({ interactionArea: interactionArea1, toolState, axisRenderers: { x: [xAxisRenderer1], y: [yAxisRenderer1] } });
+  new Hd3ZoomTool({ interactionArea: interactionArea1, toolState, axisRenderers: { x: [xAxisRenderer1], y: [yAxisRenderer1] } });
+  new Hd3ZoomToSelectionTool({ chart: chart1, interactionArea: interactionArea1, toolState, axisRenderers: { x: [xAxisRenderer1], y: [yAxisRenderer1] } });
+  new Hd3ResetTool({ toolState, axisRenderers: { x: [xAxisRenderer1], y: [yAxisRenderer1] } });
 
   // Tools for chart 2
-  new Hd3PanTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ZoomToSelectionTool({ chart: chart2, interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis2], y: [yAxis2] } });
+  new Hd3PanTool({ interactionArea: interactionArea2, toolState, axisRenderers: { x: [xAxisRenderer2], y: [yAxisRenderer2] } });
+  new Hd3ZoomTool({ interactionArea: interactionArea2, toolState, axisRenderers: { x: [xAxisRenderer2], y: [yAxisRenderer2] } });
+  new Hd3ZoomToSelectionTool({ chart: chart2, interactionArea: interactionArea2, toolState, axisRenderers: { x: [xAxisRenderer2], y: [yAxisRenderer2] } });
+  new Hd3ResetTool({ toolState, axisRenderers: { x: [xAxisRenderer2], y: [yAxisRenderer2] } });
 
   // Tools for chart 3
-  new Hd3PanTool({ interactionArea: interactionArea3, toolState, axes: { x: [xAxis1], y: [yAxis3] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea3, toolState, axes: { x: [xAxis1], y: [yAxis3] } });
-  new Hd3ZoomToSelectionTool({ chart: chart3, interactionArea: interactionArea3, toolState, axes: { x: [xAxis1], y: [yAxis3] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis1], y: [yAxis3] } });
+  new Hd3PanTool({ interactionArea: interactionArea3, toolState, axisRenderers: { x: [xAxisRenderer3], y: [yAxisRenderer3] } });
+  new Hd3ZoomTool({ interactionArea: interactionArea3, toolState, axisRenderers: { x: [xAxisRenderer3], y: [yAxisRenderer3] } });
+  new Hd3ZoomToSelectionTool({ chart: chart3, interactionArea: interactionArea3, toolState, axisRenderers: { x: [xAxisRenderer3], y: [yAxisRenderer3] } });
+  new Hd3ResetTool({ toolState, axisRenderers: { x: [xAxisRenderer3], y: [yAxisRenderer3] } });
 
   // Tooltip for chart 1
   const tooltipManager1 = new Hd3TooltipManager({
     chart: chart1,
     interactionArea: interactionArea1,
     series: [series1, series2, series3, series4],
-    xAxis: xAxis1,
-    yAxis: yAxis1
+    xAxisRenderer: xAxisRenderer1,
+    yAxisRenderer: yAxisRenderer1
   });
 
   tooltipManager1.on('show', (data: any) => {
@@ -351,8 +387,8 @@ onMounted(() => {
     chart: chart2,
     interactionArea: interactionArea2,
     series: [series5],
-    xAxis: xAxis2,
-    yAxis: yAxis2
+    xAxisRenderer: xAxisRenderer2,
+    yAxisRenderer: yAxisRenderer2
   });
 
   tooltipManager2.on('show', (data: any) => {
@@ -372,8 +408,8 @@ onMounted(() => {
     chart: chart3,
     interactionArea: interactionArea3,
     series: [series6, series7],
-    xAxis: xAxis1,
-    yAxis: yAxis3
+    xAxisRenderer: xAxisRenderer3,
+    yAxisRenderer: yAxisRenderer3
   });
 
   tooltipManager3.on('show', (data: any) => {
