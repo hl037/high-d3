@@ -57,9 +57,9 @@ export class Hd3AxisManager {
   }
 
   private handleGetAxes(callback: unknown): void {
-    if (callback && typeof callback === 'object' && 'setAxes' in callback) {
-      const cb = callback as GetAxesCallback;
-      cb.setAxes(this.getAxesState());
+    if (callback && typeof callback === 'object' && 'setAxisManager' in callback) {
+      const cb = callback as { setAxisManager: (manager: Hd3AxisManager) => void };
+      cb.setAxisManager(this);
     }
   }
 
@@ -87,6 +87,14 @@ export class Hd3AxisManager {
   }
 
   getYAxisByName(name: string): Hd3YAxis | undefined {
+    return this.yAxes.get(name);
+  }
+
+  getXAxis(name: string): Hd3XAxis | undefined {
+    return this.xAxes.get(name);
+  }
+
+  getYAxis(name: string): Hd3YAxis | undefined {
     return this.yAxes.get(name);
   }
 

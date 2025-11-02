@@ -3,6 +3,7 @@ import { Hd3SeriesRenderer } from './Hd3SeriesRenderer';
 import type { Hd3Series } from './Hd3Series';
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
+import type { Hd3Bus } from '../bus/Hd3Bus';
 
 export interface Hd3BarsStyle {
   color?: string;
@@ -13,6 +14,7 @@ export interface Hd3BarsOptions {
   series: Hd3Series;
   xAxis?: Hd3XAxis | string;
   yAxis?: Hd3YAxis | string;
+  buses?: Hd3Bus[];
   style?: Hd3BarsStyle;
 }
 
@@ -27,6 +29,7 @@ export class Hd3Bars extends Hd3SeriesRenderer {
       series: options.series,
       xAxis: options.xAxis,
       yAxis: options.yAxis,
+      buses: options.buses,
       style: {
         color: options.style?.color
       }

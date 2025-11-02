@@ -25,6 +25,7 @@ export { Hd3Axis, type Hd3AxisOptions } from './axis/Hd3Axis';
 export { Hd3XAxis, type Hd3XAxisOptions } from './axis/Hd3XAxis';
 export { Hd3YAxis, type Hd3YAxisOptions } from './axis/Hd3YAxis';
 export { scaleFactory, type ScaleType, type D3Scale, type ScaleFactoryOptions } from './axis/scaleFactory';
+export { Hd3AxesDiscovery } from './axis/Hd3AxesDiscovery';
 
 // Series
 export { Hd3Series, type Hd3SeriesOptions } from './series/Hd3Series';
@@ -35,7 +36,7 @@ export { Hd3Bars, type Hd3BarsOptions, type Hd3BarsStyle } from './series/Hd3Bar
 export { Hd3Scatter, type Hd3ScatterOptions, type Hd3ScatterStyle } from './series/Hd3Scatter';
 
 // Interaction
-export { Hd3InteractionArea } from './interaction/Hd3InteractionArea';
+export { Hd3InteractionArea, type Hd3InteractionAreaOptions, type MouseEventData, type DomainEventData } from './interaction/Hd3InteractionArea';
 export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
 export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
 export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';

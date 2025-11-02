@@ -1,111 +1,112 @@
-import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxis } from '../../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../../axis/Hd3YAxis';
-import type { Hd3AxisDomain } from '../../axis/Hd3Axis';
+import type { Hd3Bus } from '../../bus/Hd3Bus';
+import type { Hd3Axis } from '../../axis/Hd3Axis';
+import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
+import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+import type { DomainEventData } from '../Hd3InteractionArea';
 
 export interface Hd3ZoomToolOptions {
-  interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  axes?: (Hd3Axis | string)[];
+  buses?: Hd3Bus[];
+  zoomFactor?: number;
 }
 
-/**
- * Zoom tool for zooming in/out with mouse wheel or click.
- */
 export class Hd3ZoomTool {
-  private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
-  private zoomInActive: boolean = false;
-  private zoomOutActive: boolean = false;
+  private axesDiscovery: Hd3AxesDiscovery;
+  private zoomFactor: number;
+  private activeMode: 'zoom-in' | 'zoom-out' | null = null;
   private toolStateBusEndpoint: Hd3BusEndpoint;
-  private interactionBusEndpoint: Hd3BusEndpoint;
+  private domainBusEndpoints: Map<Hd3AxisDomain, Hd3BusEndpoint> = new Map();
 
   constructor(options: Hd3ZoomToolOptions) {
-    this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axes = options.axes;
+    this.axesDiscovery = new Hd3AxesDiscovery(options.axes || [], options.buses || []);
+    this.zoomFactor = options.zoomFactor || 0.1;
 
-    // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
       listeners: {
         toolChanged: (data: unknown) => {
           const change = data as { old: string; new: string };
-          this.zoomInActive = change.new === 'zoom-in';
-          this.zoomOutActive = change.new === 'zoom-out';
+          this.activeMode = (change.new === 'zoom-in' || change.new === 'zoom-out') ? change.new : null;
         }
       }
     });
     this.toolStateBusEndpoint.bus = this.toolState.getBus();
 
-    // Connect to interaction bus
-    this.interactionBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        wheel: (data: unknown) => this.handleWheel(data),
-        mousedown: (data: unknown) => this.handleClick(data)
-      }
-    });
-    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
+    this.setupAxisListeners();
   }
 
-  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
-    return (renderer as any).axis as Hd3AxisDomain;
-  }
-
-  private handleWheel(data: unknown): void {
-    const wheelData = data as { x: number; y: number; delta: number };
-    const zoomFactor = wheelData.delta > 0 ? 1.1 : 0.9;
-    this.zoom(wheelData.x, wheelData.y, zoomFactor);
-  }
-
-  private handleClick(data: unknown): void {
-    if (!this.zoomInActive && !this.zoomOutActive) return;
-
-    const clickData = data as { x: number; y: number };
-    const zoomFactor = this.zoomInActive ? 0.8 : 1.25;
-    this.zoom(clickData.x, clickData.y, zoomFactor);
-  }
-
-  private zoom(centerX: number, centerY: number, factor: number): void {
-    // Zoom X axes
-    for (const xAxis of this.axes.x) {
-      const axis = this.getAxis(xAxis);
-      const domain = axis.domain as [number, number];
-      const scale = xAxis.scale as { invert: (x: number) => number };
-      const centerValue = scale.invert(centerX);
+  private setupAxisListeners(): void {
+    const axes = this.axesDiscovery.getAxes();
+    
+    for (const axis of axes) {
+      const axisDomain = axis.getAxisDomain();
       
-      const domainWidth = domain[1] - domain[0];
-      const newWidth = domainWidth * factor;
-      const leftRatio = (centerValue - domain[0]) / domainWidth;
-      
-      axis.domain = [
-        centerValue - newWidth * leftRatio,
-        centerValue + newWidth * (1 - leftRatio)
-      ];
+      const endpoint = new Hd3BusEndpoint({
+        listeners: {
+          wheel: (data: unknown) => this.handleWheel(axisDomain, data),
+          mousedown: (data: unknown) => this.handleMouseDown(axisDomain, data)
+        }
+      });
+      endpoint.bus = axisDomain.getBus();
+      this.domainBusEndpoints.set(axisDomain, endpoint);
     }
+  }
 
-    // Zoom Y axes
-    for (const yAxis of this.axes.y) {
-      const axis = this.getAxis(yAxis);
-      const domain = axis.domain as [number, number];
-      const scale = yAxis.scale as { invert: (y: number) => number };
-      const centerValue = scale.invert(centerY);
-      
-      const domainHeight = domain[1] - domain[0];
-      const newHeight = domainHeight * factor;
-      const bottomRatio = (centerValue - domain[0]) / domainHeight;
-      
-      axis.domain = [
-        centerValue - newHeight * bottomRatio,
-        centerValue + newHeight * (1 - bottomRatio)
-      ];
-    }
+  private handleWheel(axisDomain: Hd3AxisDomain, data: unknown): void {
+    if (!this.activeMode) return;
+    
+    const eventData = data as DomainEventData & { delta?: number };
+    const domain = axisDomain.domain;
+    
+    if (!Array.isArray(domain) || domain.length !== 2) return;
+    if (typeof domain[0] !== 'number' || typeof domain[1] !== 'number') return;
+    
+    const delta = eventData.delta || 0;
+    const zoomIn = delta < 0;
+    const factor = zoomIn ? (1 - this.zoomFactor) : (1 + this.zoomFactor);
+    
+    const centerValue = eventData.value as number;
+    const min = domain[0];
+    const max = domain[1];
+    
+    const newMin = centerValue - (centerValue - min) * factor;
+    const newMax = centerValue + (max - centerValue) * factor;
+    
+    axisDomain.domain = [newMin, newMax];
+  }
+
+  private handleMouseDown(axisDomain: Hd3AxisDomain, data: unknown): void {
+    if (!this.activeMode) return;
+    
+    const eventData = data as DomainEventData;
+    const domain = axisDomain.domain;
+    
+    if (!Array.isArray(domain) || domain.length !== 2) return;
+    if (typeof domain[0] !== 'number' || typeof domain[1] !== 'number') return;
+    
+    const zoomIn = this.activeMode === 'zoom-in';
+    const factor = zoomIn ? (1 - this.zoomFactor) : (1 + this.zoomFactor);
+    
+    const centerValue = eventData.value as number;
+    const min = domain[0];
+    const max = domain[1];
+    
+    const newMin = centerValue - (centerValue - min) * factor;
+    const newMax = centerValue + (max - centerValue) * factor;
+    
+    axisDomain.domain = [newMin, newMax];
   }
 
   destroy(): void {
     this.toolStateBusEndpoint.destroy();
-    this.interactionBusEndpoint.destroy();
+    for (const endpoint of this.domainBusEndpoints.values()) {
+      endpoint.destroy();
+    }
+    this.domainBusEndpoints.clear();
+    this.axesDiscovery.destroy();
   }
 }

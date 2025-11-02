@@ -251,24 +251,28 @@ onMounted(() => {
     series: series1,
     xAxis: 'x1',
     yAxis: 'y1',
+    buses: [chart1],
     style: { color: '#e74c3c', strokeWidth: 2 }
   });
   const area1 = new Hd3Area({
     series: series2,
     xAxis: 'x1',
     yAxis: 'y1',
+    buses: [chart1],
     style: { color: '#3498db', opacity: 0.3 }
   });
   const bars1 = new Hd3Bars({
     series: series3,
     xAxis: 'x1',
     yAxis: 'y1',
+    buses: [chart1],
     style: { color: '#2ecc71', barWidth: 15 }
   });
   const scatter1 = new Hd3Scatter({
     series: series4,
     xAxis: 'x1',
     yAxis: 'y1',
+    buses: [chart1],
     style: { color: '#f39c12', radius: 5 }
   });
 
@@ -333,6 +337,7 @@ onMounted(() => {
     series: series5,
     xAxis: 'x2',
     yAxis: 'y2',
+    buses: [chart2],
     style: { color: '#9b59b6', strokeWidth: 3 }
   });
 
@@ -406,44 +411,52 @@ onMounted(() => {
   chart3.emit('addSeries', series7);
 
   // Interaction setup
-  const interactionArea1 = new Hd3InteractionArea();
-  const interactionArea2 = new Hd3InteractionArea();
+  const interactionArea1 = new Hd3InteractionArea({
+    axes: [xAxis1, yAxis1],
+    buses: [chart1]
+  });
+  const interactionArea2 = new Hd3InteractionArea({
+    axes: [xAxis2, yAxis2],
+    buses: [chart2]
+  });
   
   chart1.emit('addRenderer', interactionArea1);
   chart2.emit('addRenderer', interactionArea2);
   
   // Chart 3 shares the same interaction area as Chart 1 (synchronized)
   // We create a separate interaction area but connect it to the same tool state
-  const interactionArea3 = new Hd3InteractionArea();
+  const interactionArea3 = new Hd3InteractionArea({
+    axes: [xAxis3, yAxis3],
+    buses: [chart3]
+  });
   chart3.emit('addRenderer', interactionArea3);
 
   toolState = new Hd3ToolState();
 
   // Tools for chart 1
-  new Hd3PanTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ZoomToSelectionTool({ chart: chart1, interactionArea: interactionArea1, toolState, axes: { x: [xAxis1], y: [yAxis1] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis1], y: [yAxis1] } });
+  new Hd3PanTool({ toolState, axes: [xAxis1, yAxis1], buses: [chart1] });
+  new Hd3ZoomTool({ toolState, axes: [xAxis1, yAxis1], buses: [chart1] });
+  new Hd3ZoomToSelectionTool({ chart: chart1, interactionArea: interactionArea1, toolState, axes: [xAxis1, yAxis1], buses: [chart1] });
+  new Hd3ResetTool({ toolState, axes: [xAxis1, yAxis1], buses: [chart1] });
 
   // Tools for chart 2
-  new Hd3PanTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ZoomToSelectionTool({ chart: chart2, interactionArea: interactionArea2, toolState, axes: { x: [xAxis2], y: [yAxis2] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis2], y: [yAxis2] } });
+  new Hd3PanTool({ toolState, axes: [xAxis2, yAxis2], buses: [chart2] });
+  new Hd3ZoomTool({ toolState, axes: [xAxis2, yAxis2], buses: [chart2] });
+  new Hd3ZoomToSelectionTool({ chart: chart2, interactionArea: interactionArea2, toolState, axes: [xAxis2, yAxis2], buses: [chart2] });
+  new Hd3ResetTool({ toolState, axes: [xAxis2, yAxis2], buses: [chart2] });
 
   // Tools for chart 3
-  new Hd3PanTool({ interactionArea: interactionArea3, toolState, axes: { x: [xAxis3], y: [yAxis3] } });
-  new Hd3ZoomTool({ interactionArea: interactionArea3, toolState, axes: { x: [xAxis3], y: [yAxis3] } });
-  new Hd3ZoomToSelectionTool({ chart: chart3, interactionArea: interactionArea3, toolState, axes: { x: [xAxis3], y: [yAxis3] } });
-  new Hd3ResetTool({ toolState, axes: { x: [xAxis3], y: [yAxis3] } });
+  new Hd3PanTool({ toolState, axes: [xAxis3, yAxis3], buses: [chart3] });
+  new Hd3ZoomTool({ toolState, axes: [xAxis3, yAxis3], buses: [chart3] });
+  new Hd3ZoomToSelectionTool({ chart: chart3, interactionArea: interactionArea3, toolState, axes: [xAxis3, yAxis3], buses: [chart3] });
+  new Hd3ResetTool({ toolState, axes: [xAxis3, yAxis3], buses: [chart3] });
 
   // Tooltip for chart 1
   const tooltipManager1 = new Hd3TooltipManager({
     chart: chart1,
-    interactionArea: interactionArea1,
     series: [series1, series2, series3, series4],
-    xAxis: xAxis1,
-    yAxis: yAxis1
+    axes: [xAxis1, yAxis1],
+    buses: [chart1]
   });
 
   tooltipManager1.on('show', (data: any) => {
@@ -461,10 +474,9 @@ onMounted(() => {
   // Tooltip for chart 2
   const tooltipManager2 = new Hd3TooltipManager({
     chart: chart2,
-    interactionArea: interactionArea2,
     series: [series5],
-    xAxis: xAxis2,
-    yAxis: yAxis2
+    axes: [xAxis2, yAxis2],
+    buses: [chart2]
   });
 
   tooltipManager2.on('show', (data: any) => {
@@ -482,10 +494,9 @@ onMounted(() => {
   // Tooltip for chart 3 (synchronized with chart 1 via shared interaction bus)
   const tooltipManager3 = new Hd3TooltipManager({
     chart: chart3,
-    interactionArea: interactionArea3,
     series: [series6, series7],
-    xAxis: xAxis3,
-    yAxis: yAxis3
+    axes: [xAxis3, yAxis3],
+    buses: [chart3]
   });
 
   tooltipManager3.on('show', (data: any) => {
@@ -503,10 +514,9 @@ onMounted(() => {
 
   // Cursor indicators
   const cursor1 = new Hd3CursorIndicator({
-    interactionArea: interactionArea1,
     series: [series1, series2, series3, series4],
-    xAxis: xAxis1,
-    yAxis: yAxis1,
+    axes: [xAxis1, yAxis1],
+    buses: [chart1],
     showCrossX: cursorOptions.value.showCrossX,
     showCrossY: cursorOptions.value.showCrossY,
     showAxisLabels: cursorOptions.value.showAxisLabels,
@@ -515,10 +525,9 @@ onMounted(() => {
   chart1.emit('addRenderer', cursor1);
 
   const cursor2 = new Hd3CursorIndicator({
-    interactionArea: interactionArea2,
     series: [series5],
-    xAxis: xAxis2,
-    yAxis: yAxis2,
+    axes: [xAxis2, yAxis2],
+    buses: [chart2],
     showCrossX: cursorOptions.value.showCrossX,
     showCrossY: cursorOptions.value.showCrossY,
     showAxisLabels: cursorOptions.value.showAxisLabels,
@@ -527,10 +536,9 @@ onMounted(() => {
   chart2.emit('addRenderer', cursor2);
 
   const cursor3 = new Hd3CursorIndicator({
-    interactionArea: interactionArea3,
     series: [series6, series7],
-    xAxis: xAxis3,
-    yAxis: yAxis3,
+    axes: [xAxis3, yAxis3],
+    buses: [chart3],
     showCrossX: cursorOptions.value.showCrossX,
     showCrossY: cursorOptions.value.showCrossY,
     showAxisLabels: cursorOptions.value.showAxisLabels,

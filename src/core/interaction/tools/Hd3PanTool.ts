@@ -1,34 +1,29 @@
-import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxis } from '../../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../../axis/Hd3YAxis';
+import type { Hd3Bus } from '../../bus/Hd3Bus';
+import type { Hd3Axis } from '../../axis/Hd3Axis';
 import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
+import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+import type { DomainEventData } from '../Hd3InteractionArea';
 
 export interface Hd3PanToolOptions {
-  interactionArea: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  axes?: (Hd3Axis | string)[];
+  buses?: Hd3Bus[];
 }
 
-/**
- * Pan tool for dragging the chart view.
- */
 export class Hd3PanTool {
-  private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  private axesDiscovery: Hd3AxesDiscovery;
   private isActive: boolean = false;
-  private initialDomains: Map<string, [number | Date | string, number | Date | string] | string[]> | null = null;
+  private initialDomains: Map<Hd3AxisDomain, [number | Date | string, number | Date | string] | string[]> = new Map();
   private toolStateBusEndpoint: Hd3BusEndpoint;
-  private interactionBusEndpoint: Hd3BusEndpoint;
+  private domainBusEndpoints: Map<Hd3AxisDomain, Hd3BusEndpoint> = new Map();
 
   constructor(options: Hd3PanToolOptions) {
-    this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axes = options.axes;
+    this.axesDiscovery = new Hd3AxesDiscovery(options.axes || [], options.buses || []);
 
-    // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
       listeners: {
         toolChanged: (data: unknown) => {
@@ -39,84 +34,84 @@ export class Hd3PanTool {
     });
     this.toolStateBusEndpoint.bus = this.toolState.getBus();
 
-    // Connect to interaction bus
-    this.interactionBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        mousedown: () => this.handleMouseDown(),
-        drag: (data: unknown) => this.handleDrag(data),
-        dragend: () => this.handleDragEnd()
-      }
-    });
-    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
+    this.setupAxisListeners();
   }
 
-  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
-    return (renderer as any).axis as Hd3AxisDomain;
+  private setupAxisListeners(): void {
+    const axes = this.axesDiscovery.getAxes();
+    
+    for (const axis of axes) {
+      const axisDomain = axis.getAxisDomain();
+      
+      const endpoint = new Hd3BusEndpoint({
+        listeners: {
+          mousedown: () => this.handleMouseDown(axisDomain),
+          drag: (data: unknown) => this.handleDrag(axisDomain, data),
+          dragend: () => this.handleDragEnd(axisDomain)
+        }
+      });
+      endpoint.bus = axisDomain.getBus();
+      this.domainBusEndpoints.set(axisDomain, endpoint);
+    }
   }
 
-  private handleMouseDown(): void {
+  private handleMouseDown(axisDomain: Hd3AxisDomain): void {
     if (!this.isActive) return;
-
-    // Store initial domains
-    this.initialDomains = new Map();
-    for (const xAxis of this.axes.x) {
-      const axis = this.getAxis(xAxis);
-      this.initialDomains.set(`x-${xAxis.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
-    }
-    for (const yAxis of this.axes.y) {
-      const axis = this.getAxis(yAxis);
-      this.initialDomains.set(`y-${yAxis.name}`, Array.isArray(axis.domain) ? [...axis.domain] : axis.domain);
-    }
+    
+    const domain = axisDomain.domain;
+    this.initialDomains.set(
+      axisDomain, 
+      Array.isArray(domain) ? [...domain] : domain
+    );
   }
 
-  private handleDrag(data: unknown): void {
-    if (!this.isActive || !this.initialDomains) return;
-
-    const dragData = data as { dx: number; dy: number };
-
-    // Pan X axes
-    for (const xAxis of this.axes.x) {
-      const axis = this.getAxis(xAxis);
-      const initialDomain = this.initialDomains.get(`x-${xAxis.name}`) as [number, number];
-      if (!initialDomain) continue;
-
-      const scale = xAxis.scale as any;
-      const dx = dragData.dx;
-      
-      const minPixel = scale(initialDomain[0]);
-      const maxPixel = scale(initialDomain[1]);
-      
-      const newMinPixel = minPixel - dx;
-      const newMaxPixel = maxPixel - dx;
-      
-      axis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
-    }
-
-    // Pan Y axes
-    for (const yAxis of this.axes.y) {
-      const axis = this.getAxis(yAxis);
-      const initialDomain = this.initialDomains.get(`y-${yAxis.name}`) as [number, number];
-      if (!initialDomain) continue;
-
-      const scale = yAxis.scale as any;
-      const dy = dragData.dy;
-      
-      const minPixel = scale(initialDomain[0]);
-      const maxPixel = scale(initialDomain[1]);
-      
-      const newMinPixel = minPixel - dy;
-      const newMaxPixel = maxPixel - dy;
-      
-      axis.domain = [scale.invert(newMinPixel), scale.invert(newMaxPixel)];
-    }
+  private handleDrag(axisDomain: Hd3AxisDomain, data: unknown): void {
+    if (!this.isActive) return;
+    
+    const eventData = data as DomainEventData & { startX?: number; startY?: number };
+    const initialDomain = this.initialDomains.get(axisDomain);
+    
+    if (!initialDomain || !Array.isArray(initialDomain)) return;
+    
+    const axis = this.findAxisForDomain(axisDomain);
+    if (!axis) return;
+    
+    const orientation = axis.getOrientation();
+    const startPixel = orientation === 'x' ? eventData.startX : eventData.startY;
+    
+    if (startPixel === undefined) return;
+    
+    const scale = axis.scale as { invert?: (value: number) => number | Date };
+    if (!scale.invert) return;
+    
+    const startValue = scale.invert(startPixel);
+    const currentValue = eventData.value;
+    
+    if (typeof startValue !== 'number' || typeof currentValue !== 'number') return;
+    
+    const delta = currentValue - startValue;
+    
+    axisDomain.domain = [
+      (initialDomain[0] as number) - delta,
+      (initialDomain[1] as number) - delta
+    ];
   }
 
-  private handleDragEnd(): void {
-    this.initialDomains = null;
+  private handleDragEnd(axisDomain: Hd3AxisDomain): void {
+    this.initialDomains.delete(axisDomain);
+  }
+
+  private findAxisForDomain(axisDomain: Hd3AxisDomain): Hd3Axis | undefined {
+    const axes = this.axesDiscovery.getAxes();
+    return axes.find(axis => axis.getAxisDomain() === axisDomain);
   }
 
   destroy(): void {
     this.toolStateBusEndpoint.destroy();
-    this.interactionBusEndpoint.destroy();
+    for (const endpoint of this.domainBusEndpoints.values()) {
+      endpoint.destroy();
+    }
+    this.domainBusEndpoints.clear();
+    this.axesDiscovery.destroy();
   }
 }

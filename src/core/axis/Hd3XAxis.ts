@@ -102,6 +102,10 @@ export class Hd3XAxis extends Hd3Axis {
     }
   }
 
+  public getOrientation(): 'x' | 'y' {
+    return 'x';
+  }
+
   destroy(): void {
     super.destroy();
     if (this.group) {

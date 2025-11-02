@@ -93,9 +93,14 @@ export abstract class Hd3Axis implements RenderableI {
     this.doRender(chart);
   }
 
+  public getAxisDomain(): Hd3AxisDomain {
+    return this.axis;
+  }
+
   protected abstract doRender(chart: Hd3Chart): void;
   protected abstract updateRender(): void;
   protected abstract setVisible(visible: boolean): void;
+  public abstract getOrientation(): 'x' | 'y';
 
   destroy(): void {
     this.axisBusEndpoint?.destroy();
