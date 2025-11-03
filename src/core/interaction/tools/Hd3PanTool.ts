@@ -70,8 +70,8 @@ export class Hd3PanTool {
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
       const axisDomain = this.getAxis(axis);
-      const name = (axis as any).name;
-      this.initialDomains.set(name, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
+      const domainName = axisDomain.name;
+      this.initialDomains.set(domainName, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
     }
   }
 
@@ -85,13 +85,13 @@ export class Hd3PanTool {
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
       const axisDomain = this.getAxis(axis);
-      const name = (axis as any).name;
-      const initialDomain = this.initialDomains.get(name);
+      const domainName = axisDomain.name;
+      const initialDomain = this.initialDomains.get(domainName);
       
       if (!initialDomain || !Array.isArray(initialDomain)) continue;
       
-      const currentValue = dragData.mappedCoords[name];
-      const startValue = dragData.startMappedCoords[name];
+      const currentValue = dragData.mappedCoords[domainName];
+      const startValue = dragData.startMappedCoords[domainName];
       
       if (currentValue === undefined || startValue === undefined) continue;
       

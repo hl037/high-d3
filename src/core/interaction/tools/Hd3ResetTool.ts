@@ -33,8 +33,8 @@ export class Hd3ResetTool {
       const axes = this.axisDiscovery.getAxes();
       for (const axis of axes) {
         const axisDomain = this.getAxis(axis);
-        const name = (axis as any).name;
-        this.originalDomains.set(name, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
+        const domainName = axisDomain.name;
+        this.originalDomains.set(domainName, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
       }
     }
 
@@ -66,8 +66,8 @@ export class Hd3ResetTool {
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
       const axisDomain = this.getAxis(axis);
-      const name = (axis as any).name;
-      const original = this.originalDomains.get(name);
+      const domainName = axisDomain.name;
+      const original = this.originalDomains.get(domainName);
       if (original) {
         axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
       }

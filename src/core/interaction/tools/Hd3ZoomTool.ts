@@ -82,8 +82,8 @@ export class Hd3ZoomTool {
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
       const axisDomain = this.getAxis(axis);
-      const name = (axis as any).name;
-      const centerValue = mappedCoords[name];
+      const domainName = axisDomain.name;
+      const centerValue = mappedCoords[domainName];
       
       if (centerValue === undefined) continue;
       

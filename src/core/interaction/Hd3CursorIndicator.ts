@@ -225,20 +225,22 @@ export class Hd3CursorIndicator implements RenderableI {
     if (this.xLabelGroup) this.xLabelGroup.style('display', null);
     if (this.yLabelGroup) this.yLabelGroup.style('display', null);
 
-    let finalX = mouseData.x;
-    let finalY = mouseData.y;
     let xValue: number | undefined;
     let yValue: number | undefined;
 
-    // Try to use mapped coordinates first
+    // Try to use mapped coordinates first (using domain names)
     if (mouseData.mappedCoords && this.xAxis && this.yAxis) {
-      const xName = (this.xAxis as any).name;
-      const yName = (this.yAxis as any).name;
-      xValue = mouseData.mappedCoords[xName];
-      yValue = mouseData.mappedCoords[yName];
+      const xDomainName = (this.xAxis as any).axis?.name;
+      const yDomainName = (this.yAxis as any).axis?.name;
+      if (xDomainName) {
+        xValue = mouseData.mappedCoords[xDomainName];
+      }
+      if (yDomainName) {
+        yValue = mouseData.mappedCoords[yDomainName];
+      }
     }
 
-    // Fallback to scale inversion
+    // Fallback to scale inversion (using local chart coordinates)
     if (xValue === undefined && this.xAxis?.scale?.invert) {
       xValue = this.xAxis.scale.invert(mouseData.x);
     }
@@ -246,12 +248,20 @@ export class Hd3CursorIndicator implements RenderableI {
       yValue = this.yAxis.scale.invert(mouseData.y);
     }
 
-    // Center if no coordinate
-    if (yValue === undefined) {
-      finalY = this.chart.innerHeight / 2;
-    }
-    if (xValue === undefined) {
+    // Reconstruct pixel coordinates using this chart's scales
+    let finalX: number;
+    let finalY: number;
+    
+    if (xValue !== undefined && this.xAxis?.scale) {
+      finalX = this.xAxis.scale(xValue as any);
+    } else {
       finalX = this.chart.innerWidth / 2;
+    }
+    
+    if (yValue !== undefined && this.yAxis?.scale) {
+      finalY = this.yAxis.scale(yValue as any);
+    } else {
+      finalY = this.chart.innerHeight / 2;
     }
 
     // Update cross lines

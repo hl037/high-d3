@@ -153,14 +153,15 @@ export class Hd3InteractionArea implements RenderableI {
     
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
-      if (axis && 'scale' in axis && 'name' in axis) {
+      if (axis && 'scale' in axis && 'axis' in axis) {
         const scale = (axis as any).scale;
-        if (scale && scale.invert) {
-          const axisName = (axis as any).name;
+        const axisDomain = (axis as any).axis;
+        if (scale && scale.invert && axisDomain && 'name' in axisDomain) {
+          const domainName = axisDomain.name;
           // Determine if this is an X or Y axis by checking constructor name
           const isXAxis = (axis as any).constructor.name === 'Hd3XAxis';
           const value = isXAxis ? x : y;
-          mapped[axisName] = scale.invert(value);
+          mapped[domainName] = scale.invert(value);
         }
       }
     }

@@ -125,9 +125,9 @@ export class Hd3ZoomToSelectionTool {
     const axes = this.axisDiscovery.getAxes();
     for (const axis of axes) {
       const axisDomain = this.getAxis(axis);
-      const name = (axis as any).name;
-      const start = dragData.startMappedCoords[name];
-      const end = dragData.mappedCoords[name];
+      const domainName = axisDomain.name;
+      const start = dragData.startMappedCoords[domainName];
+      const end = dragData.mappedCoords[domainName];
       
       if (start === undefined || end === undefined) continue;
       

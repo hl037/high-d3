@@ -448,6 +448,7 @@ onMounted(() => {
 
   // Bridge for synchronizing chart 1 and 3 interactions
   new Hd3BusBridge({
+    events: ['mousedown', 'mousemove', 'drag', 'dragend', 'mouseleave', 'mouseenter', 'wheel'],
     buses: [
       [chart1.getBus()],
       [chart3.getBus()]
