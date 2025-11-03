@@ -38,21 +38,40 @@ export class Hd3AxesDiscovery {
     for (const bus of this.buses) {
       const endpoint = new Hd3BusEndpoint({
         listeners: {
-          getAxes: (callback: unknown) => {
-            this.setAxisManager(callback as Hd3AxisManager);
+          addAxisManager: (manager: unknown) => {
+            this.handleAddAxisManager(manager as Hd3AxisManager);
+          },
+          removeAxisManager: (manager: unknown) => {
+            this.handleRemoveAxisManager(manager as Hd3AxisManager);
           }
         }
       });
       endpoint.bus = bus;
       this.busEndpoints.push(endpoint);
 
-      bus.emit('getAxes', this);
+      bus.emit('getAxisManager', this);
     }
   }
 
-  private setAxisManager(manager: Hd3AxisManager): void {
+  setAxisManager(manager: Hd3AxisManager): void {
     if (!this.discoveredManagers.includes(manager)) {
       this.discoveredManagers.push(manager);
+    }
+  }
+
+  private handleAddAxisManager(manager: Hd3AxisManager): void {
+    // Refresh the manager reference
+    const index = this.discoveredManagers.findIndex(m => m === manager);
+    if (index < 0) {
+      this.discoveredManagers.push(manager);
+    }
+  }
+  
+  private handleRemoveAxisManager(manager: Hd3AxisManager): void {
+    // Refresh the manager reference
+    const index = this.discoveredManagers.findIndex(m => m === manager);
+    if (index >= 0) {
+      this.discoveredManagers.splice(index, 1);
     }
   }
 

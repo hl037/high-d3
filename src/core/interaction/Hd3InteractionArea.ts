@@ -1,32 +1,64 @@
 import * as d3 from 'd3';
 import type { Hd3Chart } from '../chart/Hd3Chart';
-import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
+import type { Hd3Bus } from '../bus/Hd3Bus';
+import type { Hd3Axis } from '../axis/Hd3Axis';
 import type { RenderableI } from '../interfaces/RenderableI';
+import { Hd3AxesDiscovery } from '../axis/Hd3AxesDiscovery';
+import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface MouseEventData {
   x: number;
   y: number;
   event: MouseEvent;
+  mappedCoords?: Record<string, number>;
+}
+
+export interface Hd3InteractionAreaOptions {
+  axes?: (Hd3Axis | string)[];
+  charts?: Hd3Bus[];
 }
 
 /**
- * Interaction area that captures mouse events and emits them on a dedicated bus.
+ * Interaction area that captures mouse events and emits them on the chart bus.
  */
 export class Hd3InteractionArea implements RenderableI {
-  private bus: Hd3Bus;
   private rect?: d3.Selection<SVGRectElement, unknown, null, undefined>;
   private isDragging: boolean = false;
-  private dragStart?: { x: number; y: number };
+  private dragStart?: { x: number; y: number; mappedCoords?: Record<string, number> };
+  private chart?: Hd3Chart;
+  private axisDiscovery?: Hd3AxesDiscovery;
 
-  constructor() {
-    this.bus = createHd3Bus();
+  constructor(options: Hd3InteractionAreaOptions = {}) {
+    if (options.axes !== undefined || options.charts !== undefined) {
+      const charts = options.charts || [];
+      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
+    }
   }
 
   render(chart: Hd3Chart): void {
+    this.chart = chart;
     const mainGroup = chart.getMainGroup();
     
     if (this.rect) {
       this.rect.remove();
+    }
+
+    // Add chart to discovery if not already there
+    if (this.axisDiscovery && !this.axisDiscovery['buses'].includes(chart.getBus())) {
+      this.axisDiscovery['buses'].push(chart.getBus());
+      const endpoint = new Hd3BusEndpoint({
+        listeners: {
+          getAxes: (callback: unknown) => {
+            this.axisDiscovery!['setAxisManager'](callback);
+          },
+          axisManagerChanged: (manager: unknown) => {
+            this.axisDiscovery!['handleAxisManagerChanged'](manager);
+          }
+        }
+      });
+      endpoint.bus = chart.getBus();
+      this.axisDiscovery['busEndpoints'].push(endpoint);
+      chart.emit('getAxes', this.axisDiscovery);
     }
 
     // Create transparent interaction rect
@@ -40,23 +72,27 @@ export class Hd3InteractionArea implements RenderableI {
     // Mouse events
     this.rect.on('mousedown', (event: MouseEvent) => {
       const [x, y] = d3.pointer(event);
+      const mappedCoords = this.getMappedCoordinates(x, y);
       this.isDragging = true;
-      this.dragStart = { x, y };
-      this.bus.emit('mousedown', { x, y, event });
+      this.dragStart = { x, y, mappedCoords };
+      chart.emit('mousedown', { x, y, event, mappedCoords });
     });
 
     this.rect.on('mousemove', (event: MouseEvent) => {
       const [x, y] = d3.pointer(event);
-      this.bus.emit('mousemove', { x, y, event });
+      const mappedCoords = this.getMappedCoordinates(x, y);
+      chart.emit('mousemove', { x, y, event, mappedCoords });
       
       if (this.isDragging && this.dragStart) {
-        this.bus.emit('drag', {
+        chart.emit('drag', {
           x,
           y,
           dx: x - this.dragStart.x,
           dy: y - this.dragStart.y,
           startX: this.dragStart.x,
           startY: this.dragStart.y,
+          mappedCoords,
+          startMappedCoords: this.dragStart.mappedCoords,
           event
         });
       }
@@ -64,16 +100,19 @@ export class Hd3InteractionArea implements RenderableI {
 
     this.rect.on('mouseup', (event: MouseEvent) => {
       const [x, y] = d3.pointer(event);
-      this.bus.emit('mouseup', { x, y, event });
+      const mappedCoords = this.getMappedCoordinates(x, y);
+      chart.emit('mouseup', { x, y, event, mappedCoords });
       
       if (this.isDragging && this.dragStart) {
-        this.bus.emit('dragend', {
+        chart.emit('dragend', {
           x,
           y,
           dx: x - this.dragStart.x,
           dy: y - this.dragStart.y,
           startX: this.dragStart.x,
           startY: this.dragStart.y,
+          mappedCoords,
+          startMappedCoords: this.dragStart.mappedCoords,
           event
         });
       }
@@ -84,7 +123,8 @@ export class Hd3InteractionArea implements RenderableI {
 
     this.rect.on('mouseleave', (event: MouseEvent) => {
       const [x, y] = d3.pointer(event);
-      this.bus.emit('mouseleave', { x, y, event });
+      const mappedCoords = this.getMappedCoordinates(x, y);
+      chart.emit('mouseleave', { x, y, event, mappedCoords });
       this.isDragging = false;
       this.dragStart = undefined;
     });
@@ -92,7 +132,8 @@ export class Hd3InteractionArea implements RenderableI {
     this.rect.on('wheel', (event: WheelEvent) => {
       event.preventDefault();
       const [x, y] = d3.pointer(event);
-      this.bus.emit('wheel', { x, y, delta: event.deltaY, event });
+      const mappedCoords = this.getMappedCoordinates(x, y);
+      chart.emit('wheel', { x, y, delta: event.deltaY, event, mappedCoords });
     });
 
     // Listen to resize
@@ -105,23 +146,30 @@ export class Hd3InteractionArea implements RenderableI {
     });
   }
 
-  getBus(): Hd3Bus {
-    return this.bus;
-  }
-
-  on(event: string, handler: (data?: unknown) => void): void {
-    this.bus.on(event, handler);
-  }
-
-  off(event: string, handler: (data?: unknown) => void): void {
-    this.bus.off(event, handler);
-  }
-
-  emit(event: string, data?: unknown): void {
-    this.bus.emit(event, data);
+  private getMappedCoordinates(x: number, y: number): Record<string, number> {
+    const mapped: Record<string, number> = {};
+    
+    if (!this.axisDiscovery) return mapped;
+    
+    const axes = this.axisDiscovery.getAxes();
+    for (const axis of axes) {
+      if (axis && 'scale' in axis && 'name' in axis) {
+        const scale = (axis as any).scale;
+        if (scale && scale.invert) {
+          const axisName = (axis as any).name;
+          // Determine if this is an X or Y axis by checking constructor name
+          const isXAxis = (axis as any).constructor.name === 'Hd3XAxis';
+          const value = isXAxis ? x : y;
+          mapped[axisName] = scale.invert(value);
+        }
+      }
+    }
+    
+    return mapped;
   }
 
   destroy(): void {
+    this.axisDiscovery?.destroy();
     if (this.rect) {
       this.rect.remove();
     }

@@ -2,7 +2,7 @@ import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3XAxis } from '../axis/Hd3XAxis';
 import { Hd3YAxis } from '../axis/Hd3YAxis';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
-import type { AxesState, GetAxesCallback } from './managerInterfaces';
+import type { AxesState, GetAxesCallback, GetAxisManagerCallback } from './managerInterfaces';
 
 /**
  * Manager that keeps track of axis renderers added to the chart.
@@ -22,10 +22,13 @@ export class Hd3AxisManager {
         removeXAxis: (renderer: unknown) => this.handleRemoveXAxis(renderer),
         addYAxis: (renderer: unknown) => this.handleAddYAxis(renderer),
         removeYAxis: (renderer: unknown) => this.handleRemoveYAxis(renderer),
-        getAxes: (callback: unknown) => this.handleGetAxes(callback)
+        getAxisManager: (callback: unknown) => this.handleGetAxisManager(callback)
       }
     });
     this.chartBusEndpoint.bus = this.chart.getBus();
+    
+    // Announce manager on the bus
+    this.chart.emit('addAxisManager', this);
   }
 
   private handleAddXAxis(renderer: unknown): void {
@@ -56,10 +59,10 @@ export class Hd3AxisManager {
     }
   }
 
-  private handleGetAxes(callback: unknown): void {
-    if (callback && typeof callback === 'object' && 'setAxes' in callback) {
-      const cb = callback as GetAxesCallback;
-      cb.setAxes(this.getAxesState());
+  private handleGetAxisManager(callback: unknown): void {
+    if (callback && typeof callback === 'object' && 'setAxisManager' in callback) {
+      const cb = callback as GetAxisManagerCallback;
+      cb.setAxisManager(this);
     }
   }
 
@@ -90,7 +93,16 @@ export class Hd3AxisManager {
     return this.yAxes.get(name);
   }
 
+  getXAxis(name: string): Hd3XAxis | undefined {
+    return this.xAxes.get(name);
+  }
+
+  getYAxis(name: string): Hd3YAxis | undefined {
+    return this.yAxes.get(name);
+  }
+
   destroy(): void {
+    this.chart.emit('removeAxisManager', this);
     this.chartBusEndpoint.destroy();
     this.xAxes.clear();
     this.yAxes.clear();

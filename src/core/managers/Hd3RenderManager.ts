@@ -22,6 +22,9 @@ export class Hd3RenderManager {
       }
     });
     this.chartBusEndpoint.bus = this.chart.getBus();
+    
+    // Announce manager on the bus
+    this.chart.emit('renderManagerChanged', this);
   }
 
   private handleAddRenderer(renderable: unknown): void {
@@ -45,6 +48,7 @@ export class Hd3RenderManager {
   }
 
   destroy(): void {
+    this.chart.emit('renderManagerChanged', undefined);
     this.chartBusEndpoint.destroy();
     this.renderables.clear();
   }

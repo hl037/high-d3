@@ -24,6 +24,9 @@ export class Hd3SeriesManager {
       }
     });
     this.chartBusEndpoint.bus = this.chart.getBus();
+    
+    // Announce manager on the bus
+    this.chart.emit('seriesManagerChanged', this);
   }
 
   private handleAddSeries(series: unknown): void {
@@ -56,6 +59,7 @@ export class Hd3SeriesManager {
   }
 
   destroy(): void {
+    this.chart.emit('seriesManagerChanged', undefined);
     this.chartBusEndpoint.destroy();
     this.series.clear();
   }

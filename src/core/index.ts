@@ -2,6 +2,7 @@
 export type { Hd3Bus } from './bus/Hd3Bus';
 export { createHd3Bus } from './bus/Hd3Bus';
 export { Hd3BusEndpoint, type Hd3BusEndpointHooks, type Hd3BusEndpointOptions } from './bus/Hd3BusEndpoint';
+export { Hd3BusBridge } from './bus/Hd3BusBridge';
 
 // Interfaces
 export type { Hd3ChartObjectI } from './interfaces/Hd3ChartObjectI';
@@ -24,6 +25,7 @@ export { Hd3AxisDomain, type Hd3AxisDomainOptions } from './axis/Hd3AxisDomain';
 export { Hd3Axis, type Hd3AxisOptions } from './axis/Hd3Axis';
 export { Hd3XAxis, type Hd3XAxisOptions } from './axis/Hd3XAxis';
 export { Hd3YAxis, type Hd3YAxisOptions } from './axis/Hd3YAxis';
+export { Hd3AxesDiscovery } from './axis/Hd3AxesDiscovery';
 export { scaleFactory, type ScaleType, type D3Scale, type ScaleFactoryOptions } from './axis/scaleFactory';
 
 // Series

@@ -1,11 +1,12 @@
 import * as d3 from 'd3';
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import type { Hd3InteractionArea } from './Hd3InteractionArea';
-import type { Hd3XAxis } from '../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../axis/Hd3YAxis';
+import type { Hd3Axis } from '../axis/Hd3Axis';
+import type { Hd3Bus } from '../bus/Hd3Bus';
 import type { Hd3Series } from '../series/Hd3Series';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 import type { RenderableI } from '../interfaces/RenderableI';
+import { Hd3AxesDiscovery } from '../axis/Hd3AxesDiscovery';
 
 export interface Hd3CursorIndicatorCrossStyle {
   strokeX?: string;
@@ -31,10 +32,12 @@ export interface Hd3CursorIndicatorMarkerStyle {
 }
 
 export interface Hd3CursorIndicatorOptions {
-  interactionArea: Hd3InteractionArea;
+  interactionArea?: Hd3InteractionArea;
   series: Hd3Series[];
-  xAxis: Hd3XAxis;
-  yAxis: Hd3YAxis;
+  xAxis?: any;
+  yAxis?: any;
+  axes?: (Hd3Axis | string)[];
+  charts?: Hd3Bus[];
   showCrossX?: boolean;
   showCrossY?: boolean;
   showAxisLabels?: boolean;
@@ -45,10 +48,10 @@ export interface Hd3CursorIndicatorOptions {
 }
 
 export class Hd3CursorIndicator implements RenderableI {
-  private interactionArea: Hd3InteractionArea;
   private series: Hd3Series[];
-  private xAxis: Hd3XAxis;
-  private yAxis: Hd3YAxis;
+  private xAxis?: any;
+  private yAxis?: any;
+  private axisDiscovery?: Hd3AxesDiscovery;
   private showCrossX: boolean;
   private showCrossY: boolean;
   private showAxisLabels: boolean;
@@ -63,10 +66,9 @@ export class Hd3CursorIndicator implements RenderableI {
   private markersGroup?: d3.Selection<SVGGElement, unknown, null, undefined>;
   private xLabelGroup?: d3.Selection<SVGGElement, unknown, null, undefined>;
   private yLabelGroup?: d3.Selection<SVGGElement, unknown, null, undefined>;
-  private interactionBusEndpoint?: Hd3BusEndpoint;
+  private chartBusEndpoint?: Hd3BusEndpoint;
 
   constructor(options: Hd3CursorIndicatorOptions) {
-    this.interactionArea = options.interactionArea;
     this.series = options.series;
     this.xAxis = options.xAxis;
     this.yAxis = options.yAxis;
@@ -74,6 +76,23 @@ export class Hd3CursorIndicator implements RenderableI {
     this.showCrossY = options.showCrossY ?? true;
     this.showAxisLabels = options.showAxisLabels ?? true;
     this.showMarkers = options.showMarkers ?? true;
+    
+    // Create axis discovery
+    if (options.axes !== undefined || options.charts !== undefined) {
+      const charts = options.charts || [];
+      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
+      
+      // Find X and Y axes from discovery
+      const axes = this.axisDiscovery.getAxes();
+      for (const axis of axes) {
+        if (!this.xAxis && (axis as any).constructor.name === 'Hd3XAxis') {
+          this.xAxis = axis;
+        }
+        if (!this.yAxis && (axis as any).constructor.name === 'Hd3YAxis') {
+          this.yAxis = axis;
+        }
+      }
+    }
     
     this.crossStyle = {
       strokeX: '#666',
@@ -108,6 +127,35 @@ export class Hd3CursorIndicator implements RenderableI {
 
     if (this.group) {
       this.group.remove();
+    }
+    
+    // Add chart to discovery if not already there
+    if (this.axisDiscovery && !this.axisDiscovery['buses'].includes(chart.getBus())) {
+      this.axisDiscovery['buses'].push(chart.getBus());
+      const endpoint = new Hd3BusEndpoint({
+        listeners: {
+          getAxes: (callback: unknown) => {
+            this.axisDiscovery!['setAxisManager'](callback);
+          },
+          axisManagerChanged: (manager: unknown) => {
+            this.axisDiscovery!['handleAxisManagerChanged'](manager);
+          }
+        }
+      });
+      endpoint.bus = chart.getBus();
+      this.axisDiscovery['busEndpoints'].push(endpoint);
+      chart.emit('getAxes', this.axisDiscovery);
+      
+      // Refresh axes
+      const axes = this.axisDiscovery.getAxes();
+      for (const axis of axes) {
+        if (!this.xAxis && (axis as any).constructor.name === 'Hd3XAxis') {
+          this.xAxis = axis;
+        }
+        if (!this.yAxis && (axis as any).constructor.name === 'Hd3YAxis') {
+          this.yAxis = axis;
+        }
+      }
     }
 
     this.group = mainGroup.append('g')
@@ -157,54 +205,80 @@ export class Hd3CursorIndicator implements RenderableI {
         .style('display', 'none');
     }
 
-    // Connect to interaction bus
-    this.interactionBusEndpoint = new Hd3BusEndpoint({
+    // Connect to chart bus
+    this.chartBusEndpoint = new Hd3BusEndpoint({
       listeners: {
         mousemove: (data: unknown) => this.handleMouseMove(data),
         mouseleave: () => this.handleMouseLeave()
       }
     });
-    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
+    this.chartBusEndpoint.bus = chart.getBus();
   }
 
   private handleMouseMove(data: unknown): void {
     if (!this.group || !this.chart) return;
 
-    const mouseData = data as { x: number; y: number };
+    const mouseData = data as { x: number; y: number; mappedCoords?: Record<string, number> };
     
     // Show cursor
     this.group.style('display', null);
     if (this.xLabelGroup) this.xLabelGroup.style('display', null);
     if (this.yLabelGroup) this.yLabelGroup.style('display', null);
 
+    let finalX = mouseData.x;
+    let finalY = mouseData.y;
+    let xValue: number | undefined;
+    let yValue: number | undefined;
+
+    // Try to use mapped coordinates first
+    if (mouseData.mappedCoords && this.xAxis && this.yAxis) {
+      const xName = (this.xAxis as any).name;
+      const yName = (this.yAxis as any).name;
+      xValue = mouseData.mappedCoords[xName];
+      yValue = mouseData.mappedCoords[yName];
+    }
+
+    // Fallback to scale inversion
+    if (xValue === undefined && this.xAxis?.scale?.invert) {
+      xValue = this.xAxis.scale.invert(mouseData.x);
+    }
+    if (yValue === undefined && this.yAxis?.scale?.invert) {
+      yValue = this.yAxis.scale.invert(mouseData.y);
+    }
+
+    // Center if no coordinate
+    if (yValue === undefined) {
+      finalY = this.chart.innerHeight / 2;
+    }
+    if (xValue === undefined) {
+      finalX = this.chart.innerWidth / 2;
+    }
+
     // Update cross lines
     if (this.crossLineX) {
       this.crossLineX
-        .attr('x1', mouseData.x)
-        .attr('x2', mouseData.x);
+        .attr('x1', finalX)
+        .attr('x2', finalX);
     }
 
     if (this.crossLineY) {
       this.crossLineY
-        .attr('y1', mouseData.y)
-        .attr('y2', mouseData.y);
+        .attr('y1', finalY)
+        .attr('y2', finalY);
     }
-
-    // Convert pixel to data coordinates
-    const xScale = this.xAxis.scale as { invert: (x: number) => number };
-    const yScale = this.yAxis.scale as { invert: (y: number) => number };
-    
-    const xValue = xScale.invert(mouseData.x);
-    const yValue = yScale.invert(mouseData.y);
 
     // Update axis labels
     if (this.showAxisLabels) {
-      this.updateXLabel(mouseData.x, xValue);
-      this.updateYLabel(mouseData.y, yValue);
+      if (xValue !== undefined) {
+        this.updateXLabel(finalX, xValue);
+      }
+      if (yValue !== undefined) {
+        this.updateYLabel(finalY, yValue);
+      }
     }
 
     // Update markers
-    if (this.showMarkers && this.markersGroup) {
+    if (this.showMarkers && this.markersGroup && xValue !== undefined) {
       this.updateMarkers(xValue);
     }
   }
@@ -338,7 +412,8 @@ export class Hd3CursorIndicator implements RenderableI {
   }
 
   destroy(): void {
-    this.interactionBusEndpoint?.destroy();
+    this.axisDiscovery?.destroy();
+    this.chartBusEndpoint?.destroy();
     if (this.group) {
       this.group.remove();
     }

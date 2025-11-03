@@ -1,6 +1,7 @@
 import type { Hd3XAxis } from '../axis/Hd3XAxis';
 import type { Hd3YAxis } from '../axis/Hd3YAxis';
 import type { Hd3Series } from '../series/Hd3Series';
+import { Hd3AxisManager } from './Hd3AxisManager';
 
 // Interfaces for manager callback patterns
 
@@ -9,8 +10,8 @@ export interface AxesState {
   y: Hd3YAxis[];
 }
 
-export interface GetAxesCallback {
-  setAxes(state: AxesState): void;
+export interface GetAxisManagerCallback {
+  setAxisManager(state: Hd3AxisManager): void;
 }
 
 export interface SeriesState {

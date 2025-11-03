@@ -2,16 +2,18 @@ import * as d3 from 'd3';
 import { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3InteractionArea } from '../Hd3InteractionArea';
 import type { Hd3ToolState } from '../Hd3ToolState';
-import type { Hd3XAxis } from '../../axis/Hd3XAxis';
-import type { Hd3YAxis } from '../../axis/Hd3YAxis';
-import type { Hd3AxisDomain } from '../../axis/Hd3Axis';
+import type { Hd3Axis } from '../../axis/Hd3Axis';
+import type { Hd3Bus } from '../../bus/Hd3Bus';
+import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
 import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
+import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
 
 export interface Hd3ZoomToSelectionToolOptions {
   chart: Hd3Chart;
-  interactionArea: Hd3InteractionArea;
+  interactionArea?: Hd3InteractionArea;
   toolState: Hd3ToolState;
-  axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  axes?: (Hd3Axis | string)[];
+  charts?: Hd3Bus[];
 }
 
 /**
@@ -19,19 +21,35 @@ export interface Hd3ZoomToSelectionToolOptions {
  */
 export class Hd3ZoomToSelectionTool {
   private chart: Hd3Chart;
-  private interactionArea: Hd3InteractionArea;
   private toolState: Hd3ToolState;
-  private axes: { x: Hd3XAxis[]; y: Hd3YAxis[] };
+  private axisDiscovery?: Hd3AxesDiscovery;
   private isActive: boolean = false;
   private selectionRect?: d3.Selection<SVGRectElement, unknown, null, undefined>;
   private toolStateBusEndpoint: Hd3BusEndpoint;
-  private interactionBusEndpoint: Hd3BusEndpoint;
+  private chartBusEndpoints: Hd3BusEndpoint[] = [];
 
   constructor(options: Hd3ZoomToSelectionToolOptions) {
     this.chart = options.chart;
-    this.interactionArea = options.interactionArea;
     this.toolState = options.toolState;
-    this.axes = options.axes;
+
+    // Create axis discovery
+    if (options.axes !== undefined || options.charts !== undefined) {
+      const charts = options.charts || [];
+      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
+      
+      // Listen to chart events
+      for (const chart of charts) {
+        const endpoint = new Hd3BusEndpoint({
+          listeners: {
+            mousedown: (data: unknown) => this.handleMouseDown(data),
+            drag: (data: unknown) => this.handleDrag(data),
+            dragend: (data: unknown) => this.handleDragEnd(data)
+          }
+        });
+        endpoint.bus = chart;
+        this.chartBusEndpoints.push(endpoint);
+      }
+    }
 
     // Connect to tool state bus
     this.toolStateBusEndpoint = new Hd3BusEndpoint({
@@ -43,20 +61,10 @@ export class Hd3ZoomToSelectionTool {
       }
     });
     this.toolStateBusEndpoint.bus = this.toolState.getBus();
-
-    // Connect to interaction bus
-    this.interactionBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        mousedown: (data: unknown) => this.handleMouseDown(data),
-        drag: (data: unknown) => this.handleDrag(data),
-        dragend: (data: unknown) => this.handleDragEnd(data)
-      }
-    });
-    this.interactionBusEndpoint.bus = this.interactionArea.getBus();
   }
 
-  private getAxis(renderer: Hd3XAxis | Hd3YAxis): Hd3AxisDomain {
-    return (renderer as any).axis as Hd3AxisDomain;
+  private getAxis(renderer: any): Hd3AxisDomain {
+    return renderer.axis as Hd3AxisDomain;
   }
 
   private handleMouseDown(data: unknown): void {
@@ -79,7 +87,7 @@ export class Hd3ZoomToSelectionTool {
       .attr('fill', 'rgba(100, 150, 255, 0.3)')
       .attr('stroke', 'rgba(50, 100, 200, 0.8)')
       .attr('stroke-width', 1)
-      .attr('pointer-events', 'none'); // Don't capture mouse events
+      .attr('pointer-events', 'none');
   }
 
   private handleDrag(data: unknown): void {
@@ -100,42 +108,45 @@ export class Hd3ZoomToSelectionTool {
   }
 
   private handleDragEnd(data: unknown): void {
-    if (!this.isActive || !this.selectionRect) return;
+    if (!this.isActive || !this.selectionRect || !this.axisDiscovery) return;
 
-    const dragData = data as { startX: number; startY: number; x: number; y: number };
+    const dragData = data as {
+      startMappedCoords?: Record<string, number>;
+      mappedCoords?: Record<string, number>;
+    };
     
-    const x1 = Math.min(dragData.startX, dragData.x);
-    const x2 = Math.max(dragData.startX, dragData.x);
-    const y1 = Math.min(dragData.startY, dragData.y);
-    const y2 = Math.max(dragData.startY, dragData.y);
-
     // Remove selection rectangle
     this.selectionRect.remove();
     this.selectionRect = undefined;
 
-    // Zoom to selection
-    if (Math.abs(x2 - x1) > 5 && Math.abs(y2 - y1) > 5) {
-      // Zoom X axes
-      for (const xAxis of this.axes.x) {
-        const axis = this.getAxis(xAxis);
-        const scale = xAxis.scale as { invert: (x: number) => number };
-        const newDomain: [number, number] = [scale.invert(x1), scale.invert(x2)];
-        axis.domain = newDomain;
-      }
+    if (!dragData.startMappedCoords || !dragData.mappedCoords) return;
 
-      // Zoom Y axes
-      for (const yAxis of this.axes.y) {
-        const axis = this.getAxis(yAxis);
-        const scale = yAxis.scale as { invert: (y: number) => number };
-        const newDomain: [number, number] = [scale.invert(y2), scale.invert(y1)];
-        axis.domain = newDomain;
-      }
+    // Zoom to selection using mapped coordinates
+    const axes = this.axisDiscovery.getAxes();
+    for (const axis of axes) {
+      const axisDomain = this.getAxis(axis);
+      const name = (axis as any).name;
+      const start = dragData.startMappedCoords[name];
+      const end = dragData.mappedCoords[name];
+      
+      if (start === undefined || end === undefined) continue;
+      
+      // Ensure min/max order
+      const newDomain: [number, number] = [
+        Math.min(start, end),
+        Math.max(start, end)
+      ];
+      
+      axisDomain.domain = newDomain;
     }
   }
 
   destroy(): void {
+    this.axisDiscovery?.destroy();
     this.toolStateBusEndpoint.destroy();
-    this.interactionBusEndpoint.destroy();
+    for (const endpoint of this.chartBusEndpoints) {
+      endpoint.destroy();
+    }
     if (this.selectionRect) {
       this.selectionRect.remove();
     }
