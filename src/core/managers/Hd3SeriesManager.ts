@@ -1,7 +1,15 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3Series } from '../series/Hd3Series';
-import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
-import type { SeriesState, GetSeriesCallback } from './managerInterfaces';
+import { getHd3GlobalBus } from '../bus/Hd3Bus';
+
+interface GetSeriesManagerCallbackI {setSeriesManager:(m:Hd3SeriesManager)=>void}
+
+export type Hd3SeriesManagerEvents = {
+  addSeries: Hd3Series,
+  removeSeries: Hd3Series,
+  getSeriesManager: GetSeriesManagerCallbackI,
+  seriesManagerChanged: Hd3SeriesManager | undefined,
+}
 
 /**
  * Manager that keeps track of series added to the chart.
@@ -10,23 +18,19 @@ import type { SeriesState, GetSeriesCallback } from './managerInterfaces';
 export class Hd3SeriesManager {
   private chart: Hd3Chart;
   private series: Map<string, Hd3Series> = new Map();
-  private chartBusEndpoint: Hd3BusEndpoint;
 
   constructor(chart: Hd3Chart) {
     this.chart = chart;
-    
-    // Connect to chart bus
-    this.chartBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        addSeries: (series: unknown) => this.handleAddSeries(series),
-        removeSeries: (series: unknown) => this.handleRemoveSeries(series),
-        getSeries: (callback: unknown) => this.handleGetSeries(callback)
-      }
-    });
-    this.chartBusEndpoint.bus = this.chart.getBus();
-    
+
+    const bus = getHd3GlobalBus();
+
+    bus.on(chart.e.get<Hd3SeriesManagerEvents>('addSeries'), this.handleAddSeries.bind(this));
+    bus.on(chart.e.get<Hd3SeriesManagerEvents>('removeSeries'), this.handleRemoveSeries.bind(this));
+    bus.on(chart.e.get<Hd3SeriesManagerEvents>('getSeriesManager'), this.handleGetSeriesManager.bind(this));
+    bus.on(chart.e.destroyed, this.destroy.bind(this))
+
     // Announce manager on the bus
-    this.chart.emit('seriesManagerChanged', this);
+    bus.emit(chart.e.get<Hd3SeriesManagerEvents>('seriesManagerChanged'), this);
   }
 
   private handleAddSeries(series: unknown): void {
@@ -43,11 +47,8 @@ export class Hd3SeriesManager {
     }
   }
 
-  private handleGetSeries(callback: unknown): void {
-    if (callback && typeof callback === 'object' && 'setSeries' in callback) {
-      const cb = callback as GetSeriesCallback;
-      cb.setSeries({ series: this.getSeries() });
-    }
+  private handleGetSeriesManager(cb: GetSeriesManagerCallbackI): void {
+    cb.setSeriesManager(this);
   }
 
   getSeries(): Hd3Series[] {
@@ -59,8 +60,9 @@ export class Hd3SeriesManager {
   }
 
   destroy(): void {
-    this.chart.emit('seriesManagerChanged', undefined);
-    this.chartBusEndpoint.destroy();
-    this.series.clear();
+    const bus = getHd3GlobalBus();
+    bus.emit(this.chart.e.get<Hd3SeriesManagerEvents>('seriesManagerChanged'), undefined);
+    (this as any).chart = undefined;
+    (this as any).series  = undefined;
   }
 }

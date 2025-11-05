@@ -1,30 +1,33 @@
 import * as d3 from 'd3';
-import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
+import { createHd3Bus, createHd3Event, dynamicEventMap, getHd3GlobalBus, Hd3Bus, Hd3Event, Hd3EventFactory } from '../bus/Hd3Bus';
 import { Hd3RenderManager } from '../managers/Hd3RenderManager';
 import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
 import { Hd3AxisManager } from '../managers/Hd3AxisManager';
 import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface Hd3ChartOptions {
+  bus?: Hd3Bus;
   width?: number;
   height?: number;
   margin?: { top: number; right: number; bottom: number; left: number };
 }
+
+export interface Hd3ChartEvents {
+  destroyed: Hd3Event<Hd3Chart>,
+  get: Hd3EventFactory
+}
+
 
 /**
  * Central chart class. Manages SVG element and serves as store for all chart objects.
  * Implements Hd3Bus for event-driven communication.
  */
 export class Hd3Chart {
+  private bus: Hd3Bus;
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
-  private bus: Hd3Bus;
-  private renderManager: Hd3RenderManager;
-  private seriesManager: Hd3SeriesManager;
-  private axisManager: Hd3AxisManager;
   private resizeObserver?: ResizeObserver;
-  private resizeBusEndpoint: Hd3BusEndpoint;
   private autoWidth: boolean;
   private autoHeight: boolean;
   private resizeTimeout?: number;
@@ -35,11 +38,19 @@ export class Hd3Chart {
   public margin: { top: number; right: number; bottom: number; left: number };
   public innerWidth: number;
   public innerHeight: number;
+  public e: Hd3ChartEvents;
 
   constructor(container: HTMLElement | string, options: Hd3ChartOptions = {}) {
     this.container = typeof container === 'string' 
       ? document.querySelector(container)! 
       : container;
+
+    this.bus = options.bus || getHd3GlobalBus();
+
+    this.e = {
+      get: dynamicEventMap(),
+      destroyed: createHd3Event<Hd3Chart>(),
+    }
     
     this.autoWidth = options.width === undefined;
     this.autoHeight = options.height === undefined;
@@ -50,8 +61,6 @@ export class Hd3Chart {
     this.innerWidth = this.width - this.margin.left - this.margin.right;
     this.innerHeight = this.height - this.margin.top - this.margin.bottom;
 
-    this.bus = createHd3Bus();
-    
     // Create SVG
     this.svg = d3.select(this.container)
       .append('svg')
@@ -63,9 +72,8 @@ export class Hd3Chart {
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
     // Initialize managers
-    this.renderManager = new Hd3RenderManager(this);
-    this.seriesManager = new Hd3SeriesManager(this);
-    this.axisManager = new Hd3AxisManager(this);
+    new Hd3SeriesManager(this);
+    new Hd3AxisManager(this);
 
     // Listen to resize events and update SVG
     this.resizeBusEndpoint = new Hd3BusEndpoint({
