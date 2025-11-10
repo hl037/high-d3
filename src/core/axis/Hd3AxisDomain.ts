@@ -1,23 +1,32 @@
-import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
+import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 
-export interface Hd3AxisDomainOptions {
-  name: string;
-  domain?: [number | Date | string, number | Date | string] | string[];
+export type Domain = [number | Date | string, number | Date | string] | string[];
+
+export type Hd3AxisDomainEvents = {
+  domainChanged: Domain
 }
 
+export interface Hd3AxisDomainOptions {
+  bus?: Hd3Bus;
+  domain?: Domain;
+}
+
+
+
 /**
- * Abstract axis domain that maintains only domain (not scale).
- * Implements Hd3Bus for domain change notifications.
+ * Abstract axis domain that maintains only domain and range (not scale).
  */
 export class Hd3AxisDomain {
-  public name: string;
-  private _domain: [number | Date | string, number | Date | string] | string[];
+  private _domain: Domain;
   private bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3AxisDomainEvents>;
 
   constructor(options: Hd3AxisDomainOptions) {
-    this.name = options.name;
+    this.bus = options.bus || getHd3GlobalBus();
     this._domain = options.domain || [0, 1];
-    this.bus = createHd3Bus();
+    this.e = {
+      domainChanged: createHd3Event<Domain>(),
+    }
   }
 
   get domain(): [number | Date | string, number | Date | string] | string[] {
@@ -26,22 +35,6 @@ export class Hd3AxisDomain {
 
   set domain(value: [number | Date | string, number | Date | string] | string[]) {
     this._domain = value;
-    this.bus.emit('domainChanged', value);
-  }
-
-  getBus(): Hd3Bus {
-    return this.bus;
-  }
-
-  on(event: string, handler: (data?: unknown) => void): void {
-    this.bus.on(event, handler);
-  }
-
-  off(event: string, handler: (data?: unknown) => void): void {
-    this.bus.off(event, handler);
-  }
-
-  emit(event: string, data?: unknown): void {
-    this.bus.emit(event, data);
+    this.bus.emit(this.e.domainChanged, value);
   }
 }

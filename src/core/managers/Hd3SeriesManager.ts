@@ -8,6 +8,7 @@ export type Hd3SeriesManagerEvents = {
   addSeries: Hd3Series,
   removeSeries: Hd3Series,
   getSeriesManager: GetSeriesManagerCallbackI,
+  seriesListChanged: Hd3Series[],
   seriesManagerChanged: Hd3SeriesManager | undefined,
 }
 
@@ -22,28 +23,28 @@ export class Hd3SeriesManager {
   constructor(chart: Hd3Chart) {
     this.chart = chart;
 
-    const bus = getHd3GlobalBus();
+    const bus = this.chart.bus;
 
-    bus.on(chart.e.get<Hd3SeriesManagerEvents>('addSeries'), this.handleAddSeries.bind(this));
-    bus.on(chart.e.get<Hd3SeriesManagerEvents>('removeSeries'), this.handleRemoveSeries.bind(this));
-    bus.on(chart.e.get<Hd3SeriesManagerEvents>('getSeriesManager'), this.handleGetSeriesManager.bind(this));
+    bus.on(chart.e<Hd3SeriesManagerEvents>()('addSeries'), this.handleAddSeries.bind(this));
+    bus.on(chart.e<Hd3SeriesManagerEvents>()('removeSeries'), this.handleRemoveSeries.bind(this));
+    bus.on(chart.e<Hd3SeriesManagerEvents>()('getSeriesManager'), this.handleGetSeriesManager.bind(this));
     bus.on(chart.e.destroyed, this.destroy.bind(this))
 
     // Announce manager on the bus
-    bus.emit(chart.e.get<Hd3SeriesManagerEvents>('seriesManagerChanged'), this);
+    bus.emit(chart.e<Hd3SeriesManagerEvents>()('seriesManagerChanged'), this);
   }
 
   private handleAddSeries(series: unknown): void {
     if (series instanceof Hd3Series) {
       this.series.set(series.name, series);
-      this.chart.emit('seriesListChanged', this.getSeries());
+      this.chart.bus.emit(this.chart.e<Hd3SeriesManagerEvents>()('seriesListChanged'), this.getSeries());
     }
   }
 
   private handleRemoveSeries(series: unknown): void {
     if (series instanceof Hd3Series) {
       this.series.delete(series.name);
-      this.chart.emit('seriesListChanged', this.getSeries());
+      this.chart.bus.emit(this.chart.e<Hd3SeriesManagerEvents>()('seriesListChanged'), this.getSeries());
     }
   }
 
@@ -52,7 +53,7 @@ export class Hd3SeriesManager {
   }
 
   getSeries(): Hd3Series[] {
-    return Array.from(this.series.values());
+    return [...this.series.values()];
   }
 
   getSeriesByName(name: string): Hd3Series | undefined {
@@ -60,8 +61,7 @@ export class Hd3SeriesManager {
   }
 
   destroy(): void {
-    const bus = getHd3GlobalBus();
-    bus.emit(this.chart.e.get<Hd3SeriesManagerEvents>('seriesManagerChanged'), undefined);
+    this.chart.bus.emit(this.chart.e<Hd3SeriesManagerEvents>()('seriesManagerChanged'), undefined);
     (this as any).chart = undefined;
     (this as any).series  = undefined;
   }

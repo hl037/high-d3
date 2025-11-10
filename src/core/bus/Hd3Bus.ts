@@ -1,4 +1,4 @@
-import mitt, { Emitter } from "mitt";
+import mitt from "mitt";
 
 // -------------------------------------------------------------
 // Un Hd3Event est un symbol avec un type embarqué.
@@ -36,24 +36,34 @@ export function getHd3GlobalBus(): Hd3Bus {
   return _globalBus;
 }
 
-export type Hd3EventNameMap = {
-  [key: string]: any;
-};
+export type Hd3EventNamePayloadMap = object;
 
-export type Hd3EventFactory = 
-  & (<E extends Hd3EventNameMap>(eventName: keyof E & string) => Hd3Event<E[typeof eventName]>)
-  & (<Payload>(eventName: Payload extends Hd3EventNameMap ? never : string) => Hd3Event<Payload>);
+export type Hd3EventNameMap<M extends Hd3EventNamePayloadMap> = {
+  [K in keyof M]: Hd3Event<M[K]>
+}
 
-export function dynamicEventMap(): Hd3EventFactory {
-  const events: Record<string, Hd3Event<unknown>> = {};
+type _Hd3EventMetaFactory = 
+  & (<E extends Hd3EventNamePayloadMap>()=>(<K extends keyof E>(evName:K)=>Hd3Event<E[K]>))
+  & (<_ extends void = void>()=>(<K>(evName:string)=>Hd3Event<K>))
+  ;
+
+export type Hd3DynamicEventNameMap<M extends Hd3EventNamePayloadMap> = Hd3EventNameMap<M> & _Hd3EventMetaFactory;
+
+
+export function createHd3EventNameMap<P extends Hd3EventNamePayloadMap>(events:Hd3EventNameMap<P>): Hd3DynamicEventNameMap<P>{
+  const additionalEvents: Record<string, Hd3Event<unknown>> = {};
   function map(eventName: string): Hd3Event<unknown> {
-    const ev = events[eventName];
+    const ev = additionalEvents[eventName];
     if(ev === undefined) {
       const res = createHd3Event<unknown>();
-      events[eventName] = res;
+      additionalEvents[eventName] = res;
       return res;
     }
     return ev;
   }
-  return map as Hd3EventFactory;
+  const dynamicEventMap = (() => {
+    return map;
+  }) as _Hd3EventMetaFactory;
+
+  return Object.assign(dynamicEventMap, events);
 }

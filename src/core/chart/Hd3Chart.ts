@@ -1,9 +1,7 @@
 import * as d3 from 'd3';
-import { createHd3Bus, createHd3Event, dynamicEventMap, getHd3GlobalBus, Hd3Bus, Hd3Event, Hd3EventFactory } from '../bus/Hd3Bus';
-import { Hd3RenderManager } from '../managers/Hd3RenderManager';
+import { createHd3Event, createHd3EventNameMap, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap } from '../bus/Hd3Bus';
 import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
 import { Hd3AxisManager } from '../managers/Hd3AxisManager';
-import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
 
 export interface Hd3ChartOptions {
   bus?: Hd3Bus;
@@ -12,9 +10,14 @@ export interface Hd3ChartOptions {
   margin?: { top: number; right: number; bottom: number; left: number };
 }
 
+export interface Hd3ChartResizeEvent{
+  width: number,
+  height: number
+}
+
 export interface Hd3ChartEvents {
-  destroyed: Hd3Event<Hd3Chart>,
-  get: Hd3EventFactory
+  destroyed: Hd3Chart,
+  resized: Hd3ChartResizeEvent,
 }
 
 
@@ -23,7 +26,7 @@ export interface Hd3ChartEvents {
  * Implements Hd3Bus for event-driven communication.
  */
 export class Hd3Chart {
-  private bus: Hd3Bus;
+  public readonly bus: Hd3Bus;
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -38,7 +41,7 @@ export class Hd3Chart {
   public margin: { top: number; right: number; bottom: number; left: number };
   public innerWidth: number;
   public innerHeight: number;
-  public e: Hd3ChartEvents;
+  public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
 
   constructor(container: HTMLElement | string, options: Hd3ChartOptions = {}) {
     this.container = typeof container === 'string' 
@@ -47,10 +50,10 @@ export class Hd3Chart {
 
     this.bus = options.bus || getHd3GlobalBus();
 
-    this.e = {
-      get: dynamicEventMap(),
+    this.e = createHd3EventNameMap({
       destroyed: createHd3Event<Hd3Chart>(),
-    }
+      resized: createHd3Event<Hd3ChartResizeEvent>(),
+    });
     
     this.autoWidth = options.width === undefined;
     this.autoHeight = options.height === undefined;
@@ -74,14 +77,6 @@ export class Hd3Chart {
     // Initialize managers
     new Hd3SeriesManager(this);
     new Hd3AxisManager(this);
-
-    // Listen to resize events and update SVG
-    this.resizeBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        resize: (data: unknown) => this.handleResize(data)
-      }
-    });
-    this.resizeBusEndpoint.bus = this.bus;
 
     // Setup ResizeObserver if width or height is auto
     if (this.autoWidth || this.autoHeight) {
@@ -109,14 +104,6 @@ export class Hd3Chart {
     this.resizeObserver.observe(this.container);
   }
 
-  private handleResize(data: unknown): void {
-    const resizeData = data as { width: number; height: number };
-    
-    this.svg
-      .attr('width', resizeData.width)
-      .attr('height', resizeData.height);
-  }
-
   /**
    * Get the main SVG group where content should be rendered
    */
@@ -132,34 +119,6 @@ export class Hd3Chart {
   }
 
   /**
-   * Get the chart bus for event communication
-   */
-  getBus(): Hd3Bus {
-    return this.bus;
-  }
-
-  /**
-   * Emit an event on the chart bus
-   */
-  emit(event: string, data?: unknown): void {
-    this.bus.emit(event, data);
-  }
-
-  /**
-   * Listen to an event on the chart bus
-   */
-  on(event: string, handler: (data?: unknown) => void): void {
-    this.bus.on(event, handler);
-  }
-
-  /**
-   * Remove event listener
-   */
-  off(event: string, handler: (data?: unknown) => void): void {
-    this.bus.off(event, handler);
-  }
-
-  /**
    * Resize the chart
    */
   resize(width: number, height: number): void {
@@ -168,8 +127,12 @@ export class Hd3Chart {
     this.innerWidth = width - this.margin.left - this.margin.right;
     this.innerHeight = height - this.margin.top - this.margin.bottom;
     
+    this.svg
+      .attr('width', width)
+      .attr('height', height);
+    
     // Emit resize event - listeners will handle the actual resizing
-    this.emit('resize', { width, height });
+    this.bus.emit(this.e.resized, { width, height });
   }
 
   /**
@@ -180,10 +143,7 @@ export class Hd3Chart {
       clearTimeout(this.resizeTimeout);
     }
     this.resizeObserver?.disconnect();
-    this.resizeBusEndpoint.destroy();
-    this.renderManager.destroy();
-    this.seriesManager.destroy();
-    this.axisManager.destroy();
+    this.bus.emit(this.e.destroyed, this);
     this.svg.remove();
   }
 

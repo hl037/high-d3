@@ -1,30 +1,30 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import type { RenderableI } from '../interfaces/RenderableI';
-import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
+
+export type Hd3RenderManagerEvents = {
+  addRenderer: RenderableI,
+  removeRenderer: RenderableI,
+  renderManagerChanged: Hd3RenderManager | undefined,
+}
 
 /**
  * Manager that handles rendering of objects on the chart.
- * Listens for 'addRenderer' and 'removeRenderer' events.
  */
 export class Hd3RenderManager {
   private chart: Hd3Chart;
   private renderables: Map<RenderableI, boolean> = new Map();
-  private chartBusEndpoint: Hd3BusEndpoint;
 
   constructor(chart: Hd3Chart) {
     this.chart = chart;
-    
-    // Connect to chart bus
-    this.chartBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        addRenderer: (renderable: unknown) => this.handleAddRenderer(renderable),
-        removeRenderer: (renderable: unknown) => this.handleRemoveRenderer(renderable)
-      }
-    });
-    this.chartBusEndpoint.bus = this.chart.getBus();
-    
+
+    const bus = this.chart.bus;
+
+    bus.on(chart.e<Hd3RenderManagerEvents>()('addRenderer'), this.handleAddRenderer.bind(this));
+    bus.on(chart.e<Hd3RenderManagerEvents>()('removeRenderer'), this.handleRemoveRenderer.bind(this));
+    bus.on(chart.e.destroyed, this.destroy.bind(this));
+
     // Announce manager on the bus
-    this.chart.emit('renderManagerChanged', this);
+    bus.emit(chart.e<Hd3RenderManagerEvents>()('renderManagerChanged'), this);
   }
 
   private handleAddRenderer(renderable: unknown): void {
@@ -48,8 +48,8 @@ export class Hd3RenderManager {
   }
 
   destroy(): void {
-    this.chart.emit('renderManagerChanged', undefined);
-    this.chartBusEndpoint.destroy();
-    this.renderables.clear();
+    this.chart.bus.emit(this.chart.e<Hd3RenderManagerEvents>()('renderManagerChanged'), undefined);
+    (this as any).chart = undefined;
+    (this as any).renderables = undefined;
   }
 }

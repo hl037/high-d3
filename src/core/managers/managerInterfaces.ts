@@ -18,6 +18,3 @@ export interface SeriesState {
   series: Hd3Series[];
 }
 
-export interface GetSeriesCallback {
-  setSeries(state: SeriesState): void;
-}

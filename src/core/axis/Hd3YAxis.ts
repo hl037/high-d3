@@ -2,14 +2,6 @@ import * as d3 from 'd3';
 import { Hd3Axis, Hd3AxisOptions } from './Hd3Axis';
 import type { Hd3Chart } from '../chart/Hd3Chart';
 
-export interface Hd3YAxisGridOptions {
-  enabled?: boolean;
-  stroke?: string;
-  strokeWidth?: number;
-  strokeDasharray?: string;
-  opacity?: number;
-}
-
 export interface Hd3YAxisOptions extends Hd3AxisOptions {
   position?: 'left' | 'right';
   tickCount?: number;
