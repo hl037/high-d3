@@ -1,110 +1,101 @@
 import * as d3 from 'd3';
 
-export type ScaleType = 
-  | 'linear' 
-  | 'log' 
-  | 'pow' 
-  | 'sqrt' 
-  | 'time' 
-  | 'utc'
-  | 'sequential' 
-  | 'quantize' 
-  | 'quantile' 
-  | 'threshold' 
-  | 'ordinal' 
-  | 'point' 
-  | 'band'
-  | 'symlog'
-  | 'radial';
+export type Pair<T> = [T, T];
 
-export type D3Scale = 
-  | d3.ScaleLinear<number, number>
-  | d3.ScaleLogarithmic<number, number>
-  | d3.ScalePower<number, number>
-  | d3.ScaleTime<number, number>
-  | d3.ScaleSequential<string>
-  | d3.ScaleQuantize<number>
-  | d3.ScaleQuantile<number>
-  | d3.ScaleThreshold<number, number>
-  | d3.ScaleOrdinal<string, unknown>
-  | d3.ScalePoint<string>
-  | d3.ScaleBand<string>
-  | d3.ScaleSymLog<number, number>
-  | d3.ScaleRadial<number, number>;
+export type Scales = {
+  'linear': d3.NumberValue,
+  'log': d3.NumberValue,
+  'pow': d3.NumberValue,
+  'sqrt': d3.NumberValue,
+  'time': d3.NumberValue | Date,
+  'utc': d3.NumberValue | Date,
+  'symlog': d3.NumberValue,
+  'radial': d3.NumberValue,
+  'point': string,
+  'band': string,
+}
 
-export interface ScaleFactoryOptions {
-  domain: [number | Date | string, number | Date | string] | string[];
+
+export type ScaleType = keyof Scales;
+
+export interface ScaleFactoryOptions<T extends d3.AxisDomain> {
+  domain: Iterable<T>;
   range: [number, number];
   base?: number;
   exponent?: number;
 }
 
-type ScaleFactoryFn = (options: ScaleFactoryOptions) => D3Scale;
+export type ScaleFactories = {
+  'linear': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'log': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'pow': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'sqrt': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'time': <T extends d3.NumberValue | Date>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'utc': <T extends d3.NumberValue | Date>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'symlog': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'radial': <T extends d3.NumberValue>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'point': <T extends string>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+  'band': <T extends string>(options:ScaleFactoryOptions<T>) => d3.AxisScale<T>,
+}
 
-export const scaleFactories: Record<ScaleType, ScaleFactoryFn> = {
-  linear: (options) => d3.scaleLinear()
-    .domain(options.domain as [number, number])
-    .range(options.range),
+export const scaleFactories:ScaleFactories = {
+  linear<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scaleLinear()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
   
-  log: (options) => d3.scaleLog()
-    .base(options.base || 10)
-    .domain(options.domain as [number, number])
-    .range(options.range),
-  
-  pow: (options) => d3.scalePow()
-    .exponent(options.exponent || 2)
-    .domain(options.domain as [number, number])
-    .range(options.range),
-  
-  sqrt: (options) => d3.scaleSqrt()
-    .domain(options.domain as [number, number])
-    .range(options.range),
-  
-  time: (options) => d3.scaleTime()
-    .domain(options.domain as [Date, Date])
-    .range(options.range),
-  
-  utc: (options) => d3.scaleUtc()
-    .domain(options.domain as [Date, Date])
-    .range(options.range),
-  
-  symlog: (options) => d3.scaleSymlog()
-    .domain(options.domain as [number, number])
-    .range(options.range),
-  
-  radial: (options) => d3.scaleRadial()
-    .domain(options.domain as [number, number])
-    .range(options.range),
-  
-  sequential: (options) => d3.scaleSequential(d3.interpolateViridis)
-    .domain(options.domain as [number, number]),
-  
-  quantize: (options) => d3.scaleQuantize()
-    .domain(options.domain as [number, number])
-    .range(options.range as unknown as number[]),
-  
-  quantile: (options) => d3.scaleQuantile()
-    .domain(options.domain as number[])
-    .range(options.range as unknown as number[]),
-  
-  threshold: (options) => d3.scaleThreshold()
-    .domain(options.domain as number[])
-    .range(options.range as unknown as number[]),
-  
-  ordinal: (options) => d3.scaleOrdinal()
-    .domain(options.domain as string[]),
-  
-  point: (options) => d3.scalePoint()
-    .domain(options.domain as string[])
-    .range(options.range),
-  
-  band: (options) => d3.scaleBand()
-    .domain(options.domain as string[])
-    .range(options.range)
-};
+  log<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scaleLog()
+      .base(options.base || 10)
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  pow<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scalePow()
+      .exponent(options.exponent || 2)
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  sqrt<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scaleSqrt()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  time<T extends d3.NumberValue | Date>(options:ScaleFactoryOptions<T>){
+    return d3.scaleTime()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  utc<T extends d3.NumberValue | Date>(options:ScaleFactoryOptions<T>){
+    return d3.scaleUtc()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  symlog<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scaleSymlog()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  radial<T extends d3.NumberValue>(options:ScaleFactoryOptions<T>){
+    return d3.scaleRadial()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  point<T extends string>(options:ScaleFactoryOptions<T>){
+    return d3.scalePoint()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+  band<T extends string>(options:ScaleFactoryOptions<T>){
+    return d3.scaleBand()
+      .domain(options.domain)
+      .range(options.range) as unknown as d3.AxisScale<T>;
+  },
+}
 
-export const scaleFactory = (type: ScaleType, options: ScaleFactoryOptions): D3Scale => {
-  const factory = scaleFactories[type];
+export function scaleFactory<K extends keyof ScaleFactories>(type: K, options: ScaleFactoryOptions<Scales[K]>): ReturnType<ScaleFactories[K]>{
+  const factory = scaleFactories[type] as undefined | (<T extends d3.AxisDomain>(o:ScaleFactoryOptions<T>) => ReturnType<ScaleFactories[K]>);
   if (!factory) {
     throw new Error(`Unknown scale type: ${type}`);
   }

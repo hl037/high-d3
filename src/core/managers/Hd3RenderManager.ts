@@ -1,55 +1,75 @@
-import { Hd3Chart } from '../chart/Hd3Chart';
-import type { RenderableI } from '../interfaces/RenderableI';
+import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3Event, Hd3EventNameMap } from '../bus/Hd3Bus';
 
-export type Hd3RenderManagerEvents = {
-  addRenderer: RenderableI,
-  removeRenderer: RenderableI,
-  renderManagerChanged: Hd3RenderManager | undefined,
+export interface Hd3RenderTargetI {
+  getRenderTarget: () => d3.Selection<SVGGElement, unknown, null, undefined>;
+  e:{
+    destroyed: Hd3Event<Hd3RenderTargetI>;
+  }
+  width: number;
+  height: number;
+  innerWidth: number;
+  innerHeight: number;
 }
+
+export interface Hd3RenderableI {
+  render: (target: Hd3RenderTargetI) => void;
+}
+
+export interface DirtyEvent {
+  target: Hd3RenderTargetI;
+  renderable: Hd3RenderableI;
+}
+
+export interface  Hd3RenderManagerEvents{
+  dirty: DirtyEvent;
+  render: null;
+}
+
+export interface Hd3RenderManagerOptions {
+  bus?: Hd3Bus;
+}
+
+export const dirty = createHd3Event<DirtyEvent>()
+export const render = createHd3Event<null>()
 
 /**
  * Manager that handles rendering of objects on the chart.
  */
 export class Hd3RenderManager {
-  private chart: Hd3Chart;
-  private renderables: Map<RenderableI, boolean> = new Map();
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3RenderManagerEvents>;
+  private dirtyList: Map<Hd3RenderTargetI, Set<Hd3RenderableI>>;
 
-  constructor(chart: Hd3Chart) {
-    this.chart = chart;
-
-    const bus = this.chart.bus;
-
-    bus.on(chart.e<Hd3RenderManagerEvents>()('addRenderer'), this.handleAddRenderer.bind(this));
-    bus.on(chart.e<Hd3RenderManagerEvents>()('removeRenderer'), this.handleRemoveRenderer.bind(this));
-    bus.on(chart.e.destroyed, this.destroy.bind(this));
-
-    // Announce manager on the bus
-    bus.emit(chart.e<Hd3RenderManagerEvents>()('renderManagerChanged'), this);
-  }
-
-  private handleAddRenderer(renderable: unknown): void {
-    if (this.isRenderable(renderable)) {
-      this.renderables.set(renderable, true);
-      renderable.render(this.chart);
+  constructor(options: Hd3RenderManagerOptions) {
+    this.handleDirty = this.handleDirty.bind(this);
+    this.handleRender = this.handleRender.bind(this);
+    this.bus = options.bus || getHd3GlobalBus();
+    this.e = {
+      dirty,
+      render,
     }
+    this.dirtyList = new Map();
+    this.bus.on(this.e.dirty, this.handleDirty);
+
+    
   }
 
-  private handleRemoveRenderer(renderable: unknown): void {
-    if (this.isRenderable(renderable)) {
-      this.renderables.delete(renderable);
-      if ('destroy' in renderable && typeof renderable.destroy === 'function') {
-        renderable.destroy();
+  private handleDirty(dirty: DirtyEvent): void {
+    let renderableSet = this.dirtyList.get(dirty.target);
+    if(renderableSet === undefined) {
+      renderableSet = new Set<Hd3RenderableI>();
+      this.dirtyList.set(dirty.target, renderableSet);
+    }
+    renderableSet!.add(dirty.renderable);
+  }
+
+  private handleRender(_:null){
+    const dirtyList = this.dirtyList;
+    this.dirtyList = new Map();
+    for(const [target, renderableSet] of dirtyList){
+      for(const renderable of renderableSet){
+        renderable.render(target);
       }
     }
-  }
-
-  private isRenderable(obj: unknown): obj is RenderableI {
-    return typeof obj === 'object' && obj !== null && 'render' in obj;
-  }
-
-  destroy(): void {
-    this.chart.bus.emit(this.chart.e<Hd3RenderManagerEvents>()('renderManagerChanged'), undefined);
-    (this as any).chart = undefined;
-    (this as any).renderables = undefined;
   }
 }

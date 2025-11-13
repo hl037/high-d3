@@ -1,6 +1,5 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3Series } from '../series/Hd3Series';
-import { getHd3GlobalBus } from '../bus/Hd3Bus';
 
 interface GetSeriesManagerCallbackI {setSeriesManager:(m:Hd3SeriesManager)=>void}
 

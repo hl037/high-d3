@@ -1,23 +1,20 @@
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 
-export type Domain = [number | Date | string, number | Date | string] | string[];
 
 export type Hd3AxisDomainEvents = {
-  domainChanged: Domain
+  domainChanged: Iterable<d3.AxisDomain>
 }
 
 export interface Hd3AxisDomainOptions {
   bus?: Hd3Bus;
-  domain?: Domain;
+  domain?: Iterable<d3.AxisDomain>;
 }
-
-
 
 /**
  * Abstract axis domain that maintains only domain and range (not scale).
  */
 export class Hd3AxisDomain {
-  private _domain: Domain;
+  private _domain: Iterable<d3.AxisDomain>;
   private bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3AxisDomainEvents>;
 
@@ -25,11 +22,11 @@ export class Hd3AxisDomain {
     this.bus = options.bus || getHd3GlobalBus();
     this._domain = options.domain || [0, 1];
     this.e = {
-      domainChanged: createHd3Event<Domain>(),
+      domainChanged: createHd3Event<Iterable<d3.AxisDomain>>(),
     }
   }
 
-  get domain(): [number | Date | string, number | Date | string] | string[] {
+  get domain(): Iterable<d3.AxisDomain> {
     return this._domain;
   }
 

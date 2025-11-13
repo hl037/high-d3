@@ -1,12 +1,11 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
-import { Hd3XAxis } from '../axis/Hd3XAxis';
-import { Hd3YAxis } from '../axis/Hd3YAxis';
 import type { AxesState, GetAxisManagerCallback } from './managerInterfaces';
 import { Hd3EventNameMap } from '../bus/Hd3Bus';
+import { Hd3Axis } from '../axis/Hd3Axis';
 
 export type Hd3AxisManagerEvents = {
-  addAxis: Hd3XAxis,
-  removeAxis: Hd3XAxis,
+  addAxis: Hd3Axis,
+  removeAxis: Hd3Axis,
   getAxisManager: GetAxisManagerCallback,
   axesListChanged: AxesState,
   axisManagerChanged: Hd3AxisManager | undefined,
@@ -17,8 +16,8 @@ export type Hd3AxisManagerEvents = {
  */
 export class Hd3AxisManager {
   private chart: Hd3Chart;
-  private xAxes: Map<string, Hd3XAxis> = new Map();
-  private yAxes: Map<string, Hd3YAxis> = new Map();
+  private xAxes: Map<string, Hd3Axis> = new Map();
+  private yAxes: Map<string, Hd3Axis> = new Map();
   public readonly e: Hd3EventNameMap<Hd3AxisManagerEvents>;
 
   constructor(chart: Hd3Chart) {
@@ -47,14 +46,14 @@ export class Hd3AxisManager {
   }
 
   private handleAddAxis(axis: unknown): void {
-    if (axis instanceof Hd3XAxis) {
+    if (axis instanceof Hd3Axis) {
       this.xAxes.set(axis.name, axis);
       this.notifyAxesChanged();
     }
   }
 
   private handleRemoveAxis(axis: unknown): void {
-    if (axis instanceof Hd3XAxis) {
+    if (axis instanceof Hd3Axis) {
       this.xAxes.delete(axis.name);
       this.notifyAxesChanged();
     }
@@ -75,24 +74,23 @@ export class Hd3AxisManager {
     };
   }
 
-  getXAxes(): Hd3XAxis[] {
+  getXAxes(): Hd3Axis[] {
     return [...this.xAxes.values()];
   }
 
-  getYAxes(): Hd3YAxis[] {
+  getYAxes(): Hd3Axis[] {
     return [...this.yAxes.values()];
   }
 
-  getXAxis(name: string): Hd3XAxis | undefined {
+  getXAxis(name: string): Hd3Axis | undefined {
     return this.xAxes.get(name);
   }
 
-  getYAxis(name: string): Hd3YAxis | undefined {
+  getYAxis(name: string): Hd3Axis | undefined {
     return this.yAxes.get(name);
   }
 
   destroy(): void {
-    const bus = this.chart
     this.chart.bus.emit(this.chart.e<Hd3AxisManagerEvents>()('axisManagerChanged'), undefined);
     (this as any).chart = undefined;
     (this as any).xAxes = undefined;

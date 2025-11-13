@@ -27,6 +27,7 @@ export interface Hd3ChartEvents {
  */
 export class Hd3Chart {
   public readonly bus: Hd3Bus;
+  public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -41,7 +42,6 @@ export class Hd3Chart {
   public margin: { top: number; right: number; bottom: number; left: number };
   public innerWidth: number;
   public innerHeight: number;
-  public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
 
   constructor(container: HTMLElement | string, options: Hd3ChartOptions = {}) {
     this.container = typeof container === 'string' 
@@ -107,7 +107,7 @@ export class Hd3Chart {
   /**
    * Get the main SVG group where content should be rendered
    */
-  getMainGroup(): d3.Selection<SVGGElement, unknown, null, undefined> {
+  getRenderTarget(): d3.Selection<SVGGElement, unknown, null, undefined> {
     return this.mainGroup;
   }
 
