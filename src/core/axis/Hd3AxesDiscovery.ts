@@ -1,28 +1,27 @@
-import type { Hd3Bus } from '../bus/Hd3Bus';
+import { getHd3GlobalBus, type Hd3Bus, type Hd3DynamicEventNameMapProvider } from '../bus/Hd3Bus';
 import type { Hd3Axis } from './Hd3Axis';
 import type { Hd3AxisManager } from '../managers/Hd3AxisManager';
-import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
+
+export interface Hd3AxesDiscoveryOptions {
+  bus?: Hd3Bus;
+  charts?: Hd3DynamicEventNameMapProvider[];
+  axes?: (Hd3Axis | string)[];
+}
 
 export class Hd3AxesDiscovery {
+  public readonly bus: Hd3Bus;
   private axesSpec: (Hd3Axis | string)[] | undefined;
-  private buses: Hd3Bus[];
   private resolvedAxes: Hd3Axis[];
   private namedAxes: string[];
   private discoveredManagers: Hd3AxisManager[];
-  private busEndpoints: Hd3BusEndpoint[];
 
-  constructor(axes: (Hd3Axis | string)[] | undefined, buses: Hd3Bus[]) {
-    this.axesSpec = axes;
-    this.buses = buses;
+  constructor(options: Hd3AxesDiscoveryOptions) {
+    this.bus = options.bus || getHd3GlobalBus();
+    this.axesSpec = options.axes;
     this.resolvedAxes = [];
     this.namedAxes = [];
     this.discoveredManagers = [];
-    this.busEndpoints = [];
 
-    this.initialize();
-  }
-
-  private initialize(): void {
     if (!this.axesSpec) {
       return;
     }
@@ -35,7 +34,8 @@ export class Hd3AxesDiscovery {
       }
     }
 
-    for (const bus of this.buses) {
+    for (const chart of options.charts ?? []) {
+      this.bus.on(chart.e<Hd3AxisManagerEvents>(
       const endpoint = new Hd3BusEndpoint({
         listeners: {
           addAxisManager: (manager: unknown) => {

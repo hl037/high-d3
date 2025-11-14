@@ -52,19 +52,17 @@ interface AxisTargetData {
  * Renders an axis on the chart (X or Y).
  */
 export class Hd3Axis implements Hd3RenderableI {
-  bus: Hd3Bus;
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3AxisEvents>;
   public name: string;
   protected axisDomain: Hd3AxisDomain;
   protected position: 'left' | 'right' | 'bottom' | 'top';
   protected orientation: 'x' | 'y'
   protected scaleType: ScaleType;
-  protected _range: [number, number];
-  protected _scale: d3.AxisScale<d3.AxisDomain>;
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
   protected gridOptions: Hd3AxisGridOptions;
   protected targetData: Map<Hd3RenderTargetI, AxisTargetData>
-  public readonly e: Hd3EventNameMap<Hd3AxisEvents>;
 
   constructor(options: Hd3AxisOptions) {
     this.handleDomainChanged = this.handleDomainChanged.bind(this);
@@ -77,7 +75,6 @@ export class Hd3Axis implements Hd3RenderableI {
     this.position = options.position || (options.orientation === 'x' ? 'bottom' : 'left');
     this.orientation = this.position === 'left' || this.position === 'right' ? 'y' : 'x';
     this.scaleType = options.scaleType || 'linear';
-    this._range = options.range || [0, 100];
     this.scaleOptions = options.scaleOptions || {};
     this.tickCount = options.tickCount || 10;
     this.gridOptions = {
@@ -88,7 +85,6 @@ export class Hd3Axis implements Hd3RenderableI {
       opacity: 0.7,
       ...options.grid
     };
-    this._scale = this.createScale();
     this.targetData = new Map()
 
     this.destroy = this.destroy.bind(this);
@@ -97,36 +93,19 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  protected createScale(): d3.AxisScale<d3.AxisDomain> {
+  protected createScale(target:Hd3RenderTargetI): d3.AxisScale<d3.AxisDomain> {
     return scaleFactory(this.scaleType, {
       domain: this.axisDomain.domain,
-      range: this._range,
+      range: [0, this.orientation === 'x' ? target.innerWidth : target.innerHeight],
       ...this.scaleOptions
     }) as d3.AxisScale<d3.AxisDomain>;
   }
 
-  get scale(): d3.AxisScale<d3.AxisDomain> {
-    return this._scale;
-  }
-
-  get range(): [number, number] {
-    return this._range;
-  }
-
-  set range(value: [number, number]) {
-    this._range = value;
-    this.updateScale();
-  }
-
-  protected updateScale(): void {
-    this._scale = this.createScale();
+  private handleDomainChanged(): void {
     for(const target of this.targetData.keys()){
+      // INFO - 2025-11-13 -- hl037 : since axis may not receive several dirtiing event, re-render could be done from here directly without needing the render manager
       this.bus.emit(dirty, {target, renderable: this});
     }
-  }
-
-  private handleDomainChanged(): void {
-    this.updateScale();
   }
 
   protected handleTargetDestroyed(target: Hd3RenderTargetI){
@@ -141,7 +120,7 @@ export class Hd3Axis implements Hd3RenderableI {
     }
     else {
       this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
-      const scale = this.createScale();
+      const scale = this.createScale(target);
       const axisGenerator = this.getAxisGenerator(scale)
       const g = {
         visible: true,
@@ -188,14 +167,14 @@ export class Hd3Axis implements Hd3RenderableI {
   }
 
   protected updateRender(target: Hd3RenderTargetI, g: AxisTargetData): void {
-    const axisGenerator = this.getAxisGenerator();
+    const axisGenerator = this.getAxisGenerator(g.scale);
     axisGenerator.ticks(this.tickCount);
 
     g.group!.call(axisGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
 
     // Draw grid
     if (this.gridOptions.enabled) {
-      const gridGenerator = this.getGridGenerator(target);
+      const gridGenerator = this.getGridGenerator(target, g);
       gridGenerator.ticks(this.tickCount);
 
       g.grid!.call(gridGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
@@ -216,11 +195,10 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  protected getGridGenerator(target: Hd3RenderTargetI) {
-    const scale = this._scale as d3.AxisScale<d3.NumberValue>;
+  protected getGridGenerator(target: Hd3RenderTargetI, g:AxisTargetData) {
     const tickSize = this.orientation === 'x' ? -target.innerHeight : -target.innerWidth;
     
-    const generator = this.orientation === 'x' ? d3.axisBottom(scale) : d3.axisLeft(scale);
+    const generator = this.orientation === 'x' ? d3.axisBottom(g.scale) : d3.axisLeft(g.scale);
     return generator.tickSize(tickSize).tickFormat(() => '');
   }
 
@@ -255,6 +233,5 @@ export class Hd3Axis implements Hd3RenderableI {
     
     (this as any).bus = undefined;
     (this as any).axisDomain = undefined;
-    (this as any)._scale = undefined;
   }
 }

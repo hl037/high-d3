@@ -1,14 +1,19 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
 import type { AxesState, GetAxisManagerCallback } from './managerInterfaces';
-import { Hd3EventNameMap } from '../bus/Hd3Bus';
+import { Hd3DynamicEventNameMapProvider, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3Axis } from '../axis/Hd3Axis';
 
-export type Hd3AxisManagerEvents = {
+export interface  Hd3AxisManagerChangedEvent{
+  provider: Hd3DynamicEventNameMapProvider,
+  axisManager: Hd3AxisManager | null,
+}
+
+export interface Hd3AxisManagerEvents {
   addAxis: Hd3Axis,
   removeAxis: Hd3Axis,
   getAxisManager: GetAxisManagerCallback,
   axesListChanged: AxesState,
-  axisManagerChanged: Hd3AxisManager | undefined,
+  axisManagerChanged: Hd3AxisManagerChangedEvent,
 }
 
 /**
@@ -42,7 +47,7 @@ export class Hd3AxisManager {
     bus.on(chart.e.destroyed, this.destroy.bind(this));
 
     // Announce manager on the bus
-    bus.emit(chart.e<Hd3AxisManagerEvents>()('axisManagerChanged'), this);
+    bus.emit(chart.e<Hd3AxisManagerEvents>()('axisManagerChanged'), {provider: chart, axisManager: this});
   }
 
   private handleAddAxis(axis: unknown): void {

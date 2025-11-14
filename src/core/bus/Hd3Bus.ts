@@ -67,3 +67,7 @@ export function createHd3EventNameMap<P extends Hd3EventNamePayloadMap>(events:H
 
   return Object.assign(dynamicEventMap, events);
 }
+
+export interface Hd3DynamicEventNameMapProvider{
+  e: Hd3DynamicEventNameMap<{destroy: unknown}>;
+}
