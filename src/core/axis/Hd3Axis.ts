@@ -5,13 +5,14 @@ import { Hd3AxisDomain } from './Hd3AxisDomain';
 import { dirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
 
 
+export interface Hd3AxisEvents{
+  visibilityChanged: Hd3AxisVisibilityChangedEvent;
+  destroyed: Hd3Axis;
+}
+
 export interface Hd3AxisVisibilityChangedEvent{
   target: Hd3RenderTargetI;
   visible: boolean;
-}
-
-export interface Hd3AxisEvents{
-  visibilityChanged: Hd3AxisVisibilityChangedEvent;
 }
 
 export interface Hd3AxisGridOptions {
@@ -55,9 +56,9 @@ export class Hd3Axis implements Hd3RenderableI {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3AxisEvents>;
   public name: string;
-  protected axisDomain: Hd3AxisDomain;
-  protected position: 'left' | 'right' | 'bottom' | 'top';
-  protected orientation: 'x' | 'y'
+  public readonly axisDomain: Hd3AxisDomain;
+  public readonly position: 'left' | 'right' | 'bottom' | 'top';
+  public readonly orientation: 'x' | 'y'
   protected scaleType: ScaleType;
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
@@ -90,7 +91,12 @@ export class Hd3Axis implements Hd3RenderableI {
     this.destroy = this.destroy.bind(this);
     this.e = {
       visibilityChanged: createHd3Event<Hd3AxisVisibilityChangedEvent>(),
+      destroyed: createHd3Event<Hd3Axis>(),
     }
+  }
+
+  public getScale(target: Hd3RenderTargetI){
+    return this.targetData.get(target)?.scale
   }
 
   protected createScale(target:Hd3RenderTargetI): d3.AxisScale<d3.AxisDomain> {
@@ -226,10 +232,9 @@ export class Hd3Axis implements Hd3RenderableI {
   }
 
   destroy(): void {
-    const bus = getHd3GlobalBus();
-    bus.off(this.axisDomain.e.domainChanged, this.handleDomainChanged);
-    bus.off(this.e.visibilityChanged, this._setVisible);
-
+    this.bus.emit(this.e.destroyed, this);
+    this.bus.off(this.axisDomain.e.domainChanged, this.handleDomainChanged);
+    this.bus.off(this.e.visibilityChanged, this._setVisible);
     
     (this as any).bus = undefined;
     (this as any).axisDomain = undefined;

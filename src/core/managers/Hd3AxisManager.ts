@@ -1,7 +1,16 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
-import type { AxesState, GetAxisManagerCallback } from './managerInterfaces';
 import { Hd3DynamicEventNameMapProvider, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3Axis } from '../axis/Hd3Axis';
+
+
+export interface AxesState {
+  x: Hd3Axis[];
+  y: Hd3Axis[];
+}
+
+export interface GetAxisManagerCallback {
+  setAxisManager(state: Hd3AxisManager): void;
+}
 
 export interface  Hd3AxisManagerChangedEvent{
   provider: Hd3DynamicEventNameMapProvider,
@@ -20,7 +29,7 @@ export interface Hd3AxisManagerEvents {
  * Manager that keeps track of axis renderers added to the chart.
  */
 export class Hd3AxisManager {
-  private chart: Hd3Chart;
+  public readonly chart: Hd3Chart;
   private xAxes: Map<string, Hd3Axis> = new Map();
   private yAxes: Map<string, Hd3Axis> = new Map();
   public readonly e: Hd3EventNameMap<Hd3AxisManagerEvents>;
@@ -30,6 +39,7 @@ export class Hd3AxisManager {
     this.handleAddAxis = this.handleAddAxis.bind(this);
     this.handleRemoveAxis = this.handleRemoveAxis.bind(this);
     this.handleGetAxisManager = this.handleGetAxisManager.bind(this)
+    this.handleAxisDestroyed = this.handleAxisDestroyed.bind(this)
     const bus = this.chart.bus;
 
     this.e = {
@@ -52,16 +62,32 @@ export class Hd3AxisManager {
 
   private handleAddAxis(axis: unknown): void {
     if (axis instanceof Hd3Axis) {
-      this.xAxes.set(axis.name, axis);
+      if(axis.orientation === 'x') {
+        this.xAxes.set(axis.name, axis);
+      }
+      else {
+        this.yAxes.set(axis.name, axis);
+      }
+      this.chart.bus.on(axis.e.destroyed, this.handleAxisDestroyed);
       this.notifyAxesChanged();
     }
   }
 
   private handleRemoveAxis(axis: unknown): void {
     if (axis instanceof Hd3Axis) {
-      this.xAxes.delete(axis.name);
+      if(axis.orientation === 'x') {
+        this.xAxes.delete(axis.name);
+      }
+      else {
+        this.yAxes.delete(axis.name);
+      }
+      this.chart.bus.off(axis.e.destroyed, this.handleAxisDestroyed);
       this.notifyAxesChanged();
     }
+  }
+
+  private handleAxisDestroyed(axis: Hd3Axis){
+    this.chart.bus.emit(this.e.removeAxis, axis);
   }
 
   private handleGetAxisManager(callback: GetAxisManagerCallback): void {
