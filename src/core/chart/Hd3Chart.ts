@@ -2,6 +2,9 @@ import * as d3 from 'd3';
 import { createHd3Event, createHd3EventNameMap, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap } from '../bus/Hd3Bus';
 import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
 import { Hd3AxisManager } from '../managers/Hd3AxisManager';
+import { Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
+
+type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
 export interface Hd3ChartOptions {
   bus?: Hd3Bus;
@@ -20,17 +23,74 @@ export interface Hd3ChartEvents {
   resized: Hd3ChartResizeEvent,
 }
 
+export interface Hd3ChartLayersI{
+  background: D3Group;
+  axis: D3Group;
+  dataRoot: D3Group
+  data: {
+    back: D3Group;
+    middle: D3Group;
+    front: D3Group;
+  }
+  annotationRoot: D3Group;
+  annotation: {
+    back: D3Group;
+    middle: D3Group;
+    front: D3Group;
+  }
+}
+
+export interface Hd3ChartI extends Hd3RenderTargetI{
+  layer: Hd3ChartLayersI;
+}
+
+function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
+  const group = target.getRenderTarget();
+  const background = group.append('g').attr('class', 'layer-background');
+  const axis = group.append('g').attr('class', 'layer-axis');
+  const dataRoot = group.append('g').attr('class', 'layer-data');
+  const annotationRoot = group.append('g').attr('class', 'layer-annotation');
+  
+  const dataBack = dataRoot.append('g').attr('class', 'layer-data-back');
+  const dataMiddle = dataRoot.append('g').attr('class', 'layer-data-middle');
+  const dataFront = dataRoot.append('g').attr('class', 'layer-data-middle');
+  
+  const annotationBack = annotationRoot.append('g').attr('class', 'layer-annotation-back');
+  const annotationMiddle = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
+  const annotationFront = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
+
+  return {
+    background,
+    axis,
+    dataRoot,
+    data: {
+      back: dataBack,
+      middle: dataMiddle,
+      front: dataFront,
+    },
+    annotationRoot,
+    annotation: {
+      back: annotationBack,
+      middle: annotationMiddle,
+      front: annotationFront,
+    },
+  }
+
+
+}
+
 
 /**
  * Central chart class. Manages SVG element and serves as store for all chart objects.
  * Implements Hd3Bus for event-driven communication.
  */
-export class Hd3Chart {
+export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
   public readonly bus: Hd3Bus;
   public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
+  public readonly layer: Hd3ChartLayersI
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
-  private mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>;
+  private mainGroup: D3Group;
   private resizeObserver?: ResizeObserver;
   private autoWidth: boolean;
   private autoHeight: boolean;
@@ -73,6 +133,8 @@ export class Hd3Chart {
     this.mainGroup = this.svg
       .append('g')
       .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
+
+    this.layer = buildLayers(this);
 
     // Initialize managers
     new Hd3SeriesManager(this);

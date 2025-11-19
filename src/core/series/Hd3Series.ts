@@ -3,6 +3,7 @@ import type { SeriesData, Data2D } from '../types';
 
 export interface Hd3SeriesEvents {
   dataChanged: SeriesData<any>;
+  destroyed: Hd3Series<number|string|Date>
 }
 
 export interface Hd3SeriesOptions<T extends number | string | Date = number> {
@@ -29,6 +30,7 @@ export class Hd3Series<T extends number | string | Date = number> {
     this._data = this.normalizeData(options.data);
     this.e = {
       dataChanged:createHd3Event<SeriesData<string> | SeriesData<number> | SeriesData<Date>>(),
+      destroyed:createHd3Event<Hd3Series>(),
     }
   }
 
@@ -53,5 +55,9 @@ export class Hd3Series<T extends number | string | Date = number> {
   set data(value: SeriesData<T>) {
     this._data = this.normalizeData(value);
     this.bus.emit(this.e.dataChanged, this._data);
+  }
+
+  destroy(){
+    this.bus.emit(this.e.destroyed, this);
   }
 }

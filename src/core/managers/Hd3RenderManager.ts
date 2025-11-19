@@ -11,25 +11,27 @@ export interface Hd3RenderTargetI {
   innerHeight: number;
 }
 
-export interface Hd3RenderableI {
-  render: (target: Hd3RenderTargetI) => void;
+export interface Hd3RenderableI<T> {
+  render: (target: T) => void;
 }
 
-export interface DirtyEvent {
-  target: Hd3RenderTargetI;
-  renderable: Hd3RenderableI;
+export interface DirtyEvent<T> {
+  target: T;
+  renderable: Hd3RenderableI<T>;
 }
 
 export interface  Hd3RenderManagerEvents{
-  dirty: DirtyEvent;
-  render: null;
+  dirty: DirtyEvent<unknown>;
 }
 
 export interface Hd3RenderManagerOptions {
   bus?: Hd3Bus;
 }
 
-export const dirty = createHd3Event<DirtyEvent>()
+const dirty = createHd3Event<DirtyEvent<unknown>>()
+export function emitDirty<T>(bus:Hd3Bus, event:DirtyEvent<T>) {
+  bus.emit(dirty, event as DirtyEvent<unknown>);
+}
 export const render = createHd3Event<null>()
 
 /**
@@ -38,7 +40,7 @@ export const render = createHd3Event<null>()
 export class Hd3RenderManager {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3RenderManagerEvents>;
-  private dirtyList: Map<Hd3RenderTargetI, Set<Hd3RenderableI>>;
+  private dirtyList: Map<unknown, Set<Hd3RenderableI<unknown>>>;
 
   constructor(options: Hd3RenderManagerOptions) {
     this.handleDirty = this.handleDirty.bind(this);
@@ -46,21 +48,22 @@ export class Hd3RenderManager {
     this.bus = options.bus || getHd3GlobalBus();
     this.e = {
       dirty,
-      render,
     }
     this.dirtyList = new Map();
     this.bus.on(this.e.dirty, this.handleDirty);
-
-    
   }
 
-  private handleDirty(dirty: DirtyEvent): void {
+  private handleDirty(dirty: DirtyEvent<unknown>): void {
+    const needRender = this.dirtyList.size === 0; // INFO - 2025-11-19 -- hl037 : If dirtyList is not empty, a render has already been scheduled, so we don't need to schedule another one.
     let renderableSet = this.dirtyList.get(dirty.target);
     if(renderableSet === undefined) {
-      renderableSet = new Set<Hd3RenderableI>();
+      renderableSet = new Set<Hd3RenderableI<unknown>>();
       this.dirtyList.set(dirty.target, renderableSet);
     }
     renderableSet!.add(dirty.renderable);
+    if(needRender) {
+      setTimeout(this.handleRender, 0);
+    }
   }
 
   private handleRender(_:null){

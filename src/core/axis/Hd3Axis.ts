@@ -2,7 +2,8 @@ import * as d3 from 'd3';
 import { scaleFactory, ScaleType } from './scaleFactory';
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisDomain } from './Hd3AxisDomain';
-import { dirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
+import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
+import { Hd3ChartI } from '../chart/Hd3Chart';
 
 
 export interface Hd3AxisEvents{
@@ -11,7 +12,7 @@ export interface Hd3AxisEvents{
 }
 
 export interface Hd3AxisVisibilityChangedEvent{
-  target: Hd3RenderTargetI;
+  target: Hd3ChartI;
   visible: boolean;
 }
 
@@ -52,7 +53,7 @@ interface AxisTargetData {
 /**
  * Renders an axis on the chart (X or Y).
  */
-export class Hd3Axis implements Hd3RenderableI {
+export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3AxisEvents>;
   public name: string;
@@ -63,7 +64,7 @@ export class Hd3Axis implements Hd3RenderableI {
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
   protected gridOptions: Hd3AxisGridOptions;
-  protected targetData: Map<Hd3RenderTargetI, AxisTargetData>
+  protected targetData: Map<Hd3ChartI, AxisTargetData>
 
   constructor(options: Hd3AxisOptions) {
     this.handleDomainChanged = this.handleDomainChanged.bind(this);
@@ -95,11 +96,11 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  public getScale(target: Hd3RenderTargetI){
+  public getScale(target: Hd3ChartI){
     return this.targetData.get(target)?.scale
   }
 
-  protected createScale(target:Hd3RenderTargetI): d3.AxisScale<d3.AxisDomain> {
+  protected createScale(target:Hd3ChartI): d3.AxisScale<d3.AxisDomain> {
     return scaleFactory(this.scaleType, {
       domain: this.axisDomain.domain,
       range: [0, this.orientation === 'x' ? target.innerWidth : target.innerHeight],
@@ -110,59 +111,58 @@ export class Hd3Axis implements Hd3RenderableI {
   private handleDomainChanged(): void {
     for(const target of this.targetData.keys()){
       // INFO - 2025-11-13 -- hl037 : since axis may not receive several dirtiing event, re-render could be done from here directly without needing the render manager
-      this.bus.emit(dirty, {target, renderable: this});
+      emitDirty(this.bus, {target, renderable: this});
     }
   }
 
   protected handleTargetDestroyed(target: Hd3RenderTargetI){
-    this.targetData.delete(target);
+    this.targetData.delete(target as Hd3ChartI);
     this.bus.off(target.e.destroyed, this.handleTargetDestroyed);
   }
 
-  protected getTargetData(target: Hd3RenderTargetI): AxisTargetData{
-    const g = this.targetData.get(target);
-    if(g !== undefined) {
-      return g
+  protected getTargetData(target: Hd3ChartI): AxisTargetData{
+    const targetData = this.targetData.get(target);
+    if(targetData !== undefined) {
+      return targetData
     }
     else {
       this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
       const scale = this.createScale(target);
       const axisGenerator = this.getAxisGenerator(scale)
-      const g = {
+      const targetData = {
         visible: true,
         scale,
         axisGenerator
       };
-      this.targetData.set(target, g);
-      return g;
+      this.targetData.set(target, targetData);
+      return targetData;
     }
 
   }
 
-  public render(target: Hd3RenderTargetI): void {
-    const mainGroup = target.getRenderTarget();
-    const g = this.getTargetData(target);
+  public render(target: Hd3ChartI): void {
+    const targetData = this.getTargetData(target);
     
     // Grid first (so it's behind the axis)
-    if (this.gridOptions.enabled && g.grid === undefined) {
-      g.grid = mainGroup.append('g')
+    if (this.gridOptions.enabled && targetData.grid === undefined) {
+      targetData.grid = target.layer.axis.append('g')
         .attr('class', `${this.orientation}-grid ${this.orientation}-grid-${this.name}`);
     }
 
     
-    if(g.group === undefined) {
-      g.group = mainGroup.append('g')
-      .attr('class', `${this.orientation}-axis ${this.orientation}-axis-${this.name}`)
+    if(targetData.group === undefined) {
+      targetData.group = target.layer.axis.append('g')
+        .attr('class', `${this.orientation}-axis ${this.orientation}-axis-${this.name}`)
 
     }
     
     const transform = this.getTransform(target);
-    g.group.attr('transform', transform);
+    targetData.group.attr('transform', transform);
 
-    this.updateRender(target, g);
+    this.updateRender(target, targetData);
   }
 
-  protected getTransform(chart: Hd3RenderTargetI): string {
+  protected getTransform(chart: Hd3ChartI): string {
     if (this.orientation === 'x') {
       const yPos = this.position === 'bottom' ? chart.innerHeight : 0;
       return `translate(0,${yPos})`;
@@ -172,7 +172,7 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  protected updateRender(target: Hd3RenderTargetI, g: AxisTargetData): void {
+  protected updateRender(target: Hd3ChartI, g: AxisTargetData): void {
     const axisGenerator = this.getAxisGenerator(g.scale);
     axisGenerator.ticks(this.tickCount);
 
@@ -201,7 +201,7 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  protected getGridGenerator(target: Hd3RenderTargetI, g:AxisTargetData) {
+  protected getGridGenerator(target: Hd3ChartI, g:AxisTargetData) {
     const tickSize = this.orientation === 'x' ? -target.innerHeight : -target.innerWidth;
     
     const generator = this.orientation === 'x' ? d3.axisBottom(g.scale) : d3.axisLeft(g.scale);
@@ -219,7 +219,7 @@ export class Hd3Axis implements Hd3RenderableI {
     }
   }
 
-  public setVisible(visible: boolean, target?:Hd3RenderTargetI){
+  public setVisible(visible: boolean, target?:Hd3ChartI){
     if(target !== undefined) {
       this.bus.emit(this.e.visibilityChanged, {target, visible});
     }

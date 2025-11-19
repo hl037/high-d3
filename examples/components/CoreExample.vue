@@ -2,7 +2,7 @@
   <div>
     <h2>Core Example - Vanilla TypeScript</h2>
     
-    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Tools</h3>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -24,9 +24,9 @@
           </label>
         </div>
       </div>
-    </div>
+    </div> -->
 
-    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Grid Options</h3>
         <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -63,9 +63,16 @@
           </label>
         </div>
       </div>
+    </div> -->
+    
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Chart 1 - Simple</h3>
+        <div ref="chartContainer1" style="width: 100%; height: 400px;"></div>
+      </div>
     </div>
 
-    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Chart 1 - Multiple Series Types</h3>
         <div ref="chartContainer1" style="width: 100%; height: 400px;"></div>
@@ -75,15 +82,15 @@
         <h3>Chart 2 - Logarithmic Y Axis</h3>
         <div ref="chartContainer2" style="width: 100%; height: 400px;"></div>
       </div>
-    </div>
+    </div> -->
 
-    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+    <!-- <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
       <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
       <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
         This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
       </p>
       <div ref="chartContainer3" style="width: 100%; height: 400px;"></div>
-    </div>
+    </div> -->
 
     <div 
       v-if="tooltipVisible" 
@@ -174,11 +181,6 @@ function setTool(tool: string) {
   toolState.currentTool = tool as any;
 }
 
-function toggleSeriesVisibility(idx: number) {
-  const allSeries = [series1, series2, series3, series4];
-  allSeries[idx].setVisible(seriesVisibility.value[idx].visible);
-}
-
 onMounted(() => {
   if (!chartContainer1.value || !chartContainer2.value || !chartContainer3.value) return;
 
@@ -210,12 +212,10 @@ onMounted(() => {
   });
 
   const xAxisDom1 = new Hd3AxisDomain({
-    name: 'x1',
     domain: [0, 4 * Math.PI]
   });
 
   const yAxisDom1 = new Hd3AxisDomain({
-    name: 'y1',
     domain: [-1.5, 1.5]
   });
 
@@ -250,8 +250,6 @@ onMounted(() => {
 
   const line1 = new Hd3Line({
     series: series1,
-    xAxis: 'x1',
-    yAxis: 'y1',
     style: { color: '#e74c3c', strokeWidth: 2 }
   });
   const area1 = new Hd3Area({

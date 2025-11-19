@@ -9,7 +9,7 @@ export interface AxesState {
 }
 
 export interface GetAxisManagerCallback {
-  setAxisManager(state: Hd3AxisManager): void;
+  (manager: Hd3AxisManager): void;
 }
 
 export interface  Hd3AxisManagerChangedEvent{
@@ -91,18 +91,28 @@ export class Hd3AxisManager {
   }
 
   private handleGetAxisManager(callback: GetAxisManagerCallback): void {
-    callback.setAxisManager(this);
+    callback(this);
   }
 
   private notifyAxesChanged(): void {
     this.chart.bus.emit(this.chart.e<Hd3AxisManagerEvents>()('axesListChanged'), this.getAxesState());
   }
 
-  private getAxesState(): AxesState {
-    return {
-      x: [...this.xAxes.values()],
-      y: [...this.yAxes.values()]
-    };
+  public getAxesState(filter?:(Hd3Axis | string)[]): AxesState {
+    const filterSet = new Set(filter);
+    if(filter === undefined) {
+      return {
+        x: [...this.xAxes.values()],
+        y: [...this.yAxes.values()]
+      };
+    }
+    else {
+      return {
+        x: [...this.xAxes.values()].filter((e) => (filterSet.has(e) || filterSet.has(e.name))),
+        y: [...this.yAxes.values()].filter((e) => (filterSet.has(e) || filterSet.has(e.name))),
+      };
+      
+    }
   }
 
   getXAxes(): Hd3Axis[] {
