@@ -132,6 +132,7 @@ export class Hd3InteractionArea {
 
     this.bus.on(chart.e.destroyed, this.removeFromChart);
     this.bus.on(chart.e.resized, handleResize);
+    this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleGetManager);
     this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), this);
   }
 
@@ -140,6 +141,7 @@ export class Hd3InteractionArea {
     if (!chartData) return;
 
     this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), undefined);
+    this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleGetManager);
 
     chartData.rect.remove();
     this.bus.off(chart.e.destroyed, this.removeFromChart);

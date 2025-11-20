@@ -47,6 +47,7 @@ interface AxisTargetData {
   visible: boolean;
   scale: d3.AxisScale<d3.AxisDomain>;
   axisGenerator: d3.Axis<d3.AxisDomain>;
+  offset: number; // Offset relative to the normal position of the axis
 }
 
 
@@ -97,12 +98,29 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     }
   }
 
-  public addToChart(target: Hd3ChartI){
+  public addToChart(target: Hd3ChartI, offset:number=0){
     this.bus.emit(target.e<Hd3AxisManagerEvents>()('addAxis'), this);
+    this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
+    const scale = this.createScale(target);
+    const axisGenerator = this.getAxisGenerator(scale)
+    const targetData = {
+      visible: true,
+      scale,
+      axisGenerator,
+      offset,
+    };
+    this.targetData.set(target, targetData);
+    emitDirty(this.bus, {target, renderable:this});
+  }
+
+  public setOffset(target: Hd3ChartI, offset:number=0){
+    const data = this.getTargetData(target);
+    data.offset = offset;
     emitDirty(this.bus, {target, renderable:this});
   }
 
   public removeFromChart(target: Hd3ChartI){
+    this.bus.off(target.e.destroyed, this.handleTargetDestroyed)
     this.bus.emit(target.e<Hd3AxisManagerEvents>()('removeAxis'), this);
   }
 
@@ -129,8 +147,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   protected handleTargetDestroyed(target: Hd3RenderTargetI){
-    this.targetData.delete(target as Hd3ChartI);
-    this.bus.off(target.e.destroyed, this.handleTargetDestroyed);
+    this.removeFromChart(target as Hd3ChartI);
   }
 
   protected getTargetData(target: Hd3ChartI): AxisTargetData{
@@ -139,18 +156,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
       return targetData
     }
     else {
-      this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
-      const scale = this.createScale(target);
-      const axisGenerator = this.getAxisGenerator(scale)
-      const targetData = {
-        visible: true,
-        scale,
-        axisGenerator
-      };
-      this.targetData.set(target, targetData);
-      return targetData;
+      throw new Error("axis not added to chart");
     }
-
   }
 
   public render(target: Hd3ChartI): void {
@@ -169,20 +176,34 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
 
     }
     
-    const transform = this.getTransform(target);
+    const transform = this.getTransform(target, targetData);
     targetData.group.attr('transform', transform);
 
     this.updateRender(target, targetData);
   }
 
-  protected getTransform(chart: Hd3ChartI): string {
+  protected _getTranslation(target: Hd3ChartI, targetData: AxisTargetData): {x:number, y:number}{
     if (this.orientation === 'x') {
-      const yPos = this.position === 'bottom' ? chart.innerHeight : 0;
-      return `translate(0,${yPos})`;
+      return {
+        x: 0,
+        y: (this.position === 'bottom' ? target.innerHeight : 0) + targetData.offset,
+      }
     } else {
-      const xPos = this.position === 'left' ? 0 : chart.innerWidth;
-      return `translate(${xPos},0)`;
+      return {
+        x: (this.position === 'left' ? 0 : target.innerWidth) + targetData.offset,
+        y: 0,
+      };
     }
+    
+  }
+
+  public getTranslation(target: Hd3ChartI): {x:number, y:number}{
+    return this._getTranslation(target, this.getTargetData(target));
+  }
+
+  protected getTransform(target: Hd3ChartI, targetData: AxisTargetData): string {
+    const translation = this._getTranslation(target, targetData);
+    return `translate(${translation.x},${translation.y})`;
   }
 
   protected updateRender(target: Hd3ChartI, g: AxisTargetData): void {
@@ -245,6 +266,9 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   destroy(): void {
+    for(const target of [...this.targetData.keys()]){
+      this.removeFromChart(target)
+    }
     this.bus.emit(this.e.destroyed, this);
     this.bus.off(this.axisDomain.e.domainChanged, this.handleDomainChanged);
     this.bus.off(this.e.visibilityChanged, this._setVisible);

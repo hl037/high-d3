@@ -42,8 +42,8 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents>;
   public readonly id: number;
-  protected series: Hd3Series;
-  protected color: string;
+  protected _series: Hd3Series;
+  protected _color: string;
   protected _visible: boolean;
   private _name?: string;
   private axes?: (Hd3Axis | string)[];
@@ -62,8 +62,8 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
     this.axisRefCount = new Map();
-    this.series = options.series;
-    this.color = options.style?.color || this.getDefaultColor();
+    this._series = options.series;
+    this._color = options.style?.color || this.getDefaultColor();
     this.axes = options.axes;
     this._name = options.name;
 
@@ -76,6 +76,28 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.on(this.series.e.destroyed, this.destroy)
     this._visible = options.visible ?? true;
+  }
+
+  public get series(){
+    return this._series;
+  }
+
+  public set series(newSeries: Hd3Series){
+    this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
+    this.bus.off(this.series.e.destroyed, this.destroy)
+    this._series = newSeries;
+    this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
+    this.bus.on(this.series.e.destroyed, this.destroy)
+    this.tagDirty();
+  }
+
+  public get color(){
+    return this._color;
+  }
+
+  public set color(newColor: string){
+    this._color = newColor;
+    this.tagDirty();
   }
 
   public addToChart(chart: Hd3Chart){

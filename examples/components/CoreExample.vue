@@ -137,6 +137,7 @@ import {
   //Hd3CursorIndicator,
   Hd3Axis,
 } from '../../src/core';
+import { Hd3CursorIndicator } from '@/core/interaction/Hd3CursorIndicator';
 
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
@@ -260,6 +261,13 @@ onMounted(() => {
   });
   
   const interactionArea1 = new Hd3InteractionArea;
+  
+  const cursor1 = new Hd3CursorIndicator({
+    showCrossX: cursorOptions.value.showCrossX,
+    showCrossY: cursorOptions.value.showCrossY,
+    showAxisLabels: cursorOptions.value.showAxisLabels,
+    showMarkers: cursorOptions.value.showMarkers
+  });
 
   xAxis1.addToChart(chart1);
   yAxis1.addToChart(chart1);
@@ -270,6 +278,8 @@ onMounted(() => {
   scatter1.addToChart(chart1);
 
   interactionArea1.addToChart(chart1);
+  cursor1.addToChart(chart1);
+  
 
   /*
   // Chart 2 - Logarithmic axis
