@@ -1,4 +1,18 @@
-import { createHd3Bus, Hd3Bus } from '../bus/Hd3Bus';
+import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
+
+export interface ToolChangedEvent{
+  old: ToolType;
+  new: ToolType;
+}
+
+export interface Hd3ToolStateEvents{
+  toolChanged: ToolChangedEvent;
+}
+
+
+export interface Hd3ToolStateOptions{
+  bus?: Hd3Bus;
+}
 
 export type ToolType = 'pan' | 'zoom-in' | 'zoom-out' | 'zoom-selection' | 'reset' | 'none';
 
@@ -6,11 +20,16 @@ export type ToolType = 'pan' | 'zoom-in' | 'zoom-out' | 'zoom-selection' | 'rese
  * Bus with internal state that tracks the current active tool.
  */
 export class Hd3ToolState {
-  private bus: Hd3Bus;
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3ToolStateEvents>;
   private _currentTool: ToolType = 'none';
 
-  constructor() {
-    this.bus = createHd3Bus();
+  constructor(options:Hd3ToolStateOptions) {
+    this.bus = options.bus || getHd3GlobalBus();
+
+    this.e = {
+      toolChanged: createHd3Event<ToolChangedEvent>(),
+    }
   }
 
   get currentTool(): ToolType {
@@ -20,29 +39,17 @@ export class Hd3ToolState {
   set currentTool(tool: ToolType) {
     const oldTool = this._currentTool;
     this._currentTool = tool;
-    this.bus.emit('toolChanged', { old: oldTool, new: tool });
+    this.bus.emit(this.e.toolChanged, { old: oldTool, new: tool });
   }
 
   getBus(): Hd3Bus {
     return this.bus;
   }
 
-  on(event: string, handler: (data?: unknown) => void): void {
-    this.bus.on(event, handler);
-  }
-
-  off(event: string, handler: (data?: unknown) => void): void {
-    this.bus.off(event, handler);
-  }
-
-  emit(event: string, data?: unknown): void {
-    this.bus.emit(event, data);
-  }
-
   /**
    * Notify new subscribers of current tool state
    */
   notifyCurrentState(): void {
-    this.bus.emit('toolChanged', { old: this._currentTool, new: this._currentTool });
+    this.bus.emit(this.e.toolChanged, { old: this._currentTool, new: this._currentTool });
   }
 }

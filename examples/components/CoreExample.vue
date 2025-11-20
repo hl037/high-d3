@@ -128,17 +128,15 @@ import {
   Hd3Bars,
   Hd3Scatter,
   Hd3InteractionArea,
-  Hd3ToolState,
-  Hd3PanTool,
-  Hd3ZoomTool,
-  Hd3ZoomToSelectionTool,
-  Hd3ResetTool,
-  Hd3TooltipManager,
-  Hd3XAxis,
-  Hd3YAxis,
-  Hd3CursorIndicator,
-  Hd3BusBridge
-} from '../../src/core/index';
+  //Hd3ToolState,
+  //Hd3PanTool,
+  //Hd3ZoomTool,
+  //Hd3ZoomToSelectionTool,
+  //Hd3ResetTool,
+  //Hd3TooltipManager,
+  //Hd3CursorIndicator,
+  Hd3Axis,
+} from '../../src/core';
 
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
@@ -151,7 +149,7 @@ const tooltipX = ref(0);
 const tooltipY = ref(0);
 const tooltipData = ref<Array<{ name: string; value: number }>>([]);
 
-let toolState: Hd3ToolState;
+//let toolState: Hd3ToolState;
 let series1: Hd3Series;
 let series2: Hd3Series;
 let series3: Hd3Series;
@@ -176,14 +174,12 @@ const cursorOptions = ref({
   showMarkers: true
 });
 
-function setTool(tool: string) {
-  currentTool.value = tool;
-  toolState.currentTool = tool as any;
-}
+//function setTool(tool: string) {
+//  currentTool.value = tool;
+//  toolState.currentTool = tool as any;
+//}
 
 onMounted(() => {
-  if (!chartContainer1.value || !chartContainer2.value || !chartContainer3.value) return;
-
   // Generate data
   const sinData: [number, number][] = [];
   const cosData: [number, number][] = [];
@@ -205,8 +201,8 @@ onMounted(() => {
   }
 
   // Chart 1 - Multiple series types
-  const chart1 = new Hd3Chart(chartContainer1.value, {
-    width: chartContainer1.value.offsetWidth,
+  const chart1 = new Hd3Chart(chartContainer1.value!, {
+    width: chartContainer1.value!.offsetWidth,
     height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
@@ -219,11 +215,10 @@ onMounted(() => {
     domain: [-1.5, 1.5]
   });
 
-  const xAxis1 = new Hd3XAxis({
+  const xAxis1 = new Hd3Axis({
     name: 'x1',
-    axis: xAxisDom1,
+    domain: xAxisDom1,
     scaleType: 'linear',
-    range: [0, chart1.innerWidth],
     position: 'bottom',
     grid: {
       enabled: gridOptions.value.enabled,
@@ -231,11 +226,10 @@ onMounted(() => {
     }
   });
 
-  const yAxis1 = new Hd3YAxis({
+  const yAxis1 = new Hd3Axis({
     name: 'y1',
-    axis: yAxisDom1,
+    domain: yAxisDom1,
     scaleType: 'linear',
-    range: [chart1.innerHeight, 0],
     position: 'left',
     grid: {
       enabled: gridOptions.value.enabled,
@@ -254,37 +248,30 @@ onMounted(() => {
   });
   const area1 = new Hd3Area({
     series: series2,
-    xAxis: 'x1',
-    yAxis: 'y1',
     style: { color: '#3498db', opacity: 0.3 }
   });
   const bars1 = new Hd3Bars({
     series: series3,
-    xAxis: 'x1',
-    yAxis: 'y1',
     style: { color: '#2ecc71', barWidth: 15 }
   });
   const scatter1 = new Hd3Scatter({
     series: series4,
-    xAxis: 'x1',
-    yAxis: 'y1',
     style: { color: '#f39c12', radius: 5 }
   });
+  
+  const interactionArea1 = new Hd3InteractionArea;
 
-  chart1.emit('addXAxis', xAxis1);
-  chart1.emit('addYAxis', yAxis1);
-  chart1.emit('addRenderer', xAxis1);
-  chart1.emit('addRenderer', yAxis1);
-  chart1.emit('addRenderer', line1);
-  chart1.emit('addRenderer', area1);
-  chart1.emit('addRenderer', bars1);
-  chart1.emit('addRenderer', scatter1);
+  xAxis1.addToChart(chart1);
+  yAxis1.addToChart(chart1);
 
-  chart1.emit('addSeries', series1);
-  chart1.emit('addSeries', series2);
-  chart1.emit('addSeries', series3);
-  chart1.emit('addSeries', series4);
+  line1.addToChart(chart1);
+  area1.addToChart(chart1);
+  bars1.addToChart(chart1);
+  scatter1.addToChart(chart1);
 
+  interactionArea1.addToChart(chart1);
+
+  /*
   // Chart 2 - Logarithmic axis
   const chart2 = new Hd3Chart(chartContainer2.value, {
     width: chartContainer2.value.offsetWidth,
@@ -293,12 +280,10 @@ onMounted(() => {
   });
 
   const xAxisDom2 = new Hd3AxisDomain({
-    name: 'x2',
     domain: [0, 4 * Math.PI]
   });
 
   const yAxisDom2 = new Hd3AxisDomain({
-    name: 'y2',
     domain: [0.1, 100]
   });
 
@@ -405,10 +390,6 @@ onMounted(() => {
   chart3.emit('addSeries', series7);
 
   // Interaction setup
-  const interactionArea1 = new Hd3InteractionArea({
-    axes: ['x1', 'y1'],
-    charts: [chart1.getBus()]
-  });
   const interactionArea2 = new Hd3InteractionArea({
     axes: ['x2', 'y2'],
     charts: [chart2.getBus()]
@@ -547,6 +528,7 @@ onMounted(() => {
     showMarkers: cursorOptions.value.showMarkers
   });
   chart3.emit('addRenderer', cursor3);
+  */
 });
 </script>
 

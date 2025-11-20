@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
 import { createHd3Event, createHd3EventNameMap, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap } from '../bus/Hd3Bus';
-import { Hd3SeriesManager } from '../managers/Hd3SeriesManager';
+import { Hd3SeriesRendererManager } from '../managers/Hd3SeriesRenderManager';
 import { Hd3AxisManager } from '../managers/Hd3AxisManager';
-import { Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
+import { Hd3RenderTargetI } from '../managers/Hd3RenderManager';
 
 type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
@@ -11,6 +11,7 @@ export interface Hd3ChartOptions {
   width?: number;
   height?: number;
   margin?: { top: number; right: number; bottom: number; left: number };
+  name?: string
 }
 
 export interface Hd3ChartResizeEvent{
@@ -38,6 +39,8 @@ export interface Hd3ChartLayersI{
     middle: D3Group;
     front: D3Group;
   }
+  overlay: D3Group;
+  interaction: D3Group;
 }
 
 export interface Hd3ChartI extends Hd3RenderTargetI{
@@ -58,6 +61,9 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
   const annotationBack = annotationRoot.append('g').attr('class', 'layer-annotation-back');
   const annotationMiddle = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
   const annotationFront = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
+  
+  const overlay = annotationRoot.append('g').attr('class', 'layer-overlay');
+  const interaction = annotationRoot.append('g').attr('class', 'layer-interaction');
 
   return {
     background,
@@ -74,6 +80,8 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
       middle: annotationMiddle,
       front: annotationFront,
     },
+    overlay,
+    interaction,
   }
 
 
@@ -87,7 +95,8 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
 export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
   public readonly bus: Hd3Bus;
   public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
-  public readonly layer: Hd3ChartLayersI
+  public readonly layer: Hd3ChartLayersI;
+  public readonly name?: string;
   private container: HTMLElement;
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private mainGroup: D3Group;
@@ -109,11 +118,12 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
       : container;
 
     this.bus = options.bus || getHd3GlobalBus();
+    this.name = options.name;
 
     this.e = createHd3EventNameMap({
-      destroyed: createHd3Event<Hd3Chart>(),
-      resized: createHd3Event<Hd3ChartResizeEvent>(),
-    });
+      destroyed: createHd3Event<Hd3Chart>(`chart[${this.name}].destroyed`),
+      resized: createHd3Event<Hd3ChartResizeEvent>(`chart[${this.name}].resized`),
+    }, `chart[${this.name}]`);
     
     this.autoWidth = options.width === undefined;
     this.autoHeight = options.height === undefined;
@@ -137,7 +147,7 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
     this.layer = buildLayers(this);
 
     // Initialize managers
-    new Hd3SeriesManager(this);
+    new Hd3SeriesRendererManager(this);
     new Hd3AxisManager(this);
 
     // Setup ResizeObserver if width or height is auto

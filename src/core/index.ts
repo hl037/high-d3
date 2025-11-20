@@ -1,12 +1,8 @@
+import { getHd3GlobalBus } from './bus/Hd3Bus';
+import { getHd3GlobalRenderManager } from './managers/Hd3RenderManager';
+
 // Bus
 export type { Hd3Bus } from './bus/Hd3Bus';
-export { createHd3Bus } from './bus/Hd3Bus';
-export { Hd3BusEndpoint, type Hd3BusEndpointHooks, type Hd3BusEndpointOptions } from './bus/Hd3BusEndpoint';
-export { Hd3BusBridge } from './bus/Hd3BusBridge';
-
-// Interfaces
-export type { Hd3ChartObjectI } from './interfaces/Hd3ChartObjectI';
-export type { RenderableI } from './interfaces/RenderableI';
 
 // Types
 export type { Data1D, Data2D, Data2DObj, SeriesData } from './types';
@@ -16,17 +12,14 @@ export { Hd3Chart, type Hd3ChartOptions } from './chart/Hd3Chart';
 
 // Managers
 export { Hd3RenderManager } from './managers/Hd3RenderManager';
-export { Hd3SeriesManager } from './managers/Hd3SeriesManager';
+export { Hd3SeriesRendererManager as Hd3SeriesManager } from './managers/Hd3SeriesRenderManager';
 export { Hd3AxisManager } from './managers/Hd3AxisManager';
-export type { AxesState, GetAxesCallback, SeriesState, GetSeriesCallback } from './managers/managerInterfaces';
 
 // Axis
 export { Hd3AxisDomain, type Hd3AxisDomainOptions } from './axis/Hd3AxisDomain';
 export { Hd3Axis, type Hd3AxisOptions } from './axis/Hd3Axis';
-export { Hd3XAxis, type Hd3XAxisOptions } from './axis/Hd3XAxis';
-export { Hd3YAxis, type Hd3YAxisOptions } from './axis/Hd3YAxis';
 export { Hd3AxesDiscovery } from './axis/Hd3AxesDiscovery';
-export { scaleFactory, type ScaleType, type D3Scale, type ScaleFactoryOptions } from './axis/scaleFactory';
+export { scaleFactory, type ScaleType, type ScaleFactoryOptions } from './axis/scaleFactory';
 
 // Series
 export { Hd3Series, type Hd3SeriesOptions } from './series/Hd3Series';
@@ -38,19 +31,24 @@ export { Hd3Scatter, type Hd3ScatterOptions, type Hd3ScatterStyle } from './seri
 
 // Interaction
 export { Hd3InteractionArea } from './interaction/Hd3InteractionArea';
-export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
-export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
-export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
-export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';
-export { Hd3ResetTool, type Hd3ResetToolOptions } from './interaction/tools/Hd3ResetTool';
-export { 
-  Hd3CursorIndicator, 
-  type Hd3CursorIndicatorOptions,
-  type Hd3CursorIndicatorCrossStyle,
-  type Hd3CursorIndicatorAxisLabelStyle,
-  type Hd3CursorIndicatorMarkerStyle
-} from './interaction/Hd3CursorIndicator';
+// export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
+// export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
+// export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
+// export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';
+// export { Hd3ResetTool, type Hd3ResetToolOptions } from './interaction/tools/Hd3ResetTool';
+// export { 
+//   Hd3CursorIndicator, 
+//   type Hd3CursorIndicatorOptions,
+//   type Hd3CursorIndicatorCrossStyle,
+//type Hd3CursorIndicatorAxisLabelStyle,
+//   type Hd3CursorIndicatorMarkerStyle
+// } from './interaction/Hd3CursorIndicator';
 
 // Tooltip
-export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';
-export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type TooltipData } from './tooltip/Hd3TooltipManager';
+// export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';
+// export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type TooltipData } from './tooltip/Hd3TooltipManager';
+
+export function initHd3() {
+  getHd3GlobalBus();
+  getHd3GlobalRenderManager();
+}

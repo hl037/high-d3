@@ -3,9 +3,9 @@ import type { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Series } from './Hd3Series';
 import type { Hd3Axis } from '../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
-import { Hd3AxesDiscovery } from '../axis/Hd3AxesDiscovery';
-import { AxesState, Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
-import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
+import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
+import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesManager';
 
 export interface Hd3SeriesRendererEvents{
   visibilityChanged: boolean;
@@ -21,12 +21,15 @@ export interface Hd3SeriesRendererOptions {
   series: Hd3Series;
   axes?: (Hd3Axis | string)[];
   style?: Hd3SeriesRendererStyle;
-  visible?: boolean
+  visible?: boolean;
+  name?: string;
 }
 
 interface ChartData {
   tagDirty: () => void;
   data: object;
+  x?: Hd3Axis;
+  y?: Hd3Axis;
 }
 
 let currentId = 0;
@@ -38,12 +41,14 @@ let currentId = 0;
 export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents>;
-  public readonly chartData: Map<Hd3Chart, ChartData>;
+  public readonly id: number;
   protected series: Hd3Series;
   protected color: string;
-  public readonly id: number;
   protected _visible: boolean;
+  private _name?: string;
   private axes?: (Hd3Axis | string)[];
+  private chartData: Map<Hd3Chart, ChartData>;
+  private axisRefCount: Map<Hd3Axis, number>;
 
   constructor(options: Hd3SeriesRendererOptions) {
     this.setVisible = this.setVisible.bind(this);
@@ -56,13 +61,15 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
 
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
+    this.axisRefCount = new Map();
     this.series = options.series;
     this.color = options.style?.color || this.getDefaultColor();
     this.axes = options.axes;
+    this._name = options.name;
 
     this.e = {
-      visibilityChanged: createHd3Event<boolean>(),
-      destroyed: createHd3Event<Hd3SeriesRenderer>(),
+      visibilityChanged: createHd3Event<boolean>(`series-renderer[${this.name}].visibilityChanged`),
+      destroyed: createHd3Event<Hd3SeriesRenderer>(`series-renderer[${this.name}].destroyed`),
     };
 
     this.bus.on(this.e.visibilityChanged, this.setVisible);
@@ -73,33 +80,36 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
 
   public addToChart(chart: Hd3Chart){
     if(!this.chartData.has(chart)) {
-      const data = {
+      const chartData = {
         tagDirty: () => this.tagDirty(chart),
         data: {}
       };
-      this.chartData.set(chart, {tagDirty: data.tagDirty, data: {}});
+      this.chartData.set(chart, chartData);
       this.bus.on(chart.e.destroyed, this.removeFromChart);
-      this.bus.on(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), data.tagDirty);
-      this.chartAdded(chart, data);
+      this.bus.on(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirty);
+      this.chartAdded(chart, chartData.data);
+      this.bus.emit(chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this);
       this.tagDirty(chart);
     }
   }
 
-  protected chartAdded(chart:Hd3Chart, data:object){
+  protected chartAdded(_chart:Hd3Chart, _data:object){
     
   }
 
   public removeFromChart(chart: Hd3Chart){
-    const data = this.chartData.get(chart);
-    if(data !== undefined) {
-      this.chartRemoved(chart, data);
+    const chartData = this.chartData.get(chart);
+    if(chartData !== undefined) {
+      
+      this.bus.emit(chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this);
+      this.chartRemoved(chart, chartData.data);
       this.bus.off(chart.e.destroyed, this.removeFromChart);
-      this.bus.off(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), data.tagDirty);
+      this.bus.off(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirty);
       this.chartData.delete(chart);
     }
   }
   
-  protected chartRemoved(chart:Hd3Chart, data:object){
+  protected chartRemoved(_chart:Hd3Chart, _data:object){
     
   }
 
@@ -117,7 +127,6 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     if(chart === undefined) {
       for(const chart of this.chartData.keys()){
         emitDirty(this.bus, {target: chart, renderable: this})
-        
       }
     }
     else {
@@ -125,9 +134,45 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     }
   }
 
+  private incAxesCount(ax: Hd3Axis): boolean{
+    const count = this.axisRefCount.get(ax);
+    if(count === undefined) {
+      this.axisRefCount.set(ax, 1);
+      return true;
+    }
+    this.axisRefCount.set(ax, count + 1);
+    return false;
+  }
+  
+  private decAxesCount(ax: Hd3Axis): boolean{
+    const count = this.axisRefCount.get(ax);
+    if(count === undefined) {
+      throw new Error('Axes not used ???');
+    }
+    if(count === 1) {
+      this.axisRefCount.delete(ax);
+      return true;
+    }
+    this.axisRefCount.set(ax, count - 1);
+    return false;
+  }
+
   render(chart: Hd3Chart): void {
     const {x, y} = this.getAxes(chart);
-    this.renderData(chart, this.chartData.get(chart)!.data, x, y)
+    const chartData = this.chartData.get(chart)!;
+    
+    for(const [ax, old_ax] of [[x, chartData.x], [y, chartData.y]]){
+      if(ax !== chartData.x) {
+        if(old_ax !== undefined && this.decAxesCount(old_ax)) {
+          this.bus.off(old_ax.axisDomain.e.domainChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        }
+        if(ax !== undefined && this.incAxesCount(ax)) {
+          this.bus.on(ax.axisDomain.e.domainChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        }
+      }
+    }
+
+    this.renderData(chart, chartData!.data, x, y)
   }
 
   protected abstract renderData(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
@@ -165,5 +210,16 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this.bus.emit(this.e.destroyed, this);
     (this as any).series = null;
     (this as any).charts = null;
+  }
+
+  get name(): string{
+    if(this._name === undefined) {
+      return this.series.name;
+    }
+    return this._name;
+  }
+
+  set name(name:string|undefined){
+    this._name = name;
   }
 }

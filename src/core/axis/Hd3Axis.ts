@@ -3,7 +3,8 @@ import { scaleFactory, ScaleType } from './scaleFactory';
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisDomain } from './Hd3AxisDomain';
 import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
-import { Hd3ChartI } from '../chart/Hd3Chart';
+import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 
 
 export interface Hd3AxisEvents{
@@ -27,7 +28,7 @@ export interface Hd3AxisGridOptions {
 export interface Hd3AxisOptions {
   bus?: Hd3Bus;
   name: string;
-  axis: Hd3AxisDomain;
+  domain: Hd3AxisDomain;
   orientation?: 'x' | 'y';
   position?: 'left' | 'right' | 'bottom' | 'top';
   scaleType?: ScaleType;
@@ -73,7 +74,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     
     this.bus = options.bus || getHd3GlobalBus();
     this.name = options.name;
-    this.axisDomain = options.axis;
+    this.axisDomain = options.domain;
     this.position = options.position || (options.orientation === 'x' ? 'bottom' : 'left');
     this.orientation = this.position === 'left' || this.position === 'right' ? 'y' : 'x';
     this.scaleType = options.scaleType || 'linear';
@@ -91,9 +92,18 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
 
     this.destroy = this.destroy.bind(this);
     this.e = {
-      visibilityChanged: createHd3Event<Hd3AxisVisibilityChangedEvent>(),
-      destroyed: createHd3Event<Hd3Axis>(),
+      visibilityChanged: createHd3Event<Hd3AxisVisibilityChangedEvent>(`axis[${this.name}].visibilityChanged`),
+      destroyed: createHd3Event<Hd3Axis>(`axis[${this.name}].destroyed`),
     }
+  }
+
+  public addToChart(target: Hd3ChartI){
+    this.bus.emit(target.e<Hd3AxisManagerEvents>()('addAxis'), this);
+    emitDirty(this.bus, {target, renderable:this});
+  }
+
+  public removeFromChart(target: Hd3ChartI){
+    this.bus.emit(target.e<Hd3AxisManagerEvents>()('removeAxis'), this);
   }
 
   public getScale(target: Hd3ChartI){
@@ -103,14 +113,17 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   protected createScale(target:Hd3ChartI): d3.AxisScale<d3.AxisDomain> {
     return scaleFactory(this.scaleType, {
       domain: this.axisDomain.domain,
-      range: [0, this.orientation === 'x' ? target.innerWidth : target.innerHeight],
+      range: (
+        this.orientation === 'x' ?
+        [0, target.innerWidth] :
+        [target.innerHeight, 0]
+      ),
       ...this.scaleOptions
     }) as d3.AxisScale<d3.AxisDomain>;
   }
 
   private handleDomainChanged(): void {
     for(const target of this.targetData.keys()){
-      // INFO - 2025-11-13 -- hl037 : since axis may not receive several dirtiing event, re-render could be done from here directly without needing the render manager
       emitDirty(this.bus, {target, renderable: this});
     }
   }

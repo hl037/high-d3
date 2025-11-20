@@ -22,7 +22,7 @@ export class Hd3AxisDomain {
     this.bus = options.bus || getHd3GlobalBus();
     this._domain = options.domain || [0, 1];
     this.e = {
-      domainChanged: createHd3Event<Iterable<d3.AxisDomain>>(),
+      domainChanged: createHd3Event<Iterable<d3.AxisDomain>>(`axis-domain.domainChanged`),
     }
   }
 

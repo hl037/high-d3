@@ -16,6 +16,7 @@ type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
 interface ChartData{
   group: D3Group;
+  lastPositions: [number, number][] | null;
 }
 
 /**
@@ -32,7 +33,8 @@ export class Hd3Line extends Hd3SeriesRenderer {
   protected chartAdded(chart:Hd3Chart, _data:object){
     const data = _data as ChartData;
     data.group = chart.layer.data.middle.append('g')
-    .attr('class', `series-renderer-${this.id}`);
+      .attr('class', `series-renderer-${this.id}`);
+    data.lastPositions = null;
   }
   
   protected chartRemoved(chart:Hd3Chart, _data:object){
@@ -43,6 +45,9 @@ export class Hd3Line extends Hd3SeriesRenderer {
 
   protected renderData(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
+    console.log({
+      'chartData' : chartData,
+    });
     const data = this.series.data;
 
     const scaleX = x?.getScale(chart);
@@ -50,30 +55,30 @@ export class Hd3Line extends Hd3SeriesRenderer {
 
     if(scaleX === undefined || scaleY === undefined) {
       chartData.group.selectChildren().remove()
+      chartData.lastPositions = null;
       return;
     }
 
-    const oldDatum = chartData.group.selectAll('path').datum() as unknown as [number, number][];
-    const interpolate = (!oldDatum
-      ? new Hd3SeriesInterpolator(scaleX.range()[0], data.map(d => [scaleX(d[0])!, scaleY(d[1])!]))
-      : new Hd3SeriesInterpolator(oldDatum, data.map(d => [scaleX(d[0])!, scaleY(d[1])!]))
-    );
+    const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
+    const interpolate = new Hd3SeriesInterpolator(chartData.lastPositions || scaleY.range()[0], newPositions);
     
     const line = d3.line<[number, number]>()
       .x(d => d[0])
       .y(d => d[1]);
 
     chartData.group.selectAll('path')
-      .datum(data)
+      .data([data])
       .join('path')
-      .attr('d', d => line(d))
+      .attr('class', 'line')
+      .attr('fill', 'none')
+      .attr('stroke', this.color)
+      .attr('stroke-width', this.strokeWidth)
+      .interrupt()
       .transition()
         .duration(200)
-        .attr('class', 'line')
-        .attr('fill', 'none')
-        .attr('stroke', this.color)
-        .attr('stroke-width', this.strokeWidth)
-        .attrTween('d', () => (t) => line(interpolate(t))!)
-      .end();
+        .attrTween('d', () => (t) => {
+          chartData.lastPositions = interpolate(t);
+          return line(chartData.lastPositions)!;
+        })
   }
 }

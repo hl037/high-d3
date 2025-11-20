@@ -8,8 +8,8 @@ import mitt from "mitt";
 // -------------------------------------------------------------
 export type Hd3Event<Payload> = symbol & { __type?: Payload };
 
-export function createHd3Event<Payload>(): Hd3Event<Payload> {
-  return Symbol() as Hd3Event<Payload>;
+export function createHd3Event<Payload>(name?:string): Hd3Event<Payload> {
+  return Symbol(name) as Hd3Event<Payload>;
 }
 
 // -------------------------------------------------------------
@@ -21,9 +21,9 @@ export function createHd3Event<Payload>(): Hd3Event<Payload> {
 //     -> Wild card using the correct types
 // -------------------------------------------------------------
 export interface Hd3Bus {
-  on: <T>(e:Hd3Event<T>, cb:(d:T)=>void) => void,
-  off: <T>(e:Hd3Event<T>, cb:(d:T)=>void) => void,
-  emit: (<T>(e:Hd3Event<T>, d:T) => void) & (<T>(all:'*', cb: (e:Hd3Event<T>, d:T) => void)=>void),
+  on: (<T>(e:Hd3Event<T>, cb:(d:T)=>void) => void) & (<T>(all:'*', cb: (e:Hd3Event<T>, d:T) => void)=>void),
+  off: (<T>(e:Hd3Event<T>, cb:(d:T)=>void) => void) & (<T>(all:'*', cb: (e:Hd3Event<T>, d:T) => void)=>void),
+  emit: (<T>(e:Hd3Event<T>, d:T) => void),
 }
 
 // Global default singleton
@@ -43,26 +43,27 @@ export type Hd3EventNameMap<M extends Hd3EventNamePayloadMap> = {
 }
 
 type _Hd3EventMetaFactory = 
-  & (<E extends Hd3EventNamePayloadMap>()=>(<K extends keyof E>(evName:K)=>Hd3Event<E[K]>))
-  & (<_ extends void = void>()=>(<K>(evName:string)=>Hd3Event<K>))
+  & (<E extends Hd3EventNamePayloadMap>(namespace?:string)=>(<K extends keyof E>(evName:K)=>Hd3Event<E[K]>))
+  & (<_ extends void = void>(namespace?:string)=>(<K>(evName:string)=>Hd3Event<K>))
   ;
 
 export type Hd3DynamicEventNameMap<M extends Hd3EventNamePayloadMap> = Hd3EventNameMap<M> & _Hd3EventMetaFactory;
 
 
-export function createHd3EventNameMap<P extends Hd3EventNamePayloadMap>(events:Hd3EventNameMap<P>): Hd3DynamicEventNameMap<P>{
+export function createHd3EventNameMap<P extends Hd3EventNamePayloadMap>(events:Hd3EventNameMap<P>, owner?:string): Hd3DynamicEventNameMap<P>{
   const additionalEvents: Record<string, Hd3Event<unknown>> = {};
-  function map(eventName: string): Hd3Event<unknown> {
+  function map(namespace: string|undefined, eventName: string): Hd3Event<unknown> {
     const ev = additionalEvents[eventName];
     if(ev === undefined) {
-      const res = createHd3Event<unknown>();
+      const name = [owner, namespace, eventName].filter((n) => n!== undefined).join('.');
+      const res = createHd3Event<unknown>(name);
       additionalEvents[eventName] = res;
       return res;
     }
     return ev;
   }
-  const dynamicEventMap = (() => {
-    return map;
+  const dynamicEventMap = ((namespace?: string) => {
+    return (eventName: string) => map(namespace, eventName);
   }) as _Hd3EventMetaFactory;
 
   return Object.assign(dynamicEventMap, events);

@@ -1,10 +1,10 @@
-import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3Event, Hd3EventNameMap } from '../bus/Hd3Bus';
+import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap, Hd3Event, Hd3EventNameMap } from '../bus/Hd3Bus';
 
 export interface Hd3RenderTargetI {
   getRenderTarget: () => d3.Selection<SVGGElement, unknown, null, undefined>;
-  e:{
-    destroyed: Hd3Event<Hd3RenderTargetI>;
-  }
+  e:Hd3DynamicEventNameMap<{
+    destroyed: Hd3RenderTargetI;
+  }>
   width: number;
   height: number;
   innerWidth: number;
@@ -28,7 +28,7 @@ export interface Hd3RenderManagerOptions {
   bus?: Hd3Bus;
 }
 
-const dirty = createHd3Event<DirtyEvent<unknown>>()
+const dirty = createHd3Event<DirtyEvent<unknown>>('render-manager.dirty')
 export function emitDirty<T>(bus:Hd3Bus, event:DirtyEvent<T>) {
   bus.emit(dirty, event as DirtyEvent<unknown>);
 }
@@ -75,4 +75,14 @@ export class Hd3RenderManager {
       }
     }
   }
+}
+
+// Global default singleton
+let _globalRenderManager: Hd3RenderManager | null = null;
+
+export function getHd3GlobalRenderManager(): Hd3RenderManager {
+  if (!_globalRenderManager) {
+    _globalRenderManager = new Hd3RenderManager({bus: getHd3GlobalBus()});
+  }
+  return _globalRenderManager;
 }

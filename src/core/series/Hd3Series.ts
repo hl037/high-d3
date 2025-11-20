@@ -29,8 +29,8 @@ export class Hd3Series<T extends number | string | Date = number> {
     this.name = options.name;
     this._data = this.normalizeData(options.data);
     this.e = {
-      dataChanged:createHd3Event<SeriesData<string> | SeriesData<number> | SeriesData<Date>>(),
-      destroyed:createHd3Event<Hd3Series>(),
+      dataChanged:createHd3Event<SeriesData<string> | SeriesData<number> | SeriesData<Date>>(`series[${this.name}].dataChanged`),
+      destroyed:createHd3Event<Hd3Series>(`series[${this.name}].destroyed`),
     }
   }
 
