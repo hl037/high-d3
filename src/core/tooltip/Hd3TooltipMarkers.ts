@@ -1,7 +1,8 @@
 import * as d3 from 'd3';
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
-import { Hd3TooltipData as Hd3TooltipData, TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
+import { Hd3TooltipData, TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 
 export interface Hd3TooltipMarkersOptions {
@@ -41,9 +42,9 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
 
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
-    this.radius = options.radius ?? 20;
+    this.radius = options.radius ?? 4;
     this.strokeWidth = options.strokeWidth ?? 2;
-    this.overshoot = options.overshoot ?? true;
+    this.overshoot = options.overshoot ?? false;
 
     this.e = {
       destroyed: createHd3Event<Hd3TooltipMarkers>('tooltipMarkers.destroyed'),
@@ -111,13 +112,17 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
   }
 
   private renderMarkers(chart: Hd3Chart, group: D3Group, tooltipData: Hd3TooltipData) {
+    const { x: xAxes, y: yAxes } = this.getAxes(chart);
     
+    if (!xAxes?.length || !yAxes?.length) return;
+
     // Convert series data to marker positions
     const markerData: Array<TooltipSeriesData & { cx: number; cy: number }> = [];
 
     for (const series of tooltipData.series) {
-      const { x: xAxis, y: yAxis } = series.renderer.getAxes(chart);
       // Find axes for this series (for now use first available)
+      const xAxis = xAxes[0];
+      const yAxis = yAxes[0];
 
       const scaleX = xAxis?.getScale(chart);
       const scaleY = yAxis?.getScale(chart);
@@ -141,6 +146,16 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       .selectAll<SVGCircleElement, typeof markerData[0]>('circle')
       .data(markerData, d => d.renderer.name);
 
+    // Exit: removed markers
+    markers
+      .exit()
+      .transition()
+      .duration(200)
+      .ease(d3.easeQuadIn)
+      .attr('opacity', 0)
+      .attr('r', 0)
+      .remove();
+
     // Enter: new markers
     const enter = markers
       .enter()
@@ -148,52 +163,46 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       .attr('class', 'tooltip-marker')
       .attr('cx', d => d.cx)
       .attr('cy', d => d.cy)
-      .attr('r', this.radius)
+      .attr('r', 0)
       .attr('fill', d => d.color)
       .attr('stroke', 'white')
       .attr('stroke-width', this.strokeWidth)
-      .style('opacity', 0)
-      .style('transform', 'scale(0)')
-      .style('transform-origin', d => `${d.cx}px ${d.cy}px`);
+      .attr('opacity', 0);
 
-    // Animate entrance
-    enter
+    // Update: existing markers + newly entered
+    markers
+      .merge(enter)
       .transition()
       .duration(200)
       .ease(this.overshoot ? d3.easeBackOut.overshoot(1.5) : d3.easeQuadOut)
-      .style('opacity', 1)
-      .style('transform', 'scale(1)');
-
-    // Update: existing markers (animate position)
-    markers
-      .transition()
-      .duration(200)
-      .ease(d3.easeQuadOut)
       .attr('cx', d => d.cx)
       .attr('cy', d => d.cy)
       .attr('fill', d => d.color)
-      .style('transform-origin', d => `${d.cx}px ${d.cy}px`);
-
-    // Exit: removed markers
-    markers
-      .exit()
-      .transition()
-      .duration(200)
-      .ease(d3.easeQuadIn)
-      .style('opacity', 0)
-      .style('transform', 'scale(0)')
-      .remove();
+      .attr('opacity', 1)
+      .attr('r', this.radius);
   }
 
   private hideMarkers(group: D3Group) {
     group
       .selectAll('circle')
+      .data([])
+      .exit()
       .transition()
       .duration(200)
       .ease(d3.easeQuadIn)
-      .style('opacity', 0)
-      .style('transform', 'scale(0)')
+      .attr('opacity', 0)
+      .attr('r', 0)
       .remove();
+  }
+
+  private getAxes(chart: Hd3Chart): { x?: any[]; y?: any[] } {
+    const res: { x?: any[]; y?: any[] } = {};
+    this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
+      const state = manager.getAxesState();
+      res.x = state.x;
+      res.y = state.y;
+    });
+    return res;
   }
 
   destroy() {
