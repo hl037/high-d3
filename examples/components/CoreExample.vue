@@ -84,29 +84,32 @@
       </div>
     </div> -->
 
-    <!-- <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
       <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
       <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
         This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
       </p>
       <div ref="chartContainer3" style="width: 100%; height: 400px;"></div>
-    </div> -->
+    </div>
 
     <Teleport
-      v-if="tooltipTargets && tooltipData"
+      v-if="tooltipTargets"
       v-for="target in tooltipTargets"
-      :to="target"
+      :to="target.container"
     >
       <div>
-        <div v-for="s in tooltipData.series" :key="s.name" style="margin: 2px 0;">
-          <strong>{{ item.name }}:</strong> {{ item.value.toFixed(2) }}
-        </div>
+        <template v-if="target.data">
+          <div v-for="s in target.data.series" :key="s.renderer.name" style="margin: 2px 0;">
+            <strong>{{ s.renderer.name }}:</strong> {{ s.y.toFixed(2) }}
+          </div>
+        </template>
       </div>
     </Teleport>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, reactive } from 'vue';
 import {
   Hd3Chart,
   Hd3AxisDomain,
@@ -126,21 +129,16 @@ import {
   Hd3Axis,
 } from '../../src/core';
 import { Hd3CursorIndicator } from '@/core/interaction/Hd3CursorIndicator';
-import { Hd3TooltipData } from '@/core/tooltip/Hd3TooltipManager';
+import { Hd3TooltipData, Hd3TooltipManager } from '@/core/tooltip/Hd3TooltipManager';
+import { Hd3ChartI } from '@/core/chart/Hd3Chart';
+import { Hd3ForeignObjectTooltip, Hd3ForeignObjectTooltipContainer } from '@/core/tooltip/Hd3ForeignObjectTooltip';
+import { getHd3GlobalBus } from '@/core/bus/Hd3Bus';
+import { Hd3TooltipMarkers } from '@/core/tooltip/Hd3TooltipMarkers';
 
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
 const chartContainer3 = ref<HTMLElement>();
-const tooltipTargets = ref<HTMLElement[]>();
-const tooltipData = ref<Hd3TooltipData|null>(null);
-
-function showTooltip(data: Hd3TooltipData){
-  tooltipData.value = data;
-}
-
-function hideTooltip(){
-  tooltipData.value = null;
-}
+const tooltipTargets = ref<Hd3ForeignObjectTooltipContainer[]>();
 
 const currentTool = ref<string>('none');
 
@@ -264,6 +262,11 @@ onMounted(() => {
     showMarkers: cursorOptions.value.showMarkers
   });
 
+  const tooltipManager1 = new Hd3TooltipManager({});
+  const foTooltip = new Hd3ForeignObjectTooltip({});
+  const markers1 = new Hd3TooltipMarkers({});
+
+
   xAxis1.addToChart(chart1);
   yAxis1.addToChart(chart1);
 
@@ -274,6 +277,19 @@ onMounted(() => {
 
   interactionArea1.addToChart(chart1);
   cursor1.addToChart(chart1);
+
+  tooltipManager1.addToChart(chart1);
+  foTooltip.addToChart(chart1);
+  markers1.addToChart(chart1);
+
+
+  function handleTooltipChanged(){
+    tooltipTargets.value = foTooltip.getContainers();
+  }
+
+  getHd3GlobalBus().on(tooltipManager1.e.show, handleTooltipChanged);
+  getHd3GlobalBus().on(tooltipManager1.e.hide, handleTooltipChanged);
+  
   
 
   /*
@@ -331,36 +347,19 @@ onMounted(() => {
   chart2.emit('addRenderer', yAxis2);
   chart2.emit('addRenderer', line2);
   chart2.emit('addSeries', series5);
+  */
 
   // Chart 3 - Synchronized with Chart 1
-  const chart3 = new Hd3Chart(chartContainer3.value, {
-    width: chartContainer3.value.offsetWidth,
+  const chart3 = new Hd3Chart(chartContainer3.value!, {
+    width: chartContainer3.value!.offsetWidth,
     height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
-
-  const yAxisDom3 = new Hd3AxisDomain({
+  
+  const yAxis3 = new Hd3Axis({
     name: 'y3',
-    domain: [-1.5, 1.5]
-  });
-
-  const xAxis3 = new Hd3XAxis({
-    name: 'x1-chart3',
-    axis: xAxisDom1,
+    domain: yAxisDom1,
     scaleType: 'linear',
-    range: [0, chart3.innerWidth],
-    position: 'bottom',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
-  });
-
-  const yAxis3 = new Hd3YAxis({
-    name: 'y3',
-    axis: yAxisDom3,
-    scaleType: 'linear',
-    range: [chart3.innerHeight, 0],
     position: 'left',
     grid: {
       enabled: gridOptions.value.enabled,
@@ -374,26 +373,27 @@ onMounted(() => {
 
   const line3 = new Hd3Line({
     series: series6,
-    xAxis: 'x1-chart3',
-    yAxis: 'y3',
     style: { color: '#16a085', strokeWidth: 2 }
   });
   const line4 = new Hd3Line({
     series: series7,
-    xAxis: 'x1-chart3',
-    yAxis: 'y3',
     style: { color: '#e67e22', strokeWidth: 2 }
   });
+  
+  xAxis1.addToChart(chart3);
+  yAxis3.addToChart(chart3);
 
-  chart3.emit('addXAxis', xAxis3);
-  chart3.emit('addYAxis', yAxis3);
-  chart3.emit('addRenderer', xAxis3);
-  chart3.emit('addRenderer', yAxis3);
-  chart3.emit('addRenderer', line3);
-  chart3.emit('addRenderer', line4);
-  chart3.emit('addSeries', series6);
-  chart3.emit('addSeries', series7);
+  line3.addToChart(chart3);
+  line4.addToChart(chart3);
+  
+  interactionArea1.addToChart(chart3);
+  cursor1.addToChart(chart3);
 
+  tooltipManager1.addToChart(chart3);
+  foTooltip.addToChart(chart3);
+  markers1.addToChart(chart3);
+
+/*
   // Interaction setup
   const interactionArea2 = new Hd3InteractionArea({
     axes: ['x2', 'y2'],

@@ -9,13 +9,13 @@ import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData } f
 import { invertScale } from '../axis/invertScale';
 
 export interface TooltipSeriesData {
-  name: string;
+  renderer: Hd3SeriesRenderer;
   x: number | string | Date;
   y: number;
   color: string;
 }
 
-export interface TooltipData {
+export interface Hd3TooltipData {
   x: number;
   y: number;
   xSide: 'left' | 'right';
@@ -24,12 +24,12 @@ export interface TooltipData {
 }
 
 export interface Hd3TooltipManagerChartEvents {
-  tooltipShow: TooltipData;
+  tooltipShow: Hd3TooltipData;
   tooltipHide: void;
 }
 
 export interface Hd3TooltipManagerEvents {
-  show: TooltipData;
+  show: Hd3TooltipData;
   hide: void;
   destroyed: Hd3TooltipManager;
 }
@@ -81,7 +81,7 @@ export class Hd3TooltipManager {
     this.axes = options.axes;
 
     this.e = {
-      show: createHd3Event<TooltipData>('tooltipManager.show'),
+      show: createHd3Event<Hd3TooltipData>('tooltipManager.show'),
       hide: createHd3Event<void>('tooltipManager.hide'),
       destroyed: createHd3Event<Hd3TooltipManager>('tooltipManager.destroyed'),
     };
@@ -140,7 +140,7 @@ export class Hd3TooltipManager {
       return;
     }
     this.bus.emit(chartOrigin.e<Hd3TooltipManagerChartEvents>()('tooltipShow'), globalSeriesData);
-    const globalSeriesSet = new Set<string>(globalSeriesData.series.map(d => d.name));
+    const globalSeriesSet = new Set<string>(globalSeriesData.series.map(d => d.renderer.name));
 
     for (const chart of this.chartData.keys()) {
       if (chart === chartOrigin) {
@@ -155,15 +155,15 @@ export class Hd3TooltipManager {
       this.bus.emit(chart.e<Hd3TooltipManagerChartEvents>()('tooltipShow'), chartSeriesData);
 
       for(const series of chartSeriesData.series){
-        if(!globalSeriesSet.has(series.name) && series.name in mappedCoords) {
-          globalSeriesSet.add(series.name);
+        if(!globalSeriesSet.has(series.renderer.name) && series.renderer.name in mappedCoords) {
+          globalSeriesSet.add(series.renderer.name);
           globalSeriesData.series.push(series);
         }
       }
 
     }
 
-    const tooltipData: TooltipData = {
+    const tooltipData: Hd3TooltipData = {
       x: mouseData.x,
       y: mouseData.y,
       xSide: mouseData.x > chartOrigin.innerWidth / 2 ? 'left' : 'right',
@@ -178,7 +178,7 @@ export class Hd3TooltipManager {
     chartTarget: Hd3Chart,
     yVpRatio: number,
     mappedCoords: Record<string, string | number | Date | undefined>
-  ): TooltipData | undefined {
+  ): Hd3TooltipData | undefined {
     const { x: targetXAxes } = this.getAxes(chartTarget);
 
     if(!(targetXAxes?.length)) {
@@ -257,7 +257,7 @@ export class Hd3TooltipManager {
       if (!closestPoint) continue;
 
       seriesData.push({
-        name: renderer.series.name,
+        renderer,
         x: closestPoint[0],
         y: closestPoint[1],
         color: renderer.color || '#steelblue',
