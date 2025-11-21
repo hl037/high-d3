@@ -5,13 +5,13 @@ import type { Hd3Axis } from '../axis/Hd3Axis';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { invertScale } from '../axis/invertScale';
 
-type MappedCoords = Record<string, number | string | Date | undefined>
+export type Hd3MappedCoords = Record<string, number | string | Date | undefined>
 
 export interface MouseEventData {
   x: number;
   y: number;
   event: MouseEvent;
-  mappedCoords: MappedCoords;
+  mappedCoords: Hd3MappedCoords;
 }
 
 export interface WheelEventData {
@@ -19,7 +19,7 @@ export interface WheelEventData {
   y: number;
   delta: number;
   event: WheelEvent;
-  mappedCoords: MappedCoords;
+  mappedCoords: Hd3MappedCoords;
 }
 
 export interface DragEventData {
@@ -29,8 +29,8 @@ export interface DragEventData {
   dy: number;
   startX: number;
   startY: number;
-  mappedCoords: MappedCoords;
-  startMappedCoords: MappedCoords;
+  mappedCoords: Hd3MappedCoords;
+  startMappedCoords: Hd3MappedCoords;
   event: MouseEvent;
 }
 
@@ -64,7 +64,7 @@ type D3Rect = d3.Selection<SVGRectElement, unknown, null, undefined>;
 interface ChartData {
   rect: D3Rect;
   isDragging: boolean;
-  dragStart?: { x: number; y: number; mappedCoords?: MappedCoords };
+  dragStart?: { x: number; y: number; mappedCoords?: Hd3MappedCoords };
   handleResize: () => void;
   handleGetManager: (cb: GetInteractionAreaManagerCallbackI) => void;
 }
@@ -222,8 +222,8 @@ export class Hd3InteractionArea {
     });
   }
   
-  private getMappedCoordinates(chart: Hd3Chart, x: number, y: number): MappedCoords {
-    const mapped: MappedCoords = {};
+  private getMappedCoordinates(chart: Hd3Chart, x: number, y: number): Hd3MappedCoords {
+    const mapped: Hd3MappedCoords = {};
 
     this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
       const state = manager.getAxesState(this.axes);

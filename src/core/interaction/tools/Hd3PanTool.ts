@@ -1,117 +1,155 @@
-import type { Hd3InteractionArea } from '../Hd3InteractionArea';
-import type { Hd3ToolState } from '../Hd3ToolState';
+import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
-import type { Hd3Bus } from '../../bus/Hd3Bus';
-import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
-import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
-import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
+import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, DragEventData } from '../Hd3InteractionArea';
 
 export interface Hd3PanToolOptions {
-  interactionArea?: Hd3InteractionArea;
-  toolState: Hd3ToolState;
+  bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
-  charts?: Hd3Bus[];
 }
 
-/**
- * Pan tool for dragging the chart view.
- */
+export interface Hd3PanToolEvents {
+  destroyed: Hd3PanTool;
+}
+
+interface ChartData {
+  interactionArea?: Hd3InteractionArea;
+  initialDomains: Record<string, Iterable<d3.AxisDomain>> | null;
+  handleMouseDown: () => void;
+  handleDrag: (data: DragEventData) => void;
+  handleDragEnd: () => void;
+  handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
+}
+
 export class Hd3PanTool {
-  private toolState: Hd3ToolState;
-  private axisDiscovery?: Hd3AxesDiscovery;
-  private isActive: boolean = false;
-  private initialDomains: Map<string, [number | Date | string, number | Date | string] | string[]> | null = null;
-  private toolStateBusEndpoint: Hd3BusEndpoint;
-  private chartBusEndpoints: Hd3BusEndpoint[] = [];
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3PanToolEvents>;
+  public readonly name = 'pan';
+  private chartData: Map<Hd3Chart, ChartData>;
+  private axes?: (Hd3Axis | string)[];
 
-  constructor(options: Hd3PanToolOptions) {
-    this.toolState = options.toolState;
-    
-    // Create axis discovery
-    if (options.axes !== undefined || options.charts !== undefined) {
-      const charts = options.charts || [];
-      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
-      
-      // Listen to chart events
-      for (const chart of charts) {
-        const endpoint = new Hd3BusEndpoint({
-          listeners: {
-            mousedown: () => this.handleMouseDown(),
-            drag: (data: unknown) => this.handleDrag(data),
-            dragend: () => this.handleDragEnd()
-          }
-        });
-        endpoint.bus = chart;
-        this.chartBusEndpoints.push(endpoint);
-      }
-    }
+  constructor(options: Hd3PanToolOptions = {}) {
+    this.removeFromChart = this.removeFromChart.bind(this);
+    this.destroy = this.destroy.bind(this);
 
-    // Connect to tool state bus
-    this.toolStateBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        toolChanged: (data: unknown) => {
-          const change = data as { old: string; new: string };
-          this.isActive = change.new === 'pan';
+    this.bus = options.bus || getHd3GlobalBus();
+    this.chartData = new Map();
+    this.axes = options.axes;
+
+    this.e = {
+      destroyed: createHd3Event<Hd3PanTool>('panTool.destroyed'),
+    };
+  }
+
+  public addToChart(chart: Hd3Chart) {
+    if (this.chartData.has(chart)) return;
+
+    const chartData: ChartData = {
+      initialDomains: null,
+      handleMouseDown: () => this.handleMouseDown(chart),
+      handleDrag: (data: DragEventData) => this.handleDrag(chart, data),
+      handleDragEnd: () => this.handleDragEnd(chart),
+      handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
+        if (chartData.interactionArea !== undefined) {
+          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
+          this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+        }
+        chartData.interactionArea = interactionArea;
+        if (chartData.interactionArea !== undefined) {
+          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.on(interactionArea.e.drag, chartData.handleDrag);
+          this.bus.on(interactionArea.e.dragend, chartData.handleDragEnd);
         }
       }
-    });
-    this.toolStateBusEndpoint.bus = this.toolState.getBus();
+    };
+
+    this.chartData.set(chart, chartData);
+
+    this.bus.on(chart.e.destroyed, this.removeFromChart);
+    this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleInteractionAreaChanged);
+    this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
   }
 
-  private getAxis(renderer: any): Hd3AxisDomain {
-    return renderer.axis as Hd3AxisDomain;
+  public removeFromChart(chart: Hd3Chart) {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
+
+    this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
+    this.bus.off(chart.e.destroyed, this.removeFromChart);
+
+    if (chartData.interactionArea) {
+      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+      this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
+      this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+    }
+
+    this.chartData.delete(chart);
   }
 
-  private handleMouseDown(): void {
-    if (!this.isActive || !this.axisDiscovery) return;
+  private handleMouseDown(chart: Hd3Chart): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
 
-    // Store initial domains
-    this.initialDomains = new Map();
-    const axes = this.axisDiscovery.getAxes();
-    for (const axis of axes) {
-      const axisDomain = this.getAxis(axis);
-      const domainName = axisDomain.name;
-      this.initialDomains.set(domainName, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    chartData.initialDomains = {};
+    for (const axis of allAxes) {
+      const domain = axis.axisDomain.domain;
+      chartData.initialDomains[axis.name] = [...domain];
     }
   }
 
-  private handleDrag(data: unknown): void {
-    if (!this.isActive || !this.initialDomains || !this.axisDiscovery) return;
+  private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData || !chartData.initialDomains) return;
 
-    const dragData = data as { mappedCoords?: Record<string, number>; startMappedCoords?: Record<string, number> };
-    
-    if (!dragData.mappedCoords || !dragData.startMappedCoords) return;
+    const { mappedCoords, startMappedCoords } = dragData;
 
-    const axes = this.axisDiscovery.getAxes();
-    for (const axis of axes) {
-      const axisDomain = this.getAxis(axis);
-      const domainName = axisDomain.name;
-      const initialDomain = this.initialDomains.get(domainName);
-      
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    for (const axis of allAxes) {
+      const initialDomain = chartData.initialDomains[axis.name];
       if (!initialDomain || !Array.isArray(initialDomain)) continue;
-      
-      const currentValue = dragData.mappedCoords[domainName];
-      const startValue = dragData.startMappedCoords[domainName];
-      
+
+      const currentValue = mappedCoords[axis.name];
+      const startValue = startMappedCoords[axis.name];
+
       if (currentValue === undefined || startValue === undefined) continue;
-      
+      if (typeof currentValue !== 'number' || typeof startValue !== 'number') continue;
+
       const delta = currentValue - startValue;
-      axisDomain.domain = [
+      axis.axisDomain.domain = [
         (initialDomain[0] as number) - delta,
         (initialDomain[1] as number) - delta
       ];
     }
   }
 
-  private handleDragEnd(): void {
-    this.initialDomains = null;
+  private handleDragEnd(chart: Hd3Chart): void {
+    const chartData = this.chartData.get(chart);
+    if (chartData) {
+      chartData.initialDomains = null;
+    }
+  }
+
+  private getAxes(chart: Hd3Chart): { x?: Hd3Axis[]; y?: Hd3Axis[] } {
+    const res: { x?: Hd3Axis[]; y?: Hd3Axis[] } = {};
+    this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
+      const state = manager.getAxesState(this.axes);
+      res.x = state.x;
+      res.y = state.y;
+    });
+    return res;
   }
 
   destroy(): void {
-    this.axisDiscovery?.destroy();
-    this.toolStateBusEndpoint.destroy();
-    for (const endpoint of this.chartBusEndpoints) {
-      endpoint.destroy();
+    for (const chart of [...this.chartData.keys()]) {
+      this.removeFromChart(chart);
     }
+    this.bus.emit(this.e.destroyed, this);
   }
 }

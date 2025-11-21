@@ -1,154 +1,108 @@
-import * as d3 from 'd3';
-import { Hd3Chart } from '../../chart/Hd3Chart';
-import type { Hd3InteractionArea } from '../Hd3InteractionArea';
-import type { Hd3ToolState } from '../Hd3ToolState';
+import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
-import type { Hd3Bus } from '../../bus/Hd3Bus';
-import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
-import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
-import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
+import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
 
-export interface Hd3ZoomToSelectionToolOptions {
-  chart: Hd3Chart;
-  interactionArea?: Hd3InteractionArea;
-  toolState: Hd3ToolState;
+export interface Hd3ResetToolOptions {
+  bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
-  charts?: Hd3Bus[];
 }
 
-/**
- * Zoom to selection tool - drag to select area and zoom to it.
- */
-export class Hd3ZoomToSelectionTool {
-  private chart: Hd3Chart;
-  private toolState: Hd3ToolState;
-  private axisDiscovery?: Hd3AxesDiscovery;
-  private isActive: boolean = false;
-  private selectionRect?: d3.Selection<SVGRectElement, unknown, null, undefined>;
-  private toolStateBusEndpoint: Hd3BusEndpoint;
-  private chartBusEndpoints: Hd3BusEndpoint[] = [];
+export interface Hd3ResetToolEvents {
+  destroyed: Hd3ResetTool;
+}
 
-  constructor(options: Hd3ZoomToSelectionToolOptions) {
-    this.chart = options.chart;
-    this.toolState = options.toolState;
+interface ChartData {
+  originalDomains: Record<string, Iterable<d3.AxisDomain>>;
+}
 
-    // Create axis discovery
-    if (options.axes !== undefined || options.charts !== undefined) {
-      const charts = options.charts || [];
-      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
-      
-      // Listen to chart events
-      for (const chart of charts) {
-        const endpoint = new Hd3BusEndpoint({
-          listeners: {
-            mousedown: (data: unknown) => this.handleMouseDown(data),
-            drag: (data: unknown) => this.handleDrag(data),
-            dragend: (data: unknown) => this.handleDragEnd(data)
-          }
-        });
-        endpoint.bus = chart;
-        this.chartBusEndpoints.push(endpoint);
-      }
-    }
+export class Hd3ResetTool {
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3ResetToolEvents>;
+  public readonly name = 'reset';
+  private chartData: Map<Hd3Chart, ChartData>;
+  private axes?: (Hd3Axis | string)[];
 
-    // Connect to tool state bus
-    this.toolStateBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        toolChanged: (data: unknown) => {
-          const change = data as { old: string; new: string };
-          this.isActive = change.new === 'zoom-selection';
-        }
-      }
-    });
-    this.toolStateBusEndpoint.bus = this.toolState.getBus();
-  }
+  constructor(options: Hd3ResetToolOptions = {}) {
+    this.removeFromChart = this.removeFromChart.bind(this);
+    this.destroy = this.destroy.bind(this);
 
-  private getAxis(renderer: any): Hd3AxisDomain {
-    return renderer.axis as Hd3AxisDomain;
-  }
+    this.bus = options.bus || getHd3GlobalBus();
+    this.chartData = new Map();
+    this.axes = options.axes;
 
-  private handleMouseDown(data: unknown): void {
-    if (!this.isActive) return;
-
-    const mouseData = data as { x: number; y: number };
-    
-    // Create selection rectangle
-    if (this.selectionRect) {
-      this.selectionRect.remove();
-    }
-
-    this.selectionRect = this.chart.getMainGroup()
-      .append('rect')
-      .attr('class', 'zoom-selection')
-      .attr('x', mouseData.x)
-      .attr('y', mouseData.y)
-      .attr('width', 0)
-      .attr('height', 0)
-      .attr('fill', 'rgba(100, 150, 255, 0.3)')
-      .attr('stroke', 'rgba(50, 100, 200, 0.8)')
-      .attr('stroke-width', 1)
-      .attr('pointer-events', 'none');
-  }
-
-  private handleDrag(data: unknown): void {
-    if (!this.isActive || !this.selectionRect) return;
-
-    const dragData = data as { startX: number; startY: number; x: number; y: number };
-    
-    const x = Math.min(dragData.startX, dragData.x);
-    const y = Math.min(dragData.startY, dragData.y);
-    const width = Math.abs(dragData.x - dragData.startX);
-    const height = Math.abs(dragData.y - dragData.startY);
-
-    this.selectionRect
-      .attr('x', x)
-      .attr('y', y)
-      .attr('width', width)
-      .attr('height', height);
-  }
-
-  private handleDragEnd(data: unknown): void {
-    if (!this.isActive || !this.selectionRect || !this.axisDiscovery) return;
-
-    const dragData = data as {
-      startMappedCoords?: Record<string, number>;
-      mappedCoords?: Record<string, number>;
+    this.e = {
+      destroyed: createHd3Event<Hd3ResetTool>('resetTool.destroyed'),
     };
-    
-    // Remove selection rectangle
-    this.selectionRect.remove();
-    this.selectionRect = undefined;
+  }
 
-    if (!dragData.startMappedCoords || !dragData.mappedCoords) return;
+  public addToChart(chart: Hd3Chart) {
+    if (this.chartData.has(chart)) return;
 
-    // Zoom to selection using mapped coordinates
-    const axes = this.axisDiscovery.getAxes();
-    for (const axis of axes) {
-      const axisDomain = this.getAxis(axis);
-      const domainName = axisDomain.name;
-      const start = dragData.startMappedCoords[domainName];
-      const end = dragData.mappedCoords[domainName];
-      
-      if (start === undefined || end === undefined) continue;
-      
-      // Ensure min/max order
-      const newDomain: [number, number] = [
-        Math.min(start, end),
-        Math.max(start, end)
-      ];
-      
-      axisDomain.domain = newDomain;
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    const originalDomains: Record<string, Iterable<d3.AxisDomain>> = {};
+    for (const axis of allAxes) {
+      const domain = axis.axisDomain.domain;
+      originalDomains[axis.name] = [...domain];
     }
+
+    const chartData: ChartData = {
+      originalDomains
+    };
+
+    this.chartData.set(chart, chartData);
+    this.bus.on(chart.e.destroyed, this.removeFromChart);
+  }
+
+  public removeFromChart(chart: Hd3Chart) {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
+
+    this.bus.off(chart.e.destroyed, this.removeFromChart);
+    this.chartData.delete(chart);
+  }
+
+  public reset(chart?: Hd3Chart): void {
+    if (chart) {
+      this.resetChart(chart);
+    } else {
+      for (const c of this.chartData.keys()) {
+        this.resetChart(c);
+      }
+    }
+  }
+
+  private resetChart(chart: Hd3Chart): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
+
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    for (const axis of allAxes) {
+      const original = chartData.originalDomains[axis.name];
+      if (original) {
+        axis.axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
+      }
+    }
+  }
+
+  private getAxes(chart: Hd3Chart): { x?: Hd3Axis[]; y?: Hd3Axis[] } {
+    const res: { x?: Hd3Axis[]; y?: Hd3Axis[] } = {};
+    this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
+      const state = manager.getAxesState(this.axes);
+      res.x = state.x;
+      res.y = state.y;
+    });
+    return res;
   }
 
   destroy(): void {
-    this.axisDiscovery?.destroy();
-    this.toolStateBusEndpoint.destroy();
-    for (const endpoint of this.chartBusEndpoints) {
-      endpoint.destroy();
+    for (const chart of [...this.chartData.keys()]) {
+      this.removeFromChart(chart);
     }
-    if (this.selectionRect) {
-      this.selectionRect.remove();
-    }
+    this.bus.emit(this.e.destroyed, this);
   }
 }

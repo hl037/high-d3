@@ -1,81 +1,108 @@
-import type { Hd3ToolState } from '../Hd3ToolState';
+import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
-import type { Hd3Bus } from '../../bus/Hd3Bus';
-import type { Hd3AxisDomain } from '../../axis/Hd3AxisDomain';
-import { Hd3BusEndpoint } from '../../bus/Hd3BusEndpoint';
-import { Hd3AxesDiscovery } from '../../axis/Hd3AxesDiscovery';
+import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
 
 export interface Hd3ResetToolOptions {
-  toolState: Hd3ToolState;
+  bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
-  charts?: Hd3Bus[];
 }
 
-/**
- * Reset tool to restore original axis domains.
- */
+export interface Hd3ResetToolEvents {
+  destroyed: Hd3ResetTool;
+}
+
+interface ChartData {
+  originalDomains: Record<string, Iterable<d3.AxisDomain>>;
+}
+
 export class Hd3ResetTool {
-  private toolState: Hd3ToolState;
-  private axisDiscovery?: Hd3AxesDiscovery;
-  private originalDomains: Map<string, [number | Date | string, number | Date | string] | string[]>;
-  private toolStateBusEndpoint: Hd3BusEndpoint;
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3ResetToolEvents>;
+  public readonly name = 'reset';
+  private chartData: Map<Hd3Chart, ChartData>;
+  private axes?: (Hd3Axis | string)[];
 
-  constructor(options: Hd3ResetToolOptions) {
-    this.toolState = options.toolState;
-    this.originalDomains = new Map();
+  constructor(options: Hd3ResetToolOptions = {}) {
+    this.removeFromChart = this.removeFromChart.bind(this);
+    this.destroy = this.destroy.bind(this);
 
-    // Create axis discovery
-    if (options.axes !== undefined || options.charts !== undefined) {
-      const charts = options.charts || [];
-      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
-      
-      // Store original domains
-      const axes = this.axisDiscovery.getAxes();
-      for (const axis of axes) {
-        const axisDomain = this.getAxis(axis);
-        const domainName = axisDomain.name;
-        this.originalDomains.set(domainName, Array.isArray(axisDomain.domain) ? [...axisDomain.domain] : axisDomain.domain);
-      }
+    this.bus = options.bus || getHd3GlobalBus();
+    this.chartData = new Map();
+    this.axes = options.axes;
+
+    this.e = {
+      destroyed: createHd3Event<Hd3ResetTool>('resetTool.destroyed'),
+    };
+  }
+
+  public addToChart(chart: Hd3Chart) {
+    if (this.chartData.has(chart)) return;
+
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    const originalDomains:Record<string, Iterable<d3.AxisDomain>> = {};
+    for (const axis of allAxes) {
+      const domain = axis.axisDomain.domain;
+      originalDomains[axis.name] = [...domain];
     }
 
-    // Connect to tool state bus
-    this.toolStateBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        toolChanged: (data: unknown) => {
-          const change = data as { old: string; new: string };
-          if (change.new === 'reset') {
-            this.reset();
-            // Reset tool state back to none
-            setTimeout(() => {
-              this.toolState.currentTool = 'none';
-            }, 100);
-          }
-        }
+    const chartData: ChartData = {
+      originalDomains
+    };
+
+    this.chartData.set(chart, chartData);
+    this.bus.on(chart.e.destroyed, this.removeFromChart);
+  }
+
+  public removeFromChart(chart: Hd3Chart) {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
+
+    this.bus.off(chart.e.destroyed, this.removeFromChart);
+    this.chartData.delete(chart);
+  }
+
+  public reset(chart?: Hd3Chart): void {
+    if (chart) {
+      this.resetChart(chart);
+    } else {
+      for (const c of this.chartData.keys()) {
+        this.resetChart(c);
       }
-    });
-    this.toolStateBusEndpoint.bus = this.toolState.getBus();
+    }
   }
 
-  private getAxis(renderer: any): Hd3AxisDomain {
-    return renderer.axis as Hd3AxisDomain;
-  }
+  private resetChart(chart: Hd3Chart): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
 
-  reset(): void {
-    if (!this.axisDiscovery) return;
-    
-    const axes = this.axisDiscovery.getAxes();
-    for (const axis of axes) {
-      const axisDomain = this.getAxis(axis);
-      const domainName = axisDomain.name;
-      const original = this.originalDomains.get(domainName);
+    const axes = this.getAxes(chart);
+    const allAxes = [...(axes.x || []), ...(axes.y || [])];
+
+    for (const axis of allAxes) {
+      const original = chartData.originalDomains[axis.name];
       if (original) {
-        axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
+        axis.axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
       }
     }
+  }
+
+  private getAxes(chart: Hd3Chart): { x?: Hd3Axis[]; y?: Hd3Axis[] } {
+    const res: { x?: Hd3Axis[]; y?: Hd3Axis[] } = {};
+    this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
+      const state = manager.getAxesState(this.axes);
+      res.x = state.x;
+      res.y = state.y;
+    });
+    return res;
   }
 
   destroy(): void {
-    this.axisDiscovery?.destroy();
-    this.toolStateBusEndpoint.destroy();
+    for (const chart of [...this.chartData.keys()]) {
+      this.removeFromChart(chart);
+    }
+    this.bus.emit(this.e.destroyed, this);
   }
 }

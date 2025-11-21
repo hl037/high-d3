@@ -2,43 +2,43 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, WheelEventData } from '../Hd3InteractionArea';
 
-export interface Hd3ZoomToolOptions {
+export interface Hd3WheelPanToolOptions {
   bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
-  zoomFactor?: number;
+  panFactor?: number;
 }
 
-export interface Hd3ZoomToolEvents {
-  destroyed: Hd3ZoomTool;
+export interface Hd3WheelPanToolEvents {
+  destroyed: Hd3WheelPanTool;
 }
 
 interface ChartData {
   interactionArea?: Hd3InteractionArea;
-  handleMouseDown: (data: MouseEventData) => void;
+  handleWheel: (data: WheelEventData) => void;
   handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
 }
 
-export class Hd3ZoomTool {
+export class Hd3WheelPanTool {
   public readonly bus: Hd3Bus;
-  public readonly e: Hd3EventNameMap<Hd3ZoomToolEvents>;
-  public readonly name = 'click-zoom';
+  public readonly e: Hd3EventNameMap<Hd3WheelPanToolEvents>;
+  public readonly name = 'wheel-pan';
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
-  private zoomFactor: number;
+  private panFactor: number;
 
-  constructor(options: Hd3ZoomToolOptions = {}) {
+  constructor(options: Hd3WheelPanToolOptions = {}) {
     this.removeFromChart = this.removeFromChart.bind(this);
     this.destroy = this.destroy.bind(this);
 
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
     this.axes = options.axes;
-    this.zoomFactor = options.zoomFactor ?? 0.8;
+    this.panFactor = options.panFactor ?? 0.1;
 
     this.e = {
-      destroyed: createHd3Event<Hd3ZoomTool>('clickZoomTool.destroyed'),
+      destroyed: createHd3Event<Hd3WheelPanTool>('wheelPanTool.destroyed'),
     };
   }
 
@@ -46,14 +46,14 @@ export class Hd3ZoomTool {
     if (this.chartData.has(chart)) return;
 
     const chartData: ChartData = {
-      handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
+      handleWheel: (data: WheelEventData) => this.handleWheel(chart, data),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
         if (chartData.interactionArea !== undefined) {
-          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.off(chartData.interactionArea.e.wheel, chartData.handleWheel);
         }
         chartData.interactionArea = interactionArea;
         if (chartData.interactionArea !== undefined) {
-          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.on(interactionArea.e.wheel, chartData.handleWheel);
         }
       }
     };
@@ -73,32 +73,24 @@ export class Hd3ZoomTool {
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
     if (chartData.interactionArea) {
-      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+      this.bus.off(chartData.interactionArea.e.wheel, chartData.handleWheel);
     }
 
     this.chartData.delete(chart);
   }
 
-  private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
-    this.zoom(chart, mouseData.mappedCoords, this.zoomFactor);
-  }
-
-  private zoom(chart: Hd3Chart, mappedCoords: Record<string, number | string | Date | undefined>, factor: number): void {
+  private handleWheel(chart: Hd3Chart, wheelData: WheelEventData): void {
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const centerValue = mappedCoords[axis.name];
-      if (centerValue === undefined || typeof centerValue !== 'number') continue;
-
       const domain = axis.axisDomain.domain as [number, number];
       const domainWidth = domain[1] - domain[0];
-      const newWidth = domainWidth * factor;
-      const leftRatio = (centerValue - domain[0]) / domainWidth;
+      const delta = (wheelData.delta > 0 ? 1 : -1) * domainWidth * this.panFactor;
 
       axis.axisDomain.domain = [
-        centerValue - newWidth * leftRatio,
-        centerValue + newWidth * (1 - leftRatio)
+        domain[0] + delta,
+        domain[1] + delta
       ];
     }
   }
