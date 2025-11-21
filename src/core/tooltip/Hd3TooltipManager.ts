@@ -1,185 +1,334 @@
+import * as d3 from 'd3';
 import type { Hd3Chart } from '../chart/Hd3Chart';
-import type { Hd3InteractionArea } from '../interaction/Hd3InteractionArea';
-import type { Hd3Series } from '../series/Hd3Series';
+import type { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 import type { Hd3Axis } from '../axis/Hd3Axis';
-import type { Hd3Bus } from '../bus/Hd3Bus';
-import { createHd3Bus, type Hd3Bus as BusType } from '../bus/Hd3Bus';
-import { Hd3BusEndpoint } from '../bus/Hd3BusEndpoint';
-import { Hd3AxesDiscovery } from '../axis/Hd3AxesDiscovery';
+import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
+import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
+import { Hd3SeriesRendererManager, Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManager';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData } from '../interaction/Hd3InteractionArea';
+import { invertScale } from '../axis/invertScale';
+
+export interface TooltipSeriesData {
+  name: string;
+  x: number | string | Date;
+  y: number;
+  color: string;
+}
 
 export interface TooltipData {
   x: number;
   y: number;
   xSide: 'left' | 'right';
   ySide: 'top' | 'bottom';
-  series: Array<{
-    name: string;
-    value: number;
-    dataX: number | string | Date;
-    dataY: number;
-    color: string;
-  }>;
+  series: TooltipSeriesData[];
+}
+
+export interface Hd3TooltipManagerChartEvents {
+  tooltipShow: TooltipData;
+  tooltipHide: void;
+}
+
+export interface Hd3TooltipManagerEvents {
+  show: TooltipData;
+  hide: void;
+  destroyed: Hd3TooltipManager;
 }
 
 export interface Hd3TooltipManagerOptions {
-  chart: Hd3Chart;
-  interactionArea?: Hd3InteractionArea;
-  series: Hd3Series[];
-  xAxis?: any;
-  yAxis?: any;
+  bus?: Hd3Bus;
+  series?: (Hd3SeriesRenderer|string)[];
   axes?: (Hd3Axis | string)[];
-  charts?: Hd3Bus[];
+}
+
+interface ChartData {
+  interactionArea?: Hd3InteractionArea;
+  handleMouseMove: (data: MouseEventData) => void;
+  handleMouseLeave: () => void;
+  handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
+}
+
+interface AxisData {
+  axis: Hd3Axis,
+  scale: d3.AxisScale<d3.AxisDomain>,
+  xDomain: d3.AxisDomain | undefined,
+  xVp: number | undefined,
+  isContinuous: boolean,
+}
+
+interface RendererData {
+  renderer: Hd3SeriesRenderer,
+  x?: Hd3Axis,
+  y?: Hd3Axis,
 }
 
 /**
  * Tooltip manager that emits show/hide events with series data.
- * Connects to interaction area and series to provide tooltip information.
  */
 export class Hd3TooltipManager {
-  private chart: Hd3Chart;
-  private series: Hd3Series[];
-  private xAxis?: any;
-  private yAxis?: any;
-  private axisDiscovery?: Hd3AxesDiscovery;
-  private bus: BusType;
-  private chartBusEndpoint: Hd3BusEndpoint;
+  public readonly bus: Hd3Bus;
+  public readonly e: Hd3EventNameMap<Hd3TooltipManagerEvents>;
+  private chartData: Map<Hd3Chart, ChartData>;
+  private seriesRenderers?: Set<string>;
+  private axes?: (Hd3Axis | string)[];
 
   constructor(options: Hd3TooltipManagerOptions) {
-    this.chart = options.chart;
-    this.series = options.series;
-    this.xAxis = options.xAxis;
-    this.yAxis = options.yAxis;
-    this.bus = createHd3Bus();
+    this.removeFromChart = this.removeFromChart.bind(this);
+    this.destroy = this.destroy.bind(this);
 
-    // Create axis discovery
-    if (options.axes !== undefined || options.charts !== undefined) {
-      const charts = options.charts || [this.chart.getBus()];
-      this.axisDiscovery = new Hd3AxesDiscovery(options.axes, charts);
-      
-      // Find X and Y axes from discovery
-      const axes = this.axisDiscovery.getAxes();
-      for (const axis of axes) {
-        if (!this.xAxis && (axis as any).constructor.name === 'Hd3XAxis') {
-          this.xAxis = axis;
-        }
-        if (!this.yAxis && (axis as any).constructor.name === 'Hd3YAxis') {
-          this.yAxis = axis;
-        }
-      }
-    }
+    this.bus = options.bus || getHd3GlobalBus();
+    this.chartData = new Map();
+    this.seriesRenderers = options.series && new Set(options.series.map(r => typeof r === 'string' ? r:r.name));
+    this.axes = options.axes;
 
-    // Connect to chart bus for mouse events
-    this.chartBusEndpoint = new Hd3BusEndpoint({
-      listeners: {
-        mousemove: (data: unknown) => this.handleMouseMove(data),
-        mouseleave: () => this.handleMouseLeave()
-      }
-    });
-    this.chartBusEndpoint.bus = this.chart.getBus();
+    this.e = {
+      show: createHd3Event<TooltipData>('tooltipManager.show'),
+      hide: createHd3Event<void>('tooltipManager.hide'),
+      destroyed: createHd3Event<Hd3TooltipManager>('tooltipManager.destroyed'),
+    };
   }
 
-  private handleMouseMove(data: unknown): void {
-    const mouseData = data as { x: number; y: number; mappedCoords?: Record<string, number> };
-    
-    let xValue: number | undefined;
-    let yValue: number | undefined;
+  public addToChart(chart: Hd3Chart) {
+    if (this.chartData.has(chart)) return;
 
-    // Try to use mapped coordinates first (using domain names)
-    if (mouseData.mappedCoords && this.xAxis && this.yAxis) {
-      const xDomainName = (this.xAxis as any).axis?.name;
-      const yDomainName = (this.yAxis as any).axis?.name;
-      if (xDomainName) {
-        xValue = mouseData.mappedCoords[xDomainName];
-      }
-      if (yDomainName) {
-        yValue = mouseData.mappedCoords[yDomainName];
-      }
-    }
-
-    // Fallback to scale inversion (using local chart coordinates)
-    if (xValue === undefined && this.xAxis?.scale?.invert) {
-      xValue = this.xAxis.scale.invert(mouseData.x);
-    }
-    if (yValue === undefined && this.yAxis?.scale?.invert) {
-      yValue = this.yAxis.scale.invert(mouseData.y);
-    }
-
-    if (xValue === undefined || yValue === undefined) throw new Error("Can't get x or y value");
-
-    // Find closest points in each series
-    const seriesData = this.series
-      .filter(s => s.visible)
-      .map(series => {
-        const data = series.data;
-        let closest = data[0];
-        let minDist = Infinity;
-
-        for (const point of data) {
-          const px = typeof point[0] === 'number' ? point[0] : 0;
-          const dist = Math.abs(px - xValue!);
-          if (dist < minDist) {
-            minDist = dist;
-            closest = point;
-          }
+    const chartData: ChartData = {
+      handleMouseMove: (data: MouseEventData) => this.handleMouseMove(chart, data),
+      handleMouseLeave: () => this.handleMouseLeave(),
+      handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
+        if (chartData.interactionArea !== undefined) {
+          this.bus.off(chartData.interactionArea.e.mousemove, chartData.handleMouseMove);
+          this.bus.off(chartData.interactionArea.e.mouseleave, chartData.handleMouseLeave);
         }
-
-        return {
-          name: series.name,
-          value: closest[1],
-          dataX: closest[0],
-          dataY: closest[1],
-          color: '#steelblue'
-        };
-      });
-
-    // Reconstruct pixel coordinates using this chart's scales
-    let finalX: number;
-    let finalY: number;
-    
-    if (xValue !== undefined && this.xAxis?.scale) {
-      finalX = this.xAxis.scale(xValue as any);
-    } else {
-      finalX = this.chart.innerWidth / 2;
-    }
-    
-    if (yValue !== undefined && this.yAxis?.scale) {
-      finalY = this.yAxis.scale(yValue as any);
-    } else {
-      finalY = this.chart.innerHeight / 2;
-    }
-
-    const xSide = finalX > this.chart.innerWidth / 2 ? 'left' : 'right';
-    const ySide = finalY > this.chart.innerHeight / 2 ? 'top' : 'bottom';
-
-    const tooltipData: TooltipData = {
-      x: finalX,
-      y: finalY,
-      xSide,
-      ySide,
-      series: seriesData
+        chartData.interactionArea = interactionArea;
+        if (chartData.interactionArea !== undefined) {
+          this.bus.on(interactionArea.e.mousemove, chartData.handleMouseMove);
+          this.bus.on(interactionArea.e.mouseleave, chartData.handleMouseLeave);
+        }
+      }
     };
 
-    this.bus.emit('show', tooltipData);
+    this.chartData.set(chart, chartData);
+
+    this.bus.on(chart.e.destroyed, this.removeFromChart);
+    this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleInteractionAreaChanged);
+    this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
+  }
+
+  public removeFromChart(chart: Hd3Chart) {
+    const chartData = this.chartData.get(chart);
+    if (!chartData) return;
+
+    this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
+    this.bus.off(chart.e.destroyed, this.removeFromChart);
+
+    if (chartData.interactionArea) {
+      this.bus.off(chartData.interactionArea.e.mousemove, chartData.handleMouseMove);
+      this.bus.off(chartData.interactionArea.e.mouseleave, chartData.handleMouseLeave);
+    }
+
+    this.chartData.delete(chart);
+  }
+
+  private handleMouseMove(chartOrigin: Hd3Chart, mouseData: MouseEventData): void {
+    const mappedCoords = mouseData.mappedCoords;
+    const xAxisNames = Object.keys(mappedCoords);
+
+    if (xAxisNames.length === 0) return;
+
+    const yVpRatio = (mouseData.y) / chartOrigin.innerHeight;
+    const globalSeriesData = this.getChartSeriesData(chartOrigin, yVpRatio, mappedCoords);
+    if(!globalSeriesData?.series.length) {
+      return;
+    }
+    this.bus.emit(chartOrigin.e<Hd3TooltipManagerChartEvents>()('tooltipShow'), globalSeriesData);
+    const globalSeriesSet = new Set<string>(globalSeriesData.series.map(d => d.name));
+
+    for (const chart of this.chartData.keys()) {
+      if (chart === chartOrigin) {
+        continue;
+      }
+      const chartSeriesData = this.getChartSeriesData(chart, yVpRatio, mappedCoords as Record<string, number>);
+      if (!chartSeriesData?.series.length) {
+        continue;
+      }
+
+      // Emit per-chart event
+      this.bus.emit(chart.e<Hd3TooltipManagerChartEvents>()('tooltipShow'), chartSeriesData);
+
+      for(const series of chartSeriesData.series){
+        if(!globalSeriesSet.has(series.name) && series.name in mappedCoords) {
+          globalSeriesSet.add(series.name);
+          globalSeriesData.series.push(series);
+        }
+      }
+
+    }
+
+    const tooltipData: TooltipData = {
+      x: mouseData.x,
+      y: mouseData.y,
+      xSide: mouseData.x > chartOrigin.innerWidth / 2 ? 'left' : 'right',
+      ySide: mouseData.y > chartOrigin.innerHeight / 2 ? 'top' : 'bottom',
+      series: globalSeriesData.series
+    };
+
+    this.bus.emit(this.e.show, tooltipData);
+  }
+
+  private getChartSeriesData(
+    chartTarget: Hd3Chart,
+    yVpRatio: number,
+    mappedCoords: Record<string, string | number | Date | undefined>
+  ): TooltipData | undefined {
+    const { x: targetXAxes } = this.getAxes(chartTarget);
+
+    if(!(targetXAxes?.length)) {
+      return undefined;
+    }
+    
+    const xAxisDataList = targetXAxes.map((ax) => {
+      const xDomain = mappedCoords[ax.name];
+      const scale = ax.getScale(chartTarget);
+      return scale && {
+        axis: ax,
+        scale,
+        xDomain,
+        xVp: (xDomain && scale(xDomain)!) as number|undefined,
+        
+        isContinuous: (scale as any).invert !== undefined,
+      }
+    }).filter(d => d !== undefined);
+    
+    // First, find common X axes.
+    // If zero, return undefined (can't show a tooltip)
+    // If exactly one, everything is mapped according to it.
+    // If several, check if all x values are maper to the same pixel +-1, else, log an error.
+    //  Anyway, take the first axis and map from it.
+
+    const commonXAxisDataList = xAxisDataList.filter(({xDomain}) => xDomain !== undefined)
+
+    if(!commonXAxisDataList.length) {
+      return undefined
+    }
+    
+    const commonXAxisData:Record<string, AxisData> = Object.fromEntries(commonXAxisDataList.map(d => [d.axis.name, d]));
+
+    let xVpValue:number|undefined = undefined;
+    if(commonXAxisDataList.length > 1) {
+      // Check xValue maps to the same x (except for categorical axis)
+      for(const d of commonXAxisDataList){
+        if(d.isContinuous) {
+          if(xVpValue !== undefined){
+            if (Math.abs(xVpValue - d.xVp!) > 1){
+              console.error('Ambiguous x value for tooltips');
+            }
+            else {
+              xVpValue = d.xVp;
+            }
+          }
+        }
+      }
+    }
+
+    if(xVpValue === undefined) {
+      // Then there are only categorical axis... Take the mean as the xVpValue
+      xVpValue = commonXAxisDataList.reduce((acc, d) => acc + d.xVp!, 0) / commonXAxisDataList.length;
+    }
+
+    const seriesRenderersData = this.getSeriesRenderers(chartTarget).filter(({x, y}) => (x && y));
+    
+    const seriesData: TooltipSeriesData[] = [];
+
+    for (const {renderer, x} of seriesRenderersData) {
+      const d = commonXAxisData[x!.name];
+
+      // Get x value for this series (convert if needed)
+      if(d.xDomain === undefined) {
+        const inverted = invertScale(d.scale, xVpValue)
+        if(inverted === undefined) {
+          return undefined;
+        }
+        d.xDomain = inverted;
+      }
+
+      // Find closest point
+      const data = renderer.series.data;
+      const closestPoint = this.findClosestPoint(data, d.xDomain);
+
+      if (!closestPoint) continue;
+
+      seriesData.push({
+        name: renderer.series.name,
+        x: closestPoint[0],
+        y: closestPoint[1],
+        color: renderer.color || '#steelblue',
+      });
+    }
+
+    let finalY = yVpRatio * chartTarget.innerHeight;
+
+    return {
+      x: xVpValue,
+      y: finalY,
+      xSide: xVpValue > chartTarget.innerWidth / 2 ? 'left' : 'right',
+      ySide: finalY > chartTarget.innerHeight / 2 ? 'top' : 'bottom',
+      series: seriesData,
+    };
+  }
+
+  private findClosestPoint(
+    data: [number | string | Date, number][],
+    xValue: d3.AxisDomain
+  ): [number | string | Date, number] | undefined {
+    if (data.length === 0) return undefined;
+
+    if (typeof xValue === 'number' || xValue instanceof Date) {
+      const bisector = d3.bisector<[number | string | Date, number], number | Date>(d => d[0] as number | Date).center;
+      const idx = bisector(data, xValue);
+      return data[Math.min(idx, data.length - 1)];
+    } else {
+      return data.find(p => p[0] === xValue) || data[0];
+    }
+  }
+
+  private getSeriesRenderers(chart: Hd3Chart): RendererData[] {
+    let renderers: RendererData[] = [];
+    this.bus.emit(
+      chart.e<Hd3SeriesRendererManagerEvents>()('getSeriesRendererManager'),
+      (manager: Hd3SeriesRendererManager) => {
+        if(this.seriesRenderers !== undefined) {
+          renderers = manager.getSeries().filter(r => this.seriesRenderers!.has(r.name)).map(renderer => ({renderer, ...renderer.getAxes(chart)}));
+        }
+        else {
+          renderers = manager.getSeries().map(renderer => ({renderer, ...renderer.getAxes(chart)}));
+        }
+      }
+    );
+    return renderers;
   }
 
   private handleMouseLeave(): void {
-    this.bus.emit('hide', null);
+    for (const chart of this.chartData.keys()) {
+      this.bus.emit(chart.e<Hd3TooltipManagerChartEvents>()('tooltipHide'), undefined);
+    }
+    this.bus.emit(this.e.hide, undefined);
   }
 
-  getBus(): BusType {
-    return this.bus;
-  }
-
-  on(event: string, handler: (data?: unknown) => void): void {
-    this.bus.on(event, handler);
-  }
-
-  off(event: string, handler: (data?: unknown) => void): void {
-    this.bus.off(event, handler);
+  private getAxes(chart: Hd3Chart): { x?: Hd3Axis[]; y?: Hd3Axis[] } {
+    const res: { x?: Hd3Axis[]; y?: Hd3Axis[] } = {};
+    this.bus.emit(chart.e<Hd3AxisManagerEvents>()('getAxisManager'), (manager: Hd3AxisManager) => {
+      const state = manager.getAxesState(this.axes);
+      res.x = state.x;
+      res.y = state.y;
+    });
+    return res;
   }
 
   destroy(): void {
-    this.axisDiscovery?.destroy();
-    this.chartBusEndpoint.destroy();
+    for (const chart of [...this.chartData.keys()]) {
+      this.removeFromChart(chart);
+    }
+    this.bus.emit(this.e.destroyed, this);
+    (this as any).seriesRenderers = null;
+    (this as any).chartData = null;
   }
 }

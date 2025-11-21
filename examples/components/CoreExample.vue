@@ -92,29 +92,17 @@
       <div ref="chartContainer3" style="width: 100%; height: 400px;"></div>
     </div> -->
 
-    <div 
-      v-if="tooltipVisible" 
-      ref="tooltipEl"
-      style="
-        position: fixed;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 10px;
-        border-radius: 4px;
-        pointer-events: none;
-        font-size: 12px;
-        z-index: 1000;
-      "
-      :style="{
-        left: tooltipX + 'px',
-        top: tooltipY + 'px'
-      }"
+    <Teleport
+      v-if="tooltipTargets && tooltipData"
+      v-for="target in tooltipTargets"
+      :to="target"
     >
-      <div v-for="item in tooltipData" :key="item.name" style="margin: 2px 0;">
-        <strong>{{ item.name }}:</strong> {{ item.value.toFixed(2) }}
+      <div>
+        <div v-for="s in tooltipData.series" :key="s.name" style="margin: 2px 0;">
+          <strong>{{ item.name }}:</strong> {{ item.value.toFixed(2) }}
+        </div>
       </div>
-    </div>
-  </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -138,17 +126,23 @@ import {
   Hd3Axis,
 } from '../../src/core';
 import { Hd3CursorIndicator } from '@/core/interaction/Hd3CursorIndicator';
+import { Hd3TooltipData } from '@/core/tooltip/Hd3TooltipManager';
 
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
 const chartContainer3 = ref<HTMLElement>();
-const tooltipEl = ref<HTMLElement>();
+const tooltipTargets = ref<HTMLElement[]>();
+const tooltipData = ref<Hd3TooltipData|null>(null);
+
+function showTooltip(data: Hd3TooltipData){
+  tooltipData.value = data;
+}
+
+function hideTooltip(){
+  tooltipData.value = null;
+}
 
 const currentTool = ref<string>('none');
-const tooltipVisible = ref(false);
-const tooltipX = ref(0);
-const tooltipY = ref(0);
-const tooltipData = ref<Array<{ name: string; value: number }>>([]);
 
 //let toolState: Hd3ToolState;
 let series1: Hd3Series;
@@ -181,6 +175,7 @@ const cursorOptions = ref({
 //}
 
 onMounted(() => {
+  
   // Generate data
   const sinData: [number, number][] = [];
   const cosData: [number, number][] = [];

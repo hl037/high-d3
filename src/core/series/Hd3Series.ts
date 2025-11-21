@@ -19,7 +19,7 @@ export interface Hd3SeriesOptions<T extends number | string | Date = number> {
 export class Hd3Series<T extends number | string | Date = number> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesEvents>;
-  public name: string;
+  public readonly name: string;
   private _data: Data2D<T>;
   public visible: boolean = true;
 

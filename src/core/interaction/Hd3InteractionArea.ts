@@ -3,14 +3,15 @@ import type { Hd3Chart } from '../chart/Hd3Chart';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import type { Hd3Axis } from '../axis/Hd3Axis';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
+import { invertScale } from '../axis/invertScale';
 
-type MappedCoords = Record<string, number | string | undefined>
+type MappedCoords = Record<string, number | string | Date | undefined>
 
 export interface MouseEventData {
   x: number;
   y: number;
   event: MouseEvent;
-  mappedCoords?: MappedCoords;
+  mappedCoords: MappedCoords;
 }
 
 export interface WheelEventData {
@@ -18,7 +19,7 @@ export interface WheelEventData {
   y: number;
   delta: number;
   event: WheelEvent;
-  mappedCoords?: MappedCoords;
+  mappedCoords: MappedCoords;
 }
 
 export interface DragEventData {
@@ -28,8 +29,8 @@ export interface DragEventData {
   dy: number;
   startX: number;
   startY: number;
-  mappedCoords?: MappedCoords;
-  startMappedCoords?: MappedCoords;
+  mappedCoords: MappedCoords;
+  startMappedCoords: MappedCoords;
   event: MouseEvent;
 }
 
@@ -230,7 +231,7 @@ export class Hd3InteractionArea {
       for (const axis of state.x) {
         if (axis?.name) {
           const scale = axis.getScale(chart);
-          const value = this.invertScale(scale, x);
+          const value = invertScale(scale, x);
           mapped[axis.name] = value;
         }
       }
@@ -238,40 +239,13 @@ export class Hd3InteractionArea {
       for (const axis of state.y) {
         if (axis?.name) {
           const scale = axis.getScale(chart);
-          const value = this.invertScale(scale, y);
+          const value = invertScale(scale, y);
           mapped[axis.name] = value;
         }
       }
     });
 
     return mapped;
-  }
-
-  private invertScale(scale: any, pos: number): number | string | undefined {
-    if (!scale) return undefined;
-
-    // Continuous scales (linear, time, log, etc.)
-    if (scale.invert) {
-      return scale.invert(pos);
-    }
-
-    // Band/Point scales
-    if (scale.domain && scale.range && scale.step) {
-      const domain = scale.domain();
-      const range = scale.range();
-      const step = scale.step();
-      const paddingOuter = scale.paddingOuter?.() ?? 0;
-
-      const start = Math.min(range[0], range[1]);
-      const offset = pos - start - paddingOuter * step;
-      const index = Math.floor(offset / step);
-
-      if (index >= 0 && index < domain.length) {
-        return domain[index];
-      }
-    }
-
-    return undefined;
   }
 
   destroy() {

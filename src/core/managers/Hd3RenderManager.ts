@@ -9,6 +9,7 @@ export interface Hd3RenderTargetI {
   height: number;
   innerWidth: number;
   innerHeight: number;
+  margin: { top: number; right: number; bottom: number; left: number };
 }
 
 export interface Hd3RenderableI<T> {

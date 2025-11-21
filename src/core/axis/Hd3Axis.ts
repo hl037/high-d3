@@ -182,6 +182,10 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.updateRender(target, targetData);
   }
 
+  public getCharts(): Hd3ChartI[] {
+    return [...this.targetData.keys()]
+  }
+
   protected _getTranslation(target: Hd3ChartI, targetData: AxisTargetData): {x:number, y:number}{
     if (this.orientation === 'x') {
       return {
