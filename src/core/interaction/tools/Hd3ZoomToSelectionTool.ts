@@ -1,29 +1,38 @@
+import * as d3 from 'd3';
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData, DragEventData } from '../Hd3InteractionArea';
 
-export interface Hd3ResetToolOptions {
+export interface Hd3ZoomToSelectionToolOptions {
   bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
 }
 
-export interface Hd3ResetToolEvents {
-  destroyed: Hd3ResetTool;
+export interface Hd3ZoomToSelectionToolEvents {
+  destroyed: Hd3ZoomToSelectionTool;
 }
+
+type D3Rect = d3.Selection<SVGRectElement, unknown, null, undefined>;
 
 interface ChartData {
-  originalDomains: Record<string, Iterable<d3.AxisDomain>>;
+  interactionArea?: Hd3InteractionArea;
+  selectionRect?: D3Rect;
+  handleMouseDown: (data: MouseEventData) => void;
+  handleDrag: (data: DragEventData) => void;
+  handleDragEnd: (data: DragEventData) => void;
+  handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
 }
 
-export class Hd3ResetTool {
+export class Hd3ZoomToSelectionTool {
   public readonly bus: Hd3Bus;
-  public readonly e: Hd3EventNameMap<Hd3ResetToolEvents>;
-  public readonly name = 'reset';
+  public readonly e: Hd3EventNameMap<Hd3ZoomToSelectionToolEvents>;
+  public readonly name = 'zoom-selection';
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
 
-  constructor(options: Hd3ResetToolOptions = {}) {
+  constructor(options: Hd3ZoomToSelectionToolOptions = {}) {
     this.removeFromChart = this.removeFromChart.bind(this);
     this.destroy = this.destroy.bind(this);
 
@@ -32,60 +41,118 @@ export class Hd3ResetTool {
     this.axes = options.axes;
 
     this.e = {
-      destroyed: createHd3Event<Hd3ResetTool>('resetTool.destroyed'),
+      destroyed: createHd3Event<Hd3ZoomToSelectionTool>('zoomToSelectionTool.destroyed'),
     };
   }
 
   public addToChart(chart: Hd3Chart) {
     if (this.chartData.has(chart)) return;
 
-    const axes = this.getAxes(chart);
-    const allAxes = [...(axes.x || []), ...(axes.y || [])];
-
-    const originalDomains: Record<string, Iterable<d3.AxisDomain>> = {};
-    for (const axis of allAxes) {
-      const domain = axis.axisDomain.domain;
-      originalDomains[axis.name] = [...domain];
-    }
-
     const chartData: ChartData = {
-      originalDomains
+      handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
+      handleDrag: (data: DragEventData) => this.handleDrag(chart, data),
+      handleDragEnd: (data: DragEventData) => this.handleDragEnd(chart, data),
+      handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
+        if (chartData.interactionArea !== undefined) {
+          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
+          this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+        }
+        chartData.interactionArea = interactionArea;
+        if (chartData.interactionArea !== undefined) {
+          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.on(interactionArea.e.drag, chartData.handleDrag);
+          this.bus.on(interactionArea.e.dragend, chartData.handleDragEnd);
+        }
+      }
     };
 
     this.chartData.set(chart, chartData);
+
     this.bus.on(chart.e.destroyed, this.removeFromChart);
+    this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleInteractionAreaChanged);
+    this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
   }
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
     if (!chartData) return;
 
+    chartData.selectionRect?.remove();
+
+    this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
+
+    if (chartData.interactionArea) {
+      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+      this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
+      this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+    }
+
     this.chartData.delete(chart);
   }
 
-  public reset(chart?: Hd3Chart): void {
-    if (chart) {
-      this.resetChart(chart);
-    } else {
-      for (const c of this.chartData.keys()) {
-        this.resetChart(c);
-      }
-    }
-  }
-
-  private resetChart(chart: Hd3Chart): void {
+  private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
     const chartData = this.chartData.get(chart);
     if (!chartData) return;
+
+    if (chartData.selectionRect) {
+      chartData.selectionRect.remove();
+    }
+
+    chartData.selectionRect = chart.layer.overlay.append('rect')
+      .attr('class', 'zoom-selection')
+      .attr('x', mouseData.x)
+      .attr('y', mouseData.y)
+      .attr('width', 0)
+      .attr('height', 0)
+      .attr('fill', 'rgba(100, 150, 255, 0.3)')
+      .attr('stroke', 'rgba(50, 100, 200, 0.8)')
+      .attr('stroke-width', 1)
+      .style('pointer-events', 'none');
+  }
+
+  private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData?.selectionRect) return;
+
+    const x = Math.min(dragData.startX, dragData.x);
+    const y = Math.min(dragData.startY, dragData.y);
+    const width = Math.abs(dragData.x - dragData.startX);
+    const height = Math.abs(dragData.y - dragData.startY);
+
+    chartData.selectionRect
+      .attr('x', x)
+      .attr('y', y)
+      .attr('width', width)
+      .attr('height', height);
+  }
+
+  private handleDragEnd(chart: Hd3Chart, dragData: DragEventData): void {
+    const chartData = this.chartData.get(chart);
+    if (!chartData?.selectionRect) return;
+
+    chartData.selectionRect.remove();
+    chartData.selectionRect = undefined;
+
+    const { startMappedCoords, mappedCoords } = dragData;
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const original = chartData.originalDomains[axis.name];
-      if (original) {
-        axis.axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
-      }
+      const start = startMappedCoords[axis.name];
+      const end = mappedCoords[axis.name];
+
+      if (start === undefined || end === undefined) continue;
+      if (typeof start !== 'number' || typeof end !== 'number') continue;
+
+      const newDomain: [number, number] = [
+        Math.min(start, end),
+        Math.max(start, end)
+      ];
+
+      axis.axisDomain.domain = newDomain;
     }
   }
 

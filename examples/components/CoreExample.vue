@@ -64,15 +64,8 @@
         </div>
       </div>
     </div> -->
-    
-    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
-      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
-        <h3>Chart 1 - Simple</h3>
-        <div ref="chartContainer1" style="width: 100%; height: 400px;"></div>
-      </div>
-    </div>
 
-    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Chart 1 - Multiple Series Types</h3>
         <div ref="chartContainer1" style="width: 100%; height: 400px;"></div>
@@ -82,7 +75,7 @@
         <h3>Chart 2 - Logarithmic Y Axis</h3>
         <div ref="chartContainer2" style="width: 100%; height: 400px;"></div>
       </div>
-    </div> -->
+    </div>
 
     <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
       <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
@@ -119,18 +112,15 @@ import {
   Hd3Bars,
   Hd3Scatter,
   Hd3InteractionArea,
-  //Hd3ToolState,
-  //Hd3PanTool,
-  //Hd3ZoomTool,
-  //Hd3ZoomToSelectionTool,
-  //Hd3ResetTool,
-  //Hd3TooltipManager,
-  //Hd3CursorIndicator,
+  Hd3ToolState,
+  Hd3PanTool,
+  Hd3ZoomTool,
+  Hd3ZoomToSelectionTool,
+  Hd3ResetTool,
+  Hd3TooltipManager,
+  Hd3CursorIndicator,
   Hd3Axis,
 } from '../../src/core';
-import { Hd3CursorIndicator } from '@/core/interaction/Hd3CursorIndicator';
-import { Hd3TooltipData, Hd3TooltipManager } from '@/core/tooltip/Hd3TooltipManager';
-import { Hd3ChartI } from '@/core/chart/Hd3Chart';
 import { Hd3ForeignObjectTooltip, Hd3ForeignObjectTooltipContainer } from '@/core/tooltip/Hd3ForeignObjectTooltip';
 import { getHd3GlobalBus } from '@/core/bus/Hd3Bus';
 import { Hd3TooltipMarkers } from '@/core/tooltip/Hd3TooltipMarkers';
@@ -292,10 +282,10 @@ onMounted(() => {
   
   
 
-  /*
+  
   // Chart 2 - Logarithmic axis
-  const chart2 = new Hd3Chart(chartContainer2.value, {
-    width: chartContainer2.value.offsetWidth,
+  const chart2 = new Hd3Chart(chartContainer2.value!, {
+    width: chartContainer2.value!.offsetWidth,
     height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 80 }
   });
@@ -308,9 +298,9 @@ onMounted(() => {
     domain: [0.1, 100]
   });
 
-  const xAxis2 = new Hd3XAxis({
+  const xAxis2 = new Hd3Axis({
     name: 'x2',
-    axis: xAxisDom2,
+    domain: xAxisDom2,
     scaleType: 'linear',
     range: [0, chart2.innerWidth],
     position: 'bottom',
@@ -320,9 +310,9 @@ onMounted(() => {
     }
   });
 
-  const yAxis2 = new Hd3YAxis({
+  const yAxis2 = new Hd3Axis({
     name: 'y2',
-    axis: yAxisDom2,
+    domain: yAxisDom2,
     scaleType: 'log',
     range: [chart2.innerHeight, 0],
     scaleOptions: { base: 10 },
@@ -336,18 +326,27 @@ onMounted(() => {
   const series5 = new Hd3Series({ name: 'Exponential', data: expData });
   const line2 = new Hd3Line({
     series: series5,
-    xAxis: 'x2',
-    yAxis: 'y2',
+    axes: ['x2', 'y2'],
     style: { color: '#9b59b6', strokeWidth: 3 }
   });
 
-  chart2.emit('addXAxis', xAxis2);
-  chart2.emit('addYAxis', yAxis2);
-  chart2.emit('addRenderer', xAxis2);
-  chart2.emit('addRenderer', yAxis2);
-  chart2.emit('addRenderer', line2);
-  chart2.emit('addSeries', series5);
-  */
+  xAxis2.addToChart(chart2);
+  yAxis2.addToChart(chart2);
+  line2.addToChart(chart2);
+  
+  const tooltipManager2 = new Hd3TooltipManager({});
+  const markers2 = new Hd3TooltipMarkers({});
+
+  tooltipManager2.addToChart(chart2);
+  markers2.addToChart(chart2);
+  interactionArea1.addToChart(chart2);
+  foTooltip.addToChart(chart2);
+  cursor1.addToChart(chart2);
+  
+  getHd3GlobalBus().on(tooltipManager2.e.show, handleTooltipChanged);
+  getHd3GlobalBus().on(tooltipManager2.e.hide, handleTooltipChanged);
+
+
 
   // Chart 3 - Synchronized with Chart 1
   const chart3 = new Hd3Chart(chartContainer3.value!, {

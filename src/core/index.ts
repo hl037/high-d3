@@ -31,24 +31,24 @@ export { Hd3Scatter, type Hd3ScatterOptions, type Hd3ScatterStyle } from './seri
 
 // Interaction
 export { Hd3InteractionArea } from './interaction/Hd3InteractionArea';
-// export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
-// export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
-// export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
-// export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';
-// export { Hd3ResetTool, type Hd3ResetToolOptions } from './interaction/tools/Hd3ResetTool';
-// export { 
-//   Hd3CursorIndicator, 
-//   type Hd3CursorIndicatorOptions,
-//   type Hd3CursorIndicatorCrossStyle,
-//type Hd3CursorIndicatorAxisLabelStyle,
-//   type Hd3CursorIndicatorMarkerStyle
-// } from './interaction/Hd3CursorIndicator';
+export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
+export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
+export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
+export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';
+export { Hd3ResetTool, type Hd3ResetToolOptions } from './interaction/tools/Hd3ResetTool';
+export { 
+  Hd3CursorIndicator, 
+  type Hd3CursorIndicatorOptions,
+  type Hd3CursorIndicatorCrossStyle,
+  type Hd3CursorIndicatorAxisLabelStyle,
+} from './interaction/Hd3CursorIndicator';
 
 // Tooltip
-// export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';
-// export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type TooltipData } from './tooltip/Hd3TooltipManager';
+export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';
+export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type Hd3TooltipData } from './tooltip/Hd3TooltipManager';
 
 export function initHd3() {
   getHd3GlobalBus();
   getHd3GlobalRenderManager();
 }
+
