@@ -3,7 +3,7 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData, DragEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData, DragEventData } from '../Hd3InteractionArea';
 
 export interface Hd3ZoomToSelectionToolOptions {
   bus?: Hd3Bus;
@@ -54,15 +54,15 @@ export class Hd3ZoomToSelectionTool {
       handleDragEnd: (data: DragEventData) => this.handleDragEnd(chart, data),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
         if (chartData.interactionArea !== undefined) {
-          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
-          this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
-          this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
         }
         chartData.interactionArea = interactionArea;
         if (chartData.interactionArea !== undefined) {
-          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
-          this.bus.on(interactionArea.e.drag, chartData.handleDrag);
-          this.bus.on(interactionArea.e.dragend, chartData.handleDragEnd);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
         }
       }
     };
@@ -84,9 +84,9 @@ export class Hd3ZoomToSelectionTool {
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
     if (chartData.interactionArea) {
-      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
-      this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
-      this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
     }
 
     this.chartData.delete(chart);

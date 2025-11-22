@@ -5,7 +5,7 @@ import type { Hd3Axis } from '../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { Hd3SeriesRendererManager, Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData } from '../interaction/Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from '../interaction/Hd3InteractionArea';
 import { invertScale } from '../axis/invertScale';
 
 export interface TooltipSeriesData {
@@ -95,13 +95,13 @@ export class Hd3TooltipManager {
       handleMouseLeave: () => this.handleMouseLeave(),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
         if (chartData.interactionArea !== undefined) {
-          this.bus.off(chartData.interactionArea.e.mousemove, chartData.handleMouseMove);
-          this.bus.off(chartData.interactionArea.e.mouseleave, chartData.handleMouseLeave);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousemove'), chartData.handleMouseMove);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mouseleave'), chartData.handleMouseLeave);
         }
         chartData.interactionArea = interactionArea;
         if (chartData.interactionArea !== undefined) {
-          this.bus.on(interactionArea.e.mousemove, chartData.handleMouseMove);
-          this.bus.on(interactionArea.e.mouseleave, chartData.handleMouseLeave);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mousemove'), chartData.handleMouseMove);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mouseleave'), chartData.handleMouseLeave);
         }
       }
     };
@@ -121,8 +121,8 @@ export class Hd3TooltipManager {
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
     if (chartData.interactionArea) {
-      this.bus.off(chartData.interactionArea.e.mousemove, chartData.handleMouseMove);
-      this.bus.off(chartData.interactionArea.e.mouseleave, chartData.handleMouseLeave);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousemove'), chartData.handleMouseMove);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mouseleave'), chartData.handleMouseLeave);
     }
 
     this.chartData.delete(chart);

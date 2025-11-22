@@ -3,7 +3,7 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, DragEventData, MouseEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, DragEventData, MouseEventData } from '../Hd3InteractionArea';
 import { invertScale } from '@/core/axis/invertScale';
 
 export interface Hd3PanToolOptions {
@@ -60,15 +60,15 @@ export class Hd3PanTool {
       handleDragEnd: () => this.handleDragEnd(chart),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
         if (chartData.interactionArea !== undefined) {
-          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
-          this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
-          this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
         }
         chartData.interactionArea = interactionArea;
         if (chartData.interactionArea !== undefined) {
-          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
-          this.bus.on(interactionArea.e.drag, chartData.handleDrag);
-          this.bus.on(interactionArea.e.dragend, chartData.handleDragEnd);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
         }
       }
     };
@@ -88,9 +88,9 @@ export class Hd3PanTool {
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
     if (chartData.interactionArea) {
-      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
-      this.bus.off(chartData.interactionArea.e.drag, chartData.handleDrag);
-      this.bus.off(chartData.interactionArea.e.dragend, chartData.handleDragEnd);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
     }
 
     this.chartData.delete(chart);
@@ -135,18 +135,20 @@ export class Hd3PanTool {
 
       const currentPixel = axis.orientation === 'x' ? dragData.x : dragData.y;
       const startPixel = axis.orientation === 'x' ? chartData.startX : chartData.startY;
+      const deltaPixel = startPixel - currentPixel;
 
-      const startDomainValue = invertScale(initialScale, startPixel);
-      const currentDomainValue = invertScale(initialScale, currentPixel);
-      
-      if (typeof startDomainValue !== 'number' || typeof currentDomainValue !== 'number') continue;
+      const initialPixel0 = initialScale(initialDomain[0]);
+      const initialPixel1 = initialScale(initialDomain[1]);
 
-      const deltaDomain = currentDomainValue - startDomainValue;
+      const newPixel0 = (initialPixel0 as number) + deltaPixel;
+      const newPixel1 = (initialPixel1 as number) + deltaPixel;
 
-      axis.axisDomain.domain = [
-        (initialDomain[0] as number) - deltaDomain,
-        (initialDomain[1] as number) - deltaDomain
-      ];
+      const newDomain0 = invertScale(initialScale, newPixel0);
+      const newDomain1 = invertScale(initialScale, newPixel1);
+
+      if (typeof newDomain0 !== 'number' || typeof newDomain1 !== 'number') continue;
+
+      axis.axisDomain.domain = [newDomain0, newDomain1];
     }
   }
 

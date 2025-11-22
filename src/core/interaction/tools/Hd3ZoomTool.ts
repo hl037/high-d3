@@ -2,7 +2,7 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, MouseEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from '../Hd3InteractionArea';
 
 export interface Hd3ZoomToolOptions {
   bus?: Hd3Bus;
@@ -49,11 +49,11 @@ export class Hd3ZoomTool {
       handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
         if (chartData.interactionArea !== undefined) {
-          this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
         }
         chartData.interactionArea = interactionArea;
         if (chartData.interactionArea !== undefined) {
-          this.bus.on(interactionArea.e.mousedown, chartData.handleMouseDown);
+          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
         }
       }
     };
@@ -73,7 +73,7 @@ export class Hd3ZoomTool {
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
     if (chartData.interactionArea) {
-      this.bus.off(chartData.interactionArea.e.mousedown, chartData.handleMouseDown);
+      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
     }
 
     this.chartData.delete(chart);

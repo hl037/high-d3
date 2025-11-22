@@ -12,7 +12,7 @@
           <button @click="toolbox.setToolActive('zoom-selection')" :class="{ active: toolState['zoom-selection'] }">Zoom to Selection</button>
           <button @click="toolbox.setToolActive('wheel-zoom')" :class="{ active: toolState['wheel-zoom'] }">Wheel zoom</button>
           <button @click="toolbox.setToolActive('wheel-pan')" :class="{ active: toolState['wheel-pan'] }">Wheel pan</button>
-          <button @click="toolbox.setToolActive('reset')" :class="{ active: toolState['reset'] }">Reset</button>
+          <button @click="() => resetTool.reset()" :class="{ active: toolState['reset'] }">Reset</button>
         </div>
       </div>
       
