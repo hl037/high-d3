@@ -1,8 +1,10 @@
+import * as d3 from 'd3';
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, DragEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, DragEventData, MouseEventData } from '../Hd3InteractionArea';
+import { invertScale } from '@/core/axis/invertScale';
 
 export interface Hd3PanToolOptions {
   bus?: Hd3Bus;
@@ -15,8 +17,11 @@ export interface Hd3PanToolEvents {
 
 interface ChartData {
   interactionArea?: Hd3InteractionArea;
-  initialDomains: Record<string, Iterable<d3.AxisDomain>> | null;
-  handleMouseDown: () => void;
+  initialDomains: Map<string, d3.AxisDomain[]> | null;
+  initialScales: Map<string, d3.AxisScale<d3.AxisDomain>> | null;
+  startX: number | null;
+  startY: number | null;
+  handleMouseDown: (data: MouseEventData) => void;
   handleDrag: (data: DragEventData) => void;
   handleDragEnd: () => void;
   handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
@@ -47,7 +52,10 @@ export class Hd3PanTool {
 
     const chartData: ChartData = {
       initialDomains: null,
-      handleMouseDown: () => this.handleMouseDown(chart),
+      initialScales: null,
+      startX: null,
+      startY: null,
+      handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
       handleDrag: (data: DragEventData) => this.handleDrag(chart, data),
       handleDragEnd: () => this.handleDragEnd(chart),
       handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
@@ -88,43 +96,56 @@ export class Hd3PanTool {
     this.chartData.delete(chart);
   }
 
-  private handleMouseDown(chart: Hd3Chart): void {
+  private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
     const chartData = this.chartData.get(chart);
     if (!chartData) return;
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
-    chartData.initialDomains = {};
+    chartData.initialDomains = new Map();
+    chartData.initialScales = new Map();
+    chartData.startX = mouseData.x;
+    chartData.startY = mouseData.y;
+
     for (const axis of allAxes) {
       const domain = axis.axisDomain.domain;
-      chartData.initialDomains[axis.name] = [...domain];
+      chartData.initialDomains.set(axis.name, [...domain]);
+      
+      const scale = axis.getScale(chart);
+      if (scale) {
+        chartData.initialScales.set(axis.name, scale.copy());
+      }
     }
   }
 
   private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData || !chartData.initialDomains) return;
-
-    const { mappedCoords, startMappedCoords } = dragData;
+    if (!chartData || !chartData.initialDomains || !chartData.initialScales) return;
+    if (chartData.startX === null || chartData.startY === null) return;
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const initialDomain = chartData.initialDomains[axis.name];
-      if (!initialDomain || !Array.isArray(initialDomain)) continue;
+      const initialDomain = chartData.initialDomains.get(axis.name);
+      const initialScale = chartData.initialScales.get(axis.name);
+      
+      if (!initialDomain || !initialScale) continue;
 
-      const currentValue = mappedCoords[axis.name];
-      const startValue = startMappedCoords[axis.name];
+      const currentPixel = axis.orientation === 'x' ? dragData.x : dragData.y;
+      const startPixel = axis.orientation === 'x' ? chartData.startX : chartData.startY;
 
-      if (currentValue === undefined || startValue === undefined) continue;
-      if (typeof currentValue !== 'number' || typeof startValue !== 'number') continue;
+      const startDomainValue = invertScale(initialScale, startPixel);
+      const currentDomainValue = invertScale(initialScale, currentPixel);
+      
+      if (typeof startDomainValue !== 'number' || typeof currentDomainValue !== 'number') continue;
 
-      const delta = currentValue - startValue;
+      const deltaDomain = currentDomainValue - startDomainValue;
+
       axis.axisDomain.domain = [
-        (initialDomain[0] as number) - delta,
-        (initialDomain[1] as number) - delta
+        (initialDomain[0] as number) - deltaDomain,
+        (initialDomain[1] as number) - deltaDomain
       ];
     }
   }
@@ -133,6 +154,9 @@ export class Hd3PanTool {
     const chartData = this.chartData.get(chart);
     if (chartData) {
       chartData.initialDomains = null;
+      chartData.initialScales = null;
+      chartData.startX = null;
+      chartData.startY = null;
     }
   }
 

@@ -42,8 +42,41 @@ export class Hd3Line extends Hd3SeriesRenderer {
     data.group.remove();
   }
 
-
   protected renderData(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
+    const chartData = _chartData as ChartData;
+    console.log({
+      'chartData' : chartData,
+    });
+    const data = this.series.data;
+
+    const scaleX = x?.getScale(chart);
+    const scaleY = y?.getScale(chart);
+
+    if(scaleX === undefined || scaleY === undefined) {
+      chartData.group.selectChildren().remove()
+      chartData.lastPositions = null;
+      return;
+    }
+
+    const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
+    chartData.lastPositions = newPositions;
+    
+    const line = d3.line<[number, number]>()
+      .x(d => d[0])
+      .y(d => d[1]);
+
+    chartData.group.selectAll('path')
+      .data([data])
+      .join('path')
+      .attr('class', 'line')
+      .attr('fill', 'none')
+      .attr('stroke', this.color)
+      .attr('stroke-width', this.strokeWidth)
+      .interrupt()
+      .attr('d', line(newPositions))
+  }
+
+  protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
     console.log({
       'chartData' : chartData,

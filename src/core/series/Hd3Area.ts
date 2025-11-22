@@ -58,6 +58,39 @@ export class Hd3Area extends Hd3SeriesRenderer {
     const y0 = scaleY(0)!;
 
     const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
+    chartData.lastPositions = newPositions;
+
+    const area = d3.area<[number, number]>()
+      .x(d => d[0])
+      .y0(y0)
+      .y1(d => d[1]);
+
+    chartData.group.selectAll('path')
+      .data([data])
+      .join('path')
+      .attr('class', 'area')
+      .interrupt()
+      .attr('fill', this.color)
+      .attr('opacity', this.opacity)
+      .attr('d', area(newPositions))
+  }
+  
+  protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const data = this.series.data;
+
+    const scaleX = x?.getScale(chart);
+    const scaleY = y?.getScale(chart);
+
+    if (scaleX === undefined || scaleY === undefined) {
+      chartData.group.selectChildren().remove();
+      chartData.lastPositions = null;
+      return;
+    }
+
+    const y0 = scaleY(0)!;
+
+    const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
     const interpolate = new Hd3SeriesInterpolator(chartData.lastPositions || scaleY.range()[0], newPositions);
 
     const area = d3.area<[number, number]>()

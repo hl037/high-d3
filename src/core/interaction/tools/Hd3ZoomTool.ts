@@ -23,7 +23,7 @@ interface ChartData {
 export class Hd3ZoomTool {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3ZoomToolEvents>;
-  public readonly name = 'click-zoom';
+  public readonly name = 'zoom';
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
   private zoomFactor: number;

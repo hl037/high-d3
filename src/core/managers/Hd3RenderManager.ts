@@ -29,7 +29,7 @@ export interface Hd3RenderManagerOptions {
   bus?: Hd3Bus;
 }
 
-const dirty = createHd3Event<DirtyEvent<unknown>>('render-manager.dirty')
+export const dirty = createHd3Event<DirtyEvent<unknown>>('render-manager.dirty')
 export function emitDirty<T>(bus:Hd3Bus, event:DirtyEvent<T>) {
   bus.emit(dirty, event as DirtyEvent<unknown>);
 }

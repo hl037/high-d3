@@ -31,7 +31,6 @@ export { Hd3Scatter, type Hd3ScatterOptions, type Hd3ScatterStyle } from './seri
 
 // Interaction
 export { Hd3InteractionArea } from './interaction/Hd3InteractionArea';
-export { Hd3ToolState, type ToolType } from './interaction/Hd3ToolState';
 export { Hd3PanTool, type Hd3PanToolOptions } from './interaction/tools/Hd3PanTool';
 export { Hd3ZoomTool, type Hd3ZoomToolOptions } from './interaction/tools/Hd3ZoomTool';
 export { Hd3ZoomToSelectionTool, type Hd3ZoomToSelectionToolOptions } from './interaction/tools/Hd3ZoomToSelectionTool';

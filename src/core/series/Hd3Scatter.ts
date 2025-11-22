@@ -56,6 +56,33 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
     }
 
     const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
+    chartData.lastPositions = newPositions;
+
+    chartData.group.selectAll('circle')
+      .interrupt()
+      .data(data)
+      .join('circle')
+      .attr('class', 'point')
+      .attr('r', this.radius)
+      .attr('fill', this.color)
+      .attr('cx', d => scaleX(d[0])!)
+      .attr('cy', d => scaleY(d[1])!);
+  }
+  
+  protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const data = this.series.data;
+
+    const scaleX = x?.getScale(chart);
+    const scaleY = y?.getScale(chart);
+
+    if (scaleX === undefined || scaleY === undefined) {
+      chartData.group.selectChildren().remove();
+      chartData.lastPositions = [];
+      return;
+    }
+
+    const newPositions: [number, number][] = data.map(d => [scaleX(d[0])!, scaleY(d[1])!]);
     const interpolate = new Hd3SeriesInterpolator(
       chartData.lastPositions || scaleY.range()[0],
       newPositions

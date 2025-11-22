@@ -65,6 +65,43 @@ export class Hd3Bars extends Hd3SeriesRenderer {
           .attr('fill', this.color),
         update => update,
         exit => exit
+          .attr('y', y0)
+          .attr('height', 0)
+          .remove()
+      )
+      .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+      .attr('y', d => Math.min(scaleY(d[1])!, y0))
+      .attr('width', this.barWidth)
+      .attr('height', d => Math.abs(scaleY(d[1])! - y0))
+      .attr('fill', this.color);
+  }
+  
+  protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const data = this.series.data;
+
+    const scaleX = x?.getScale(chart);
+    const scaleY = y?.getScale(chart);
+
+    if (scaleX === undefined || scaleY === undefined) {
+      chartData.group.selectChildren().remove();
+      return;
+    }
+
+    const y0 = scaleY(0)!;
+
+    chartData.group.selectAll('rect')
+      .data(data)
+      .join(
+        enter => enter.append('rect')
+          .attr('class', 'bar')
+          .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+          .attr('y', y0)
+          .attr('width', this.barWidth)
+          .attr('height', 0)
+          .attr('fill', this.color),
+        update => update,
+        exit => exit
           .transition()
           .duration(200)
           .attr('y', y0)

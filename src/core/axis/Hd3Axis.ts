@@ -9,6 +9,7 @@ import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager
 
 export interface Hd3AxisEvents{
   visibilityChanged: Hd3AxisVisibilityChangedEvent;
+  scaleChanged: null;
   destroyed: Hd3Axis;
 }
 
@@ -94,8 +95,11 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.destroy = this.destroy.bind(this);
     this.e = {
       visibilityChanged: createHd3Event<Hd3AxisVisibilityChangedEvent>(`axis[${this.name}].visibilityChanged`),
+      scaleChanged: createHd3Event<null>(`axis[${this.name}].scaleChanged`),
       destroyed: createHd3Event<Hd3Axis>(`axis[${this.name}].destroyed`),
     }
+
+    this.bus.on(this.axisDomain.e.domainChanged, this.handleDomainChanged);
   }
 
   public addToChart(target: Hd3ChartI, offset:number=0){
@@ -140,8 +144,9 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     }) as d3.AxisScale<d3.AxisDomain>;
   }
 
-  private handleDomainChanged(): void {
-    for(const target of this.targetData.keys()){
+  private handleDomainChanged(newDomain: Iterable<d3.AxisDomain>): void {
+    for(const [target, targetData] of this.targetData.entries()){
+      (targetData.scale.domain as any)(newDomain);
       emitDirty(this.bus, {target, renderable: this});
     }
   }

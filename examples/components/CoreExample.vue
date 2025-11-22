@@ -2,20 +2,21 @@
   <div>
     <h2>Core Example - Vanilla TypeScript</h2>
     
-    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Tools</h3>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <button @click="setTool('none')" :class="{ active: currentTool === 'none' }">None</button>
-          <button @click="setTool('pan')" :class="{ active: currentTool === 'pan' }">Pan</button>
-          <button @click="setTool('zoom-in')" :class="{ active: currentTool === 'zoom-in' }">Zoom In</button>
-          <button @click="setTool('zoom-out')" :class="{ active: currentTool === 'zoom-out' }">Zoom Out</button>
-          <button @click="setTool('zoom-selection')" :class="{ active: currentTool === 'zoom-selection' }">Zoom Selection</button>
-          <button @click="setTool('reset')" :class="{ active: currentTool === 'reset' }">Reset</button>
+          <button @click="toolbox.deactivateAll()" :class="{ active: toolbox.hasToolActive() }">None</button>
+          <button @click="toolbox.setToolActive('pan')" :class="{ active: toolState['pan'] }">Pan</button>
+          <button @click="toolbox.setToolActive('zoom')" :class="{ active: toolState['zoom'] }">Zoom In</button>
+          <button @click="toolbox.setToolActive('zoom-selection')" :class="{ active: toolState['zoom-selection'] }">Zoom to Selection</button>
+          <button @click="toolbox.setToolActive('wheel-zoom')" :class="{ active: toolState['wheel-zoom'] }">Wheel zoom</button>
+          <button @click="toolbox.setToolActive('wheel-pan')" :class="{ active: toolState['wheel-pan'] }">Wheel pan</button>
+          <button @click="toolbox.setToolActive('reset')" :class="{ active: toolState['reset'] }">Reset</button>
         </div>
       </div>
       
-      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+      <!-- <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Series Visibility</h3>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <label v-for="(series, idx) in seriesVisibility" :key="idx" style="display: flex; align-items: center; gap: 5px;">
@@ -23,8 +24,8 @@
             <span>{{ series.name }}</span>
           </label>
         </div>
-      </div>
-    </div> -->
+      </div> -->
+    </div>
 
     <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
@@ -112,7 +113,6 @@ import {
   Hd3Bars,
   Hd3Scatter,
   Hd3InteractionArea,
-  Hd3ToolState,
   Hd3PanTool,
   Hd3ZoomTool,
   Hd3ZoomToSelectionTool,
@@ -124,15 +124,15 @@ import {
 import { Hd3ForeignObjectTooltip, Hd3ForeignObjectTooltipContainer } from '@/core/tooltip/Hd3ForeignObjectTooltip';
 import { getHd3GlobalBus } from '@/core/bus/Hd3Bus';
 import { Hd3TooltipMarkers } from '@/core/tooltip/Hd3TooltipMarkers';
+import { Hd3Toolbox, Hd3ToolStateChangedEvent } from '@/core/interaction/Hd3Toolbox';
+import { Hd3WheelPanTool } from '@/core/interaction/tools/Hd3WheelPanTool';
+import { Hd3WheelZoomTool } from '@/core/interaction/tools/Hd3WheelZoomTool';
 
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
 const chartContainer3 = ref<HTMLElement>();
 const tooltipTargets = ref<Hd3ForeignObjectTooltipContainer[]>();
 
-const currentTool = ref<string>('none');
-
-//let toolState: Hd3ToolState;
 let series1: Hd3Series;
 let series2: Hd3Series;
 let series3: Hd3Series;
@@ -157,10 +157,43 @@ const cursorOptions = ref({
   showMarkers: true
 });
 
-//function setTool(tool: string) {
-//  currentTool.value = tool;
-//  toolState.currentTool = tool as any;
-//}
+const toolbox = new Hd3Toolbox();
+
+const resetTool = new Hd3ResetTool();
+
+// Tools for chart 1
+const tools = [
+  new Hd3PanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3ZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3WheelPanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3WheelZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3ZoomToSelectionTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  resetTool,
+]
+
+const toolState = reactive(Object.fromEntries(tools.map((t) => [t.name, false])));
+
+function handleToolStateChanged({tool, state}: Hd3ToolStateChangedEvent){
+  toolState[tool] = state;
+}
+
+getHd3GlobalBus().on(toolbox.e.toolStateChanged, handleToolStateChanged);
+
+for(const tool of tools){
+  toolbox.addTool(tool);
+}
+
+toolbox.setMutuallyExclusiveGroups([
+  ['wheel-pan', 'wheel-zoom'],
+  ['pan', 'zoom', 'zoom-selection']
+]);
+
+toolbox.setToolActive('pan');
+toolbox.setToolActive('wheel-zoom');
+toolbox.setToolActive('reset');
+
+
+
 
 onMounted(() => {
   
@@ -272,6 +305,8 @@ onMounted(() => {
   foTooltip.addToChart(chart1);
   markers1.addToChart(chart1);
 
+  toolbox.addToChart(chart1)
+
 
   function handleTooltipChanged(){
     tooltipTargets.value = foTooltip.getContainers();
@@ -343,6 +378,8 @@ onMounted(() => {
   foTooltip.addToChart(chart2);
   cursor1.addToChart(chart2);
   
+  toolbox.addToChart(chart2)
+  
   getHd3GlobalBus().on(tooltipManager2.e.show, handleTooltipChanged);
   getHd3GlobalBus().on(tooltipManager2.e.hide, handleTooltipChanged);
 
@@ -392,147 +429,10 @@ onMounted(() => {
   foTooltip.addToChart(chart3);
   markers1.addToChart(chart3);
 
-/*
-  // Interaction setup
-  const interactionArea2 = new Hd3InteractionArea({
-    axes: ['x2', 'y2'],
-    charts: [chart2.getBus()]
-  });
-  
-  chart1.emit('addRenderer', interactionArea1);
-  chart2.emit('addRenderer', interactionArea2);
-  
-  // Chart 3 shares the same interaction area as Chart 1 (synchronized)
-  const interactionArea3 = new Hd3InteractionArea({
-    axes: ['x1-chart3', 'y3'],
-    charts: [chart3.getBus()]
-  });
-  chart3.emit('addRenderer', interactionArea3);
+  toolbox.addToChart(chart3)
 
-  toolState = new Hd3ToolState();
 
-  // Tools for chart 1
-  new Hd3PanTool({ toolState, axes: ['x1', 'y1'], charts: [chart1.getBus()] });
-  new Hd3ZoomTool({ toolState, axes: ['x1', 'y1'], charts: [chart1.getBus()] });
-  new Hd3ZoomToSelectionTool({ chart: chart1, toolState, axes: ['x1', 'y1'], charts: [chart1.getBus()] });
-  new Hd3ResetTool({ toolState, axes: ['x1', 'y1'], charts: [chart1.getBus()] });
 
-  // Tools for chart 2
-  new Hd3PanTool({ toolState, axes: ['x2', 'y2'], charts: [chart2.getBus()] });
-  new Hd3ZoomTool({ toolState, axes: ['x2', 'y2'], charts: [chart2.getBus()] });
-  new Hd3ZoomToSelectionTool({ chart: chart2, toolState, axes: ['x2', 'y2'], charts: [chart2.getBus()] });
-  new Hd3ResetTool({ toolState, axes: ['x2', 'y2'], charts: [chart2.getBus()] });
-
-  // Tools for chart 3
-  new Hd3PanTool({ toolState, axes: ['x1-chart3', 'y3'], charts: [chart3.getBus()] });
-  new Hd3ZoomTool({ toolState, axes: ['x1-chart3', 'y3'], charts: [chart3.getBus()] });
-  new Hd3ZoomToSelectionTool({ chart: chart3, toolState, axes: ['x1-chart3', 'y3'], charts: [chart3.getBus()] });
-  new Hd3ResetTool({ toolState, axes: ['x1-chart3', 'y3'], charts: [chart3.getBus()] });
-
-  // Bridge for synchronizing chart 1 and 3 interactions
-  new Hd3BusBridge({
-    events: ['mousedown', 'mousemove', 'drag', 'dragend', 'mouseleave', 'mouseenter', 'wheel'],
-    buses: [
-      [chart1.getBus()],
-      [chart3.getBus()]
-    ]
-  });
-
-  // Tooltip for chart 1
-  const tooltipManager1 = new Hd3TooltipManager({
-    chart: chart1,
-    series: [series1, series2, series3, series4],
-    axes: ['x1', 'y1'],
-    charts: [chart1.getBus()]
-  });
-
-  tooltipManager1.on('show', (data: any) => {
-    tooltipVisible.value = true;
-    const containerRect = chartContainer1.value!.getBoundingClientRect();
-    tooltipX.value = containerRect.left + chart1.margin.left + data.x + (data.xSide === 'left' ? -120 : 10);
-    tooltipY.value = containerRect.top + chart1.margin.top + data.y + (data.ySide === 'top' ? -60 : 10);
-    tooltipData.value = data.series;
-  });
-
-  tooltipManager1.on('hide', () => {
-    tooltipVisible.value = false;
-  });
-
-  // Tooltip for chart 2
-  const tooltipManager2 = new Hd3TooltipManager({
-    chart: chart2,
-    series: [series5],
-    axes: ['x2', 'y2'],
-    charts: [chart2.getBus()]
-  });
-
-  tooltipManager2.on('show', (data: any) => {
-    tooltipVisible.value = true;
-    const containerRect = chartContainer2.value!.getBoundingClientRect();
-    tooltipX.value = containerRect.left + chart2.margin.left + data.x + (data.xSide === 'left' ? -120 : 10);
-    tooltipY.value = containerRect.top + chart2.margin.top + data.y + (data.ySide === 'top' ? -60 : 10);
-    tooltipData.value = data.series;
-  });
-
-  tooltipManager2.on('hide', () => {
-    tooltipVisible.value = false;
-  });
-
-  // Tooltip for chart 3 (synchronized with chart 1 via shared interaction bus)
-  const tooltipManager3 = new Hd3TooltipManager({
-    chart: chart3,
-    series: [series6, series7],
-    axes: ['x1-chart3', 'y3'],
-    charts: [chart3.getBus()]
-  });
-
-  tooltipManager3.on('show', (data: any) => {
-    // Chart 3 tooltip shows in a different position to avoid overlap with chart 1
-    tooltipVisible.value = true;
-    const containerRect = chartContainer3.value!.getBoundingClientRect();
-    tooltipX.value = containerRect.left + chart3.margin.left + data.x + (data.xSide === 'left' ? -120 : 10);
-    tooltipY.value = containerRect.top + chart3.margin.top + data.y + (data.ySide === 'top' ? -60 : 10);
-    tooltipData.value = data.series;
-  });
-
-  tooltipManager3.on('hide', () => {
-    tooltipVisible.value = false;
-  });
-
-  // Cursor indicators
-  const cursor1 = new Hd3CursorIndicator({
-    series: [series1, series2, series3, series4],
-    axes: ['x1', 'y1'],
-    charts: [chart1.getBus()],
-    showCrossX: cursorOptions.value.showCrossX,
-    showCrossY: cursorOptions.value.showCrossY,
-    showAxisLabels: cursorOptions.value.showAxisLabels,
-    showMarkers: cursorOptions.value.showMarkers
-  });
-  chart1.emit('addRenderer', cursor1);
-
-  const cursor2 = new Hd3CursorIndicator({
-    series: [series5],
-    axes: ['x2', 'y2'],
-    charts: [chart2.getBus()],
-    showCrossX: cursorOptions.value.showCrossX,
-    showCrossY: cursorOptions.value.showCrossY,
-    showAxisLabels: cursorOptions.value.showAxisLabels,
-    showMarkers: cursorOptions.value.showMarkers
-  });
-  chart2.emit('addRenderer', cursor2);
-
-  const cursor3 = new Hd3CursorIndicator({
-    series: [series6, series7],
-    axes: ['x1-chart3', 'y3'],
-    charts: [chart3.getBus()],
-    showCrossX: cursorOptions.value.showCrossX,
-    showCrossY: cursorOptions.value.showCrossY,
-    showAxisLabels: cursorOptions.value.showAxisLabels,
-    showMarkers: cursorOptions.value.showMarkers
-  });
-  chart3.emit('addRenderer', cursor3);
-  */
 });
 </script>
 

@@ -62,8 +62,8 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
   const annotationMiddle = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
   const annotationFront = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
   
-  const overlay = annotationRoot.append('g').attr('class', 'layer-overlay');
-  const interaction = annotationRoot.append('g').attr('class', 'layer-interaction');
+  const overlay = group.append('g').attr('class', 'layer-overlay');
+  const interaction = group.append('g').attr('class', 'layer-interaction');
 
   return {
     background,
