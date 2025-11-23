@@ -42,6 +42,38 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
     data.group.remove();
   }
 
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const circles = chartData.group.selectAll('circle');
+    
+    const scaleY = y?.getScale(chart);
+    
+    if (!circles.empty() && scaleY !== undefined) {
+      const interpolate = new Hd3SeriesInterpolator(scaleY.range()[0], chartData.lastPositions!);
+      
+      const nodes = circles.nodes() as SVGCircleElement[];
+      
+      chartData.group
+        .interrupt()
+        .transition()
+        .duration(200)
+          .tween('positions', () => (t) => {
+            chartData.lastPositions = interpolate(1 - t);
+            for (let i = 0; i < nodes.length; i++) {
+              nodes[i].setAttribute('cx', String(chartData.lastPositions[i][0]));
+              nodes[i].setAttribute('cy', String(chartData.lastPositions[i][1]));
+            }
+          })
+          .selectAll('circle')
+          .attr('opacity', 0)
+        .end()
+        .then(() => {
+          chartData.group.selectAll('circle').remove();
+        })
+        .catch(() => {});
+    }
+  }
+
   protected renderData(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const data = this.series.data;
@@ -106,6 +138,8 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
             nodes[i].setAttribute('cy', String(chartData.lastPositions[i][1]));
           }
         };
-      });
+      })
+      .selectAll('circle')
+      .attr('opacity', 1);
   }
 }

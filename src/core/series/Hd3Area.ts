@@ -42,6 +42,42 @@ export class Hd3Area extends Hd3SeriesRenderer {
     data.group.remove();
   }
 
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const path = chartData.group.selectAll('path');
+    
+    const scaleY = y?.getScale(chart);
+    
+    if (!path.empty() && scaleY !== undefined) {
+      const y0 = scaleY(0)!;
+      const interpolate = new Hd3SeriesInterpolator(scaleY.range()[0], chartData.lastPositions!);
+      
+      const area = d3.area<[number, number]>()
+        .x(d => d[0])
+        .y0(y0)
+        .y1(d => d[1]);
+
+      chartData.group.selectAll('path')
+        .data([null])
+        .join('path')
+        .interrupt()
+        .transition()
+        .attr('class', 'area')
+        .attr('fill', this.color)
+        .attr('opacity', 0)
+        .duration(200)
+        .attrTween('d', () => (t) => {
+          chartData.lastPositions = interpolate(1 - t);
+          return area(chartData.lastPositions)!;
+        })
+        .end()
+        .then(() => {
+          chartData.group.selectAll('path').remove();
+        })
+        .catch(() => {});
+    }
+  }
+
   protected renderData(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const data = this.series.data;

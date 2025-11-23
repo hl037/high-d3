@@ -39,6 +39,29 @@ export class Hd3Bars extends Hd3SeriesRenderer {
     data.group.remove();
   }
 
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+    const chartData = _chartData as ChartData;
+    const rects = chartData.group.selectAll('rect');
+    
+    const scaleY = y?.getScale(chart);
+    
+    if (!rects.empty() && scaleY !== undefined) {
+      const y0 = scaleY(0)!;
+      
+      chartData.group.selectAll('rect')
+        .interrupt()
+        .transition()
+        .duration(200)
+        .attr('y', y0)
+        .attr('height', 0)
+        .end()
+        .then(() => {
+          chartData.group.selectAll('rect').remove();
+        })
+        .catch(() => {});
+    }
+  }
+
   protected renderData(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const data = this.series.data;

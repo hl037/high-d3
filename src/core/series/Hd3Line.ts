@@ -62,10 +62,10 @@ export class Hd3Line extends Hd3SeriesRenderer {
         .attr('class', 'line')
         .attr('fill', 'none')
         .attr('stroke', this.color)
-        .attr('stroke-width', this.strokeWidth)
         .interrupt()
         .transition()
           .duration(200)
+          .attr('stroke-width', 0)
           .attrTween('d', () => (t) => {
             chartData.lastPositions = interpolate(1-t);
             return line(chartData.lastPositions)!;
@@ -141,9 +141,9 @@ export class Hd3Line extends Hd3SeriesRenderer {
       .attr('class', 'line')
       .attr('fill', 'none')
       .attr('stroke', this.color)
-      .attr('stroke-width', this.strokeWidth)
       .interrupt()
       .transition()
+        .attr('stroke-width', this.strokeWidth)
         .duration(200)
         .attrTween('d', () => (t) => {
           chartData.lastPositions = interpolate(t);
