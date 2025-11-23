@@ -42,6 +42,42 @@ export class Hd3Line extends Hd3SeriesRenderer {
     data.group.remove();
   }
 
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
+    const chartData = _chartData as ChartData;
+    const path = chartData.group.selectAll('path');
+    
+    const scaleY = y?.getScale(chart);
+    
+    if(!path.empty() && scaleY !== undefined) {
+      
+      const interpolate = new Hd3SeriesInterpolator(scaleY.range()[0], chartData.lastPositions!);
+      
+      const line = d3.line<[number, number]>()
+        .x(d => d[0])
+        .y(d => d[1]);
+
+      chartData.group.selectAll('path')
+        .data([null])
+        .join('path')
+        .attr('class', 'line')
+        .attr('fill', 'none')
+        .attr('stroke', this.color)
+        .attr('stroke-width', this.strokeWidth)
+        .interrupt()
+        .transition()
+          .duration(200)
+          .attrTween('d', () => (t) => {
+            chartData.lastPositions = interpolate(1-t);
+            return line(chartData.lastPositions)!;
+          })
+        .end()
+        .then(() => {
+          chartData.group.selectAll('path').remove();
+        })
+        .catch(() => {})
+      }
+    }
+
   protected renderData(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
     console.log({

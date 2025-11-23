@@ -27,9 +27,11 @@ export interface Hd3SeriesRendererOptions {
 
 interface ChartData {
   tagDirty: () => void;
+  tagDirtyWithTransition: () => void;
   data: object;
   x?: Hd3Axis;
   y?: Hd3Axis;
+  transition: boolean|null;
 }
 
 let currentId = 0;
@@ -50,6 +52,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   private chartData: Map<Hd3Chart, ChartData>;
   private axisRefCount: Map<Hd3Axis, number>;
 
+  
   constructor(options: Hd3SeriesRendererOptions) {
     this.setVisible = this.setVisible.bind(this);
     this.tagDirty = this.tagDirty.bind(this);
@@ -88,7 +91,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this._series = newSeries;
     this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.on(this.series.e.destroyed, this.destroy)
-    this.tagDirty();
+    this.tagDirty(undefined, true);
   }
 
   public get color(){
@@ -97,21 +100,23 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
 
   public set color(newColor: string){
     this._color = newColor;
-    this.tagDirty();
+    this.tagDirty(undefined, true);
   }
 
   public addToChart(chart: Hd3Chart){
     if(!this.chartData.has(chart)) {
       const chartData = {
-        tagDirty: () => this.tagDirty(chart),
-        data: {}
+        tagDirtyWithTransition: () => this.tagDirty(chart, true),
+        tagDirty: () => this.tagDirty(chart, false),
+        data: {},
+        transition: null,
       };
       this.chartData.set(chart, chartData);
       this.bus.on(chart.e.destroyed, this.removeFromChart);
-      this.bus.on(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirty);
+      this.bus.on(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirtyWithTransition);
       this.chartAdded(chart, chartData.data);
       this.bus.emit(chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this);
-      this.tagDirty(chart);
+      this.tagDirty(chart, true);
     }
   }
 
@@ -126,7 +131,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
       this.bus.emit(chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this);
       this.chartRemoved(chart, chartData.data);
       this.bus.off(chart.e.destroyed, this.removeFromChart);
-      this.bus.off(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirty);
+      this.bus.off(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirtyWithTransition);
       this.chartData.delete(chart);
     }
   }
@@ -142,16 +147,25 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   }
 
   protected handleDataChanged(){
-    this.tagDirty();
+    this.tagDirty(undefined, true);
   }
 
-  tagDirty(chart?: Hd3Chart){
+  tagDirty(chart?: Hd3Chart, transition:boolean=false){
     if(chart === undefined) {
       for(const chart of this.chartData.keys()){
+        const chartData = this.chartData.get(chart)!;
+        if(chartData.transition != false) {
+          chartData.transition = transition;
+        }
+        this.chartData.get(chart)!.transition = transition;
         emitDirty(this.bus, {target: chart, renderable: this})
       }
     }
     else {
+      const chartData = this.chartData.get(chart)!;
+      if(chartData.transition != false) {
+        chartData.transition = transition;
+      }
       emitDirty(this.bus, {target: chart, renderable: this})
     }
   }
@@ -194,10 +208,23 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
       }
     }
 
-    this.renderData(chart, chartData!.data, x, y)
+    if(this.visible) {
+      if(chartData.transition) {
+        this.renderDataWithTransition(chart, chartData.data, x, y)
+      }
+      else {
+        this.renderData(chart, chartData.data, x, y)
+      }
+    }
+    else {
+      this.renderDataHidden(chart, chartData.data, x, y)
+    }
+
   }
 
+  protected abstract renderDataHidden(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
   protected abstract renderData(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
+  protected abstract renderDataWithTransition(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
 
   protected  setVisible(visible: boolean): void {
     this.visible = visible;
@@ -206,7 +233,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   public set visible(visible: boolean){
     if(this._visible !== visible) {
       this._visible = visible;
-      this.tagDirty();
+      this.tagDirty(undefined, true);
     }
   }
 
