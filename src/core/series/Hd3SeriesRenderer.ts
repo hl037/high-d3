@@ -199,10 +199,10 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     for(const [ax, old_ax] of [[x, chartData.x], [y, chartData.y]]){
       if(ax !== chartData.x) {
         if(old_ax !== undefined && this.decAxesCount(old_ax)) {
-          this.bus.off(old_ax.axisDomain.e.domainChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+          this.bus.off(old_ax.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
         }
         if(ax !== undefined && this.incAxesCount(ax)) {
-          this.bus.on(ax.axisDomain.e.domainChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+          this.bus.on(ax.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
         }
       }
     }

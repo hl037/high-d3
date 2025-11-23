@@ -219,8 +219,6 @@ onMounted(() => {
 
   // Chart 1 - Multiple series types
   const chart1 = new Hd3Chart(chartContainer1.value!, {
-    width: chartContainer1.value!.offsetWidth,
-    height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
 
@@ -312,8 +310,6 @@ onMounted(() => {
   
   // Chart 2 - Logarithmic axis
   const chart2 = new Hd3Chart(chartContainer2.value!, {
-    width: chartContainer2.value!.offsetWidth,
-    height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 80 }
   });
 
@@ -371,8 +367,6 @@ onMounted(() => {
 
   // Chart 3 - Synchronized with Chart 1
   const chart3 = new Hd3Chart(chartContainer3.value!, {
-    width: chartContainer3.value!.offsetWidth,
-    height: 400,
     margin: { top: 20, right: 20, bottom: 40, left: 60 }
   });
   

@@ -3,8 +3,8 @@ import { scaleFactory, ScaleType } from './scaleFactory';
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisDomain } from './Hd3AxisDomain';
 import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
-import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
-import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
+import { Hd3ChartI } from '../chart/Hd3Chart';
+import { Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
 
 
@@ -50,6 +50,7 @@ interface AxisTargetData {
   scale: d3.AxisScale<d3.AxisDomain>;
   axisGenerator: d3.Axis<d3.AxisDomain>;
   offset: number; // Offset relative to the normal position of the axis
+  handleResize: () => void;
 }
 
 
@@ -114,8 +115,6 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   public addToChart(target: Hd3ChartI, offset:number=0){
-    this.bus.emit(target.e<Hd3AxisManagerEvents>()('addAxis'), this);
-    this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
     const scale = this.createScale(target);
     const axisGenerator = this.getAxisGenerator(scale)
     const targetData = {
@@ -123,13 +122,24 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
       scale,
       axisGenerator,
       offset,
+      handleResize: () => {
+        targetData.scale = this.createScale(target);
+        this.tagDirty(target)
+        this.bus.emit(this.e.scaleChanged, null);
+      }
     };
     this.targetData.set(target, targetData);
+    this.bus.emit(target.e<Hd3AxisManagerEvents>()('addAxis'), this);
+    this.bus.on(target.e.destroyed, this.handleTargetDestroyed)
+    this.bus.on(target.e.resized, targetData.handleResize)
     this.tagDirty(target)
   }
 
   public removeFromChart(target: Hd3ChartI){
+    const targetData = this.targetData.get(target)!;
+    this.bus.off(target.e.resized, targetData.handleResize)
     this.bus.off(target.e.destroyed, this.handleTargetDestroyed)
+    this.targetData.delete(target);
     this.bus.emit(target.e<Hd3AxisManagerEvents>()('removeAxis'), this);
   }
   
@@ -170,6 +180,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     for(const [target, targetData] of this.targetData.entries()){
       (targetData.scale.domain as any)(newDomain);
       this.tagDirty(target)
+      this.bus.emit(this.e.scaleChanged, null)
     }
   }
 

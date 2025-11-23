@@ -14,14 +14,14 @@ export interface Hd3ChartOptions {
   name?: string
 }
 
-export interface Hd3ChartResizeEvent{
+export interface Hd3ResizeEvent{
   width: number,
   height: number
 }
 
 export interface Hd3ChartEvents {
   destroyed: Hd3Chart,
-  resized: Hd3ChartResizeEvent,
+  resized: Hd3ResizeEvent,
 }
 
 export interface Hd3ChartLayersI{
@@ -92,7 +92,7 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
  * Central chart class. Manages SVG element and serves as store for all chart objects.
  * Implements Hd3Bus for event-driven communication.
  */
-export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
+export class Hd3Chart implements Hd3ChartI{
   public readonly bus: Hd3Bus;
   public readonly e: Hd3DynamicEventNameMap<Hd3ChartEvents>;
   public readonly layer: Hd3ChartLayersI;
@@ -104,7 +104,7 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
   private autoWidth: boolean;
   private autoHeight: boolean;
   private resizeTimeout?: number;
-  private resizeDebounceMs: number = 100;
+  private resizeDebounceMs: number = 0;
   
   public width: number;
   public height: number;
@@ -122,7 +122,7 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
 
     this.e = createHd3EventNameMap({
       destroyed: createHd3Event<Hd3Chart>(`chart[${this.name}].destroyed`),
-      resized: createHd3Event<Hd3ChartResizeEvent>(`chart[${this.name}].resized`),
+      resized: createHd3Event<Hd3ResizeEvent>(`chart[${this.name}].resized`),
     }, `chart[${this.name}]`);
     
     this.autoWidth = options.width === undefined;
@@ -137,8 +137,9 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
     // Create SVG
     this.svg = d3.select(this.container)
       .append('svg')
-      .attr('width', this.width)
-      .attr('height', this.height);
+      .attr('width', this.autoWidth ? '100%' : this.width)
+      .attr('height', this.autoHeight ? '100%' : this.height)
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`);
     
     this.mainGroup = this.svg
       .append('g')
@@ -164,12 +165,17 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
         
         if (newWidth !== this.width || newHeight !== this.height) {
           // Debounce resize calls
-          if (this.resizeTimeout) {
-            clearTimeout(this.resizeTimeout);
+          if(this.resizeDebounceMs) {
+            if (this.resizeTimeout) {
+              clearTimeout(this.resizeTimeout);
+            }
+            this.resizeTimeout = window.setTimeout(() => {
+              this.resize(newWidth, newHeight);
+            }, this.resizeDebounceMs);
           }
-          this.resizeTimeout = window.setTimeout(() => {
+          else {
             this.resize(newWidth, newHeight);
-          }, this.resizeDebounceMs);
+          }
         }
       }
     });
@@ -200,8 +206,9 @@ export class Hd3Chart implements Hd3ChartI, Hd3RenderTargetI{
     this.innerHeight = height - this.margin.top - this.margin.bottom;
     
     this.svg
-      .attr('width', width)
-      .attr('height', height);
+      .attr('width', this.autoWidth ? '100%' : this.width)
+      .attr('height', this.autoHeight ? '100%' : this.height)
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`);
     
     // Emit resize event - listeners will handle the actual resizing
     this.bus.emit(this.e.resized, { width, height });

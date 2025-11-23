@@ -1,9 +1,11 @@
-import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap, Hd3Event, Hd3EventNameMap } from '../bus/Hd3Bus';
+import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap, Hd3EventNameMap } from '../bus/Hd3Bus';
+import { Hd3ResizeEvent } from '../chart/Hd3Chart';
 
 export interface Hd3RenderTargetI {
   getRenderTarget: () => d3.Selection<SVGGElement, unknown, null, undefined>;
   e:Hd3DynamicEventNameMap<{
     destroyed: Hd3RenderTargetI;
+    resized: Hd3ResizeEvent;
   }>
   width: number;
   height: number;
