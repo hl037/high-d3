@@ -16,18 +16,18 @@
         </div>
       </div>
       
-      <!-- <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Series Visibility</h3>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <label v-for="(series, idx) in seriesVisibility" :key="idx" style="display: flex; align-items: center; gap: 5px;">
-            <input type="checkbox" v-model="series.visible" @change="toggleSeriesVisibility(idx)" />
+            <input type="checkbox" v-model="series.visible"/>
             <span>{{ series.name }}</span>
           </label>
         </div>
-      </div> -->
+      </div>
     </div>
 
-    <!-- <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Grid Options</h3>
         <div style="display: flex; flex-direction: column; gap: 10px;">
@@ -64,7 +64,7 @@
           </label>
         </div>
       </div>
-    </div> -->
+    </div>
 
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watchEffect, watch } from 'vue';
 import {
   Hd3Chart,
   Hd3AxisDomain,
@@ -147,7 +147,7 @@ const seriesVisibility = ref([
 
 const gridOptions = ref({
   enabled: true,
-  opacity: 0.7
+  opacity: 0.3
 });
 
 const cursorOptions = ref({
@@ -165,7 +165,7 @@ const resetTool = new Hd3ResetTool();
 const tools = [
   new Hd3PanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
   new Hd3ZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3WheelPanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3WheelPanTool({ axes: ['x1', 'x2'] }),
   new Hd3WheelZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
   new Hd3ZoomToSelectionTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
   resetTool,
@@ -237,10 +237,6 @@ onMounted(() => {
     domain: xAxisDom1,
     scaleType: 'linear',
     position: 'bottom',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
   });
 
   const yAxis1 = new Hd3Axis({
@@ -248,10 +244,6 @@ onMounted(() => {
     domain: yAxisDom1,
     scaleType: 'linear',
     position: 'left',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
   });
 
   series1 = new Hd3Series({ name: 'Sin Wave', data: sinData });
@@ -339,10 +331,6 @@ onMounted(() => {
     scaleType: 'linear',
     range: [0, chart2.innerWidth],
     position: 'bottom',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
   });
 
   const yAxis2 = new Hd3Axis({
@@ -352,10 +340,6 @@ onMounted(() => {
     range: [chart2.innerHeight, 0],
     scaleOptions: { base: 10 },
     position: 'left',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
   });
 
   const series5 = new Hd3Series({ name: 'Exponential', data: expData });
@@ -397,11 +381,8 @@ onMounted(() => {
     domain: yAxisDom1,
     scaleType: 'linear',
     position: 'left',
-    grid: {
-      enabled: gridOptions.value.enabled,
-      opacity: gridOptions.value.opacity
-    }
   });
+
 
   // Create complementary series for chart 3
   const series6 = new Hd3Series({ name: 'Tan Wave', data: sinData.map(d => [d[0], Math.tan(d[0]) * 0.3]) });
@@ -431,6 +412,20 @@ onMounted(() => {
 
   toolbox.addToChart(chart3)
 
+  watchEffect( () => {
+    xAxis1.gridOptions(gridOptions.value);
+    xAxis2.gridOptions(gridOptions.value);
+    yAxis1.gridOptions(gridOptions.value);
+    yAxis2.gridOptions(gridOptions.value);
+    yAxis3.gridOptions(gridOptions.value);
+  })
+
+  watchEffect( () => {
+    line1.visible = seriesVisibility.value[0].visible;
+    area1.visible = seriesVisibility.value[1].visible;
+    bars1.visible = seriesVisibility.value[2].visible;
+    scatter1.visible = seriesVisibility.value[3].visible;
+  });
 
 
 });

@@ -5,6 +5,7 @@ import { Hd3AxisDomain } from './Hd3AxisDomain';
 import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
+import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
 
 
 export interface Hd3AxisEvents{
@@ -66,7 +67,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   protected scaleType: ScaleType;
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
-  protected gridOptions: Hd3AxisGridOptions;
+  public get gridOptions(): MergingDict<Hd3AxisGridOptions>{throw "init threw mergingDictAttr"};
+  public set gridOptions(_: Hd3AxisGridOptions){throw "init threw mergingDictAttr"};
   protected targetData: Map<Hd3ChartI, AxisTargetData>
 
   constructor(options: Hd3AxisOptions) {
@@ -82,14 +84,23 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.scaleType = options.scaleType || 'linear';
     this.scaleOptions = options.scaleOptions || {};
     this.tickCount = options.tickCount || 10;
-    this.gridOptions = {
-      enabled: false,
-      stroke: '#e0e0e0',
-      strokeWidth: 1,
-      strokeDasharray: '2,2',
-      opacity: 0.7,
-      ...options.grid
-    };
+    mergingDictAttr(
+      this,
+      'gridOptions',
+      {
+        enabled: false,
+        stroke: '#000',
+        strokeWidth: 1,
+        strokeDasharray: '2,2',
+        opacity: 0.3,
+        ...options.grid
+      },
+      {
+        afterSet: () => {
+          this.tagDirty();
+        }
+      }
+    );
     this.targetData = new Map()
 
     this.destroy = this.destroy.bind(this);
@@ -114,18 +125,29 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
       offset,
     };
     this.targetData.set(target, targetData);
-    emitDirty(this.bus, {target, renderable:this});
-  }
-
-  public setOffset(target: Hd3ChartI, offset:number=0){
-    const data = this.getTargetData(target);
-    data.offset = offset;
-    emitDirty(this.bus, {target, renderable:this});
+    this.tagDirty(target)
   }
 
   public removeFromChart(target: Hd3ChartI){
     this.bus.off(target.e.destroyed, this.handleTargetDestroyed)
     this.bus.emit(target.e<Hd3AxisManagerEvents>()('removeAxis'), this);
+  }
+  
+  public setOffset(target: Hd3ChartI, offset:number=0){
+    const data = this.getTargetData(target);
+    data.offset = offset;
+    this.tagDirty(target)
+  }
+
+  
+  tagDirty(chart?: Hd3ChartI) {
+    if (chart === undefined) {
+      for (const c of this.targetData.keys()) {
+        emitDirty(this.bus, { target: c, renderable: this });
+      }
+    } else {
+      emitDirty(this.bus, { target: chart, renderable: this });
+    }
   }
 
   public getScale(target: Hd3ChartI){
@@ -147,7 +169,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   private handleDomainChanged(newDomain: Iterable<d3.AxisDomain>): void {
     for(const [target, targetData] of this.targetData.entries()){
       (targetData.scale.domain as any)(newDomain);
-      emitDirty(this.bus, {target, renderable: this});
+      this.tagDirty(target)
     }
   }
 
@@ -171,7 +193,13 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     // Grid first (so it's behind the axis)
     if (this.gridOptions.enabled && targetData.grid === undefined) {
       targetData.grid = target.layer.axis.append('g')
-        .attr('class', `${this.orientation}-grid ${this.orientation}-grid-${this.name}`);
+        .attr('class', `${this.orientation}-grid ${this.orientation}-grid-${this.name}`)
+        .style('fill', 'none')  // No background fill
+        .style('pointer-events', 'none');  // Optional: prevent interaction blocking
+    }
+    else if(!this.gridOptions.enabled && targetData.grid !== undefined) {
+      targetData.grid.remove();
+      targetData.grid = undefined;
     }
 
     
@@ -183,6 +211,10 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     
     const transform = this.getTransform(target, targetData);
     targetData.group.attr('transform', transform);
+    
+    if (targetData.grid) {
+      targetData.grid.attr('transform', transform);
+    }
 
     this.updateRender(target, targetData);
   }

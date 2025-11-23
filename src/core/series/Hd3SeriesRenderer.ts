@@ -5,7 +5,7 @@ import type { Hd3Axis } from '../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
-import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesManager';
+import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManager';
 
 export interface Hd3SeriesRendererEvents{
   visibilityChanged: boolean;
@@ -199,15 +199,19 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
 
   protected abstract renderData(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
 
-  protected setVisible(visible: boolean): void {
+  protected  setVisible(visible: boolean): void {
+    this.visible = visible;
+  }
+
+  public set visible(visible: boolean){
     if(this._visible !== visible) {
       this._visible = visible;
       this.tagDirty();
     }
-    this._visible = visible;
   }
 
-  get visible() {
+
+  public get visible() {
     return this._visible;
   }
 
