@@ -30,7 +30,7 @@ export class Hd3AxisDomain {
     return this._domain;
   }
 
-  set domain(value: [number | Date | string, number | Date | string] | string[]) {
+  set domain(value: Iterable<d3.AxisDomain>) {
     this._domain = value;
     this.bus.emit(this.e.domainChanged, value);
   }

@@ -84,13 +84,18 @@ export class Hd3WheelPanTool {
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const domain = axis.axisDomain.domain as [number, number];
-      const domainWidth = domain[1] - domain[0];
+      const scale = axis.getScale(chart);
+      if (!scale || typeof (scale as any).invert !== 'function') continue;
+
+      const domain = [...axis.axisDomain.domain];
+      if (domain.length !== 2 || typeof domain[0] !== 'number' || typeof domain[1] !== 'number') continue;
+
+      const domainWidth = (domain[1] as number) - (domain[0] as number);
       const delta = (wheelData.delta > 0 ? 1 : -1) * domainWidth * this.panFactor;
 
       axis.axisDomain.domain = [
-        domain[0] + delta,
-        domain[1] + delta
+        (domain[0] as number) + delta,
+        (domain[1] as number) + delta
       ];
     }
   }

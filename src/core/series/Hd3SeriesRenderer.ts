@@ -157,7 +157,6 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
         if(chartData.transition != false) {
           chartData.transition = transition;
         }
-        this.chartData.get(chart)!.transition = transition;
         emitDirty(this.bus, {target: chart, renderable: this})
       }
     }
@@ -219,7 +218,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     else {
       this.renderDataHidden(chart, chartData.data, x, y)
     }
-
+    chartData.transition = null;
   }
 
   protected abstract renderDataHidden(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;

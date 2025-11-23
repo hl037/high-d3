@@ -80,26 +80,43 @@ export class Hd3ZoomTool {
   }
 
   private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
-    this.zoom(chart, mouseData.mappedCoords, this.zoomFactor);
+    this.zoom(chart, mouseData.x, mouseData.y, this.zoomFactor);
   }
 
-  private zoom(chart: Hd3Chart, mappedCoords: Record<string, number | string | Date | undefined>, factor: number): void {
+  private zoom(chart: Hd3Chart, mouseX: number, mouseY: number, factor: number): void {
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const centerValue = mappedCoords[axis.name];
-      if (centerValue === undefined || typeof centerValue !== 'number') continue;
+      const scale = axis.getScale(chart);
+      if (!scale || typeof (scale as any).invert !== 'function') continue;
 
-      const domain = axis.axisDomain.domain as [number, number];
-      const domainWidth = domain[1] - domain[0];
-      const newWidth = domainWidth * factor;
-      const leftRatio = (centerValue - domain[0]) / domainWidth;
+      const range = scale.range() as [number, number];
+      const rangeMin = Math.min(range[0], range[1]);
+      const rangeMax = Math.max(range[0], range[1]);
 
-      axis.axisDomain.domain = [
-        centerValue - newWidth * leftRatio,
-        centerValue + newWidth * (1 - leftRatio)
-      ];
+      const point = axis.orientation === 'x' ? mouseX : mouseY;
+
+      const distanceToMin = point - rangeMin;
+      const distanceToMax = rangeMax - point;
+
+      const newDistanceToMin = distanceToMin / factor;
+      const newDistanceToMax = distanceToMax / factor;
+
+      const newMin = point - newDistanceToMin;
+      const newMax = point + newDistanceToMax;
+
+      const newDomainMin = (scale as any).invert(newMin);
+      const newDomainMax = (scale as any).invert(newMax);
+
+      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') continue;
+
+      const domain = [...axis.axisDomain.domain];
+      const isReversed = (domain[0] as number) > (domain[1] as number);
+
+      axis.axisDomain.domain = isReversed 
+        ? [newDomainMax, newDomainMin]
+        : [newDomainMin, newDomainMax];
     }
   }
 

@@ -84,7 +84,7 @@ export class Hd3ResetTool {
     for (const axis of allAxes) {
       const original = chartData.originalDomains[axis.name];
       if (original) {
-        axis.axisDomain.domain = original as [number | Date | string, number | Date | string] | string[];
+        axis.axisDomain.domain = original;
       }
     }
   }

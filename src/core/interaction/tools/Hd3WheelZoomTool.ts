@@ -2,7 +2,7 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, Hd3MappedCoords, WheelEventData } from '../Hd3InteractionArea';
+import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, WheelEventData } from '../Hd3InteractionArea';
 
 export interface Hd3WheelZoomToolOptions {
   bus?: Hd3Bus;
@@ -80,27 +80,39 @@ export class Hd3WheelZoomTool {
   }
 
   private handleWheel(chart: Hd3Chart, wheelData: WheelEventData): void {
-    const factor = wheelData.delta > 0 ? 1 + this.zoomFactor : 1 - this.zoomFactor;
-    this.zoom(chart, wheelData.mappedCoords, factor);
+    const factor = wheelData.delta > 0 ? 1 - this.zoomFactor : 1 + this.zoomFactor;
+    this.zoom(chart, wheelData.x, wheelData.y, factor);
   }
 
-  private zoom(chart: Hd3Chart, mappedCoords: Hd3MappedCoords, factor: number): void {
+  private zoom(chart: Hd3Chart, mouseX: number, mouseY: number, factor: number): void {
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
-      const centerValue = mappedCoords[axis.name];
-      if (centerValue === undefined || typeof centerValue !== 'number') continue;
+      const scale = axis.getScale(chart);
+      if (!scale || typeof (scale as any).invert !== 'function') continue;
 
-      const domain = axis.axisDomain.domain as [number, number];
-      const domainWidth = domain[1] - domain[0];
-      const newWidth = domainWidth * factor;
-      const leftRatio = (centerValue - domain[0]) / domainWidth;
+      const range = scale.range() as [number, number];
+      const rangeMin = range[0];
+      const rangeMax = range[1];
 
-      axis.axisDomain.domain = [
-        centerValue - newWidth * leftRatio,
-        centerValue + newWidth * (1 - leftRatio)
-      ];
+      const point = axis.orientation === 'x' ? mouseX : mouseY;
+
+      const distanceToMin = rangeMin - point;
+      const distanceToMax = rangeMax - point;
+
+      const newDistanceToMin = distanceToMin / factor;
+      const newDistanceToMax = distanceToMax / factor;
+
+      const newMin = point + newDistanceToMin;
+      const newMax = point + newDistanceToMax;
+
+      const newDomainMin = (scale as any).invert(newMin);
+      const newDomainMax = (scale as any).invert(newMax);
+
+      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') continue;
+
+      axis.axisDomain.domain = [newDomainMin, newDomainMax];
     }
   }
 

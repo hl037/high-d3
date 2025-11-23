@@ -141,6 +141,9 @@ export class Hd3ZoomToSelectionTool {
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
 
     for (const axis of allAxes) {
+      const scale = axis.getScale(chart);
+      if (!scale || typeof (scale as any).invert !== 'function') continue;
+
       const start = startMappedCoords[axis.name];
       const end = mappedCoords[axis.name];
 
