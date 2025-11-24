@@ -12,7 +12,7 @@ initHd3();
 //})
 
 getHd3GlobalBus().on(dirty, (d) => {
-  console.log('Hd3Event :', {d})
+  //console.log('Hd3Event :', {d})
 })
 
 createApp(App).mount('#app');

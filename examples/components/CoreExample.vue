@@ -268,15 +268,13 @@ onMounted(() => {
   
   const interactionArea1 = new Hd3InteractionArea;
   
-  const cursor1 = new Hd3CursorIndicator({
-    showCrossX: cursorOptions.value.showCrossX,
-    showCrossY: cursorOptions.value.showCrossY,
-    showAxisLabels: cursorOptions.value.showAxisLabels,
-  });
+  const cursor1 = new Hd3CursorIndicator();
 
-  const tooltipManager1 = new Hd3TooltipManager({});
-  const foTooltip = new Hd3ForeignObjectTooltip({});
-  const markers1 = new Hd3TooltipMarkers({});
+  const tooltipManager1 = new Hd3TooltipManager();
+  const foTooltip = new Hd3ForeignObjectTooltip();
+  const markers1 = new Hd3TooltipMarkers();
+  
+
 
 
   xAxis1.addToChart(chart1);
@@ -418,6 +416,20 @@ onMounted(() => {
     area1.visible = seriesVisibility.value[1].visible;
     bars1.visible = seriesVisibility.value[2].visible;
     scatter1.visible = seriesVisibility.value[3].visible;
+  });
+  
+  
+  watchEffect(() => {
+    cursor1.props(cursorOptions.value);
+    if(cursorOptions.value.showMarkers){
+      markers1.addToChart(chart1);
+      markers1.addToChart(chart2);
+    }
+    else{
+      markers1.removeFromChart(chart1);
+      markers1.removeFromChart(chart2);
+
+    }
   });
 
 

@@ -188,19 +188,16 @@ export function ReactExample() {
       ['wheel-pan', 'wheel-zoom'],
       ['pan', 'zoom', 'zoom-selection']
     ]);
-    tb.setToolActive('pan');
-    tb.setToolActive('wheel-zoom');
-    tb.setToolActive('reset');
     return tb;
-  }, [tools]);
+  }, []);
 
   const tooltipManager = useMemo(() => vrHd3TooltipManager(), []);
 
-  const cursor1 = useMemo(() => new Hd3CursorIndicator({
-    showCrossX: cursorOptions.showCrossX,
-    showCrossY: cursorOptions.showCrossY,
-    showAxisLabels: cursorOptions.showAxisLabels,
-  }), [cursorOptions.showCrossX, cursorOptions.showCrossY, cursorOptions.showAxisLabels]);
+  const cursor1 = useMemo(() => new Hd3CursorIndicator({}), []);
+
+  useEffect(() => {
+    cursor1.props(cursorOptions);
+  }, [cursorOptions.showCrossX, cursorOptions.showCrossY, cursorOptions.showAxisLabels]);
 
   const [toolState, setToolState] = useState(
     Object.fromEntries(tools.map((t) => [t.name, false]))
@@ -234,6 +231,12 @@ export function ReactExample() {
     scatter1.visible = seriesVisibility[3].visible;
   }, [seriesVisibility, line1, area1, bars1, scatter1]);
 
+  useEffect(() => {
+    toolbox.setToolActive('pan');
+    toolbox.setToolActive('wheel-zoom');
+    toolbox.setToolActive('reset');
+  },[]);
+
   const toggleSeriesVisibility = (index: number) => {
     setSeriesVisibility(prev => prev.map((s, i) => 
       i === index ? { ...s, visible: !s.visible } : s
@@ -242,6 +245,33 @@ export function ReactExample() {
 
   return (
     <div>
+    
+      <style>{`
+        button {
+          padding: 8px 16px;
+          border: 1px solid #ddd;
+          background: white;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        button:hover {
+          background: #f0f0f0;
+        }
+
+        button.active {
+          background: #4CAF50;
+          color: white;
+          border-color: #4CAF50;
+        }
+
+        h3 {
+          margin-top: 0;
+          color: #333;
+          font-size: 16px;
+        }
+      `}</style>
       <h2>Core Example - Vanilla TypeScript</h2>
       
       <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
@@ -382,7 +412,7 @@ export function ReactExample() {
           <h3>Chart 1 - Multiple Series Types</h3>
           <RHd3Chart 
             name="chart1" 
-            objects={[xAxis1, yAxis1, line1, area1, bars1, scatter1, cursor1, markers1, toolbox, tooltipManager]} 
+            objects={[xAxis1, yAxis1, line1, area1, bars1, scatter1, cursor1, ...(cursorOptions.showMarkers ? [markers1] : []), toolbox, tooltipManager]} 
             height={400}
           />
         </div>
@@ -404,7 +434,7 @@ export function ReactExample() {
         </p>
         <RHd3Chart 
           name="chart1" 
-          objects={[xAxis1, yAxis3, line3, line4, tooltipManager, markers1, cursor1, toolbox]} 
+          objects={[xAxis1, yAxis3, line3, line4, tooltipManager, ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]} 
           height={400}
         />
       </div>
@@ -421,32 +451,6 @@ export function ReactExample() {
         )}
       </RHd3Tooltip>
 
-      <style jsx={`
-        button {
-          padding: 8px 16px;
-          border: 1px solid #ddd;
-          background: white;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        button:hover {
-          background: #f0f0f0;
-        }
-
-        button.active {
-          background: #4CAF50;
-          color: white;
-          border-color: #4CAF50;
-        }
-
-        h3 {
-          margin-top: 0;
-          color: #333;
-          font-size: 16px;
-        }
-      `}/>
     </div>
   );
 }

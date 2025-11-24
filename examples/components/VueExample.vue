@@ -69,12 +69,12 @@
     <div style="display: flex; gap: 20px; margin-bottom: 20px;">
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Chart 1 - Multiple Series Types</h3>
-        <VHd3Chart name="chart1" :objects="[xAxis1, yAxis1, line1, area1, bars1, scatter1, cursor1, markers1, toolbox, tooltipManager]" :height="400"/>
+        <VHd3Chart name="chart1" :objects="[xAxis1, yAxis1,  bars1, line1, area1, scatter1, ...(cursorOptions.showMarkers ? [markers1] : []), toolbox, tooltipManager, cursor1]" :height="400"/>
       </div>
       
       <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
         <h3>Chart 2 - Logarithmic Y Axis</h3>
-        <VHd3Chart name="chart1" :objects="[xAxis2, yAxis2, line2, tooltipManager, markers2, cursor1, toolbox]" :height="400"/>
+        <VHd3Chart name="chart2" :objects="[xAxis2, yAxis2, line2, markers2, cursor1, tooltipManager, toolbox]" :height="400"/>
       </div>
     </div>
 
@@ -83,7 +83,7 @@
       <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
         This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
       </p>
-      <VHd3Chart name="chart1" :objects="[xAxis1, yAxis3, line3, line4, tooltipManager, markers1, cursor1, toolbox]" :height="400"/>
+      <VHd3Chart name="chart3" :objects="[xAxis1, yAxis3, line3, line4, tooltipManager,  ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]" :height="400"/>
     </div>
     <VHd3Tooltip :tooltip-manager="tooltipManager">
       <template #default="{data}">
@@ -223,6 +223,7 @@ const yAxis1 = new Hd3Axis({
   domain: yAxisDom1,
   scaleType: 'linear',
   position: 'left',
+  offset: '20',
 });
 
 const series1 = new Hd3Series({ name: 'Sin Wave', data: sinData });
@@ -247,13 +248,9 @@ const scatter1 = new Hd3Scatter({
   style: { color: '#f39c12', radius: 5 }
 });
 
-const cursor1 = new Hd3CursorIndicator({
-  showCrossX: cursorOptions.value.showCrossX,
-  showCrossY: cursorOptions.value.showCrossY,
-  showAxisLabels: cursorOptions.value.showAxisLabels,
-});
+const cursor1 = new Hd3CursorIndicator();
 
-const markers1 = new Hd3TooltipMarkers({});
+const markers1 = new Hd3TooltipMarkers();
 
 
 const tooltipManager = vrHd3TooltipManager()
@@ -291,7 +288,6 @@ const line2 = new Hd3Line({
   style: { color: '#9b59b6', strokeWidth: 3 }
 });
 
-const tooltipManager2 = new Hd3TooltipManager({});
 const markers2 = new Hd3TooltipMarkers({});
 
 
@@ -332,6 +328,10 @@ watchEffect( () => {
   area1.visible = seriesVisibility.value[1].visible;
   bars1.visible = seriesVisibility.value[2].visible;
   scatter1.visible = seriesVisibility.value[3].visible;
+});
+
+watchEffect(() => {
+  cursor1.props(cursorOptions.value);
 });
 
 

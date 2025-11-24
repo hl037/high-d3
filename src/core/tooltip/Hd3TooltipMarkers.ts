@@ -4,12 +4,17 @@ import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } fr
 import { Hd3TooltipData, TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
+import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
+
+export interface Hd3TooltipMarkersProps {
+  radius: number;
+  strokeWidth: number;
+  overshoot: boolean;
+}
 
 export interface Hd3TooltipMarkersOptions {
   bus?: Hd3Bus;
-  radius?: number;
-  strokeWidth?: number;
-  overshoot?: boolean;
+  props?: Partial<Hd3TooltipMarkersProps>;
 }
 
 export interface Hd3TooltipMarkersEvents {
@@ -31,10 +36,9 @@ interface ChartData {
 export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3TooltipMarkersEvents>;
+  public get props(): MergingDict<Hd3TooltipMarkersProps>{throw "init threw mergingDictAttr"};
+  public set props(_:Hd3TooltipMarkersProps){throw "init threw mergingDictAttr"};
   private chartData: Map<Hd3Chart, ChartData>;
-  private radius: number;
-  private strokeWidth: number;
-  private overshoot: boolean;
 
   constructor(options: Hd3TooltipMarkersOptions = {}) {
     this.removeFromChart = this.removeFromChart.bind(this);
@@ -42,9 +46,24 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
 
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
-    this.radius = options.radius ?? 4;
-    this.strokeWidth = options.strokeWidth ?? 2;
-    this.overshoot = options.overshoot ?? false;
+
+    mergingDictAttr(
+      this,
+      'props',
+      {
+        radius: 4,
+        strokeWidth: 2,
+        overshoot: true,
+      },
+      {
+        afterSet: () =>{
+          this.tagDirty();
+        }
+      },
+    )
+    if(options.props !== undefined) {
+      this.props(options.props);
+    }
 
     this.e = {
       destroyed: createHd3Event<Hd3TooltipMarkers>('tooltipMarkers.destroyed'),
@@ -166,7 +185,7 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       .attr('r', 0)
       .attr('fill', d => d.color)
       .attr('stroke', 'white')
-      .attr('stroke-width', this.strokeWidth)
+      .attr('stroke-width', this.props.strokeWidth)
       .attr('opacity', 0);
 
     // Update: existing markers + newly entered
@@ -174,12 +193,12 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       .merge(enter)
       .transition()
       .duration(200)
-      .ease(this.overshoot ? d3.easeBackOut.overshoot(1.5) : d3.easeQuadOut)
+      .ease(this.props.overshoot ? d3.easeBackOut.overshoot(1.5) : d3.easeQuadOut)
       .attr('cx', d => d.cx)
       .attr('cy', d => d.cy)
       .attr('fill', d => d.color)
       .attr('opacity', 1)
-      .attr('r', this.radius);
+      .attr('r', this.props.radius);
   }
 
   private hideMarkers(group: D3Group) {
