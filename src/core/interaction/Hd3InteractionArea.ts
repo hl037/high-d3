@@ -97,8 +97,12 @@ export class Hd3InteractionArea {
 
   public addToChart(chart: Hd3Chart) {
     if (this.chartData.has(chart)) return;
+    if(chart.bus !== this.bus) {
+      throw new Error('Chart and area on different buses')
+    }
 
     const handleResize = () => {
+      console.log('TTT IA handling', {ev: chart.e.resized})
       const data = this.chartData.get(chart);
       if (data?.rect) {
         data.rect
@@ -128,6 +132,8 @@ export class Hd3InteractionArea {
     this.chartData.set(chart, chartData);
     this.setupEvents(chart, chartData);
 
+    console.log('TTT IA', {ev: chart.e.resized})
+
     this.bus.on(chart.e.destroyed, this.removeFromChart);
     this.bus.on(chart.e.resized, handleResize);
     this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleGetManager);
@@ -143,6 +149,7 @@ export class Hd3InteractionArea {
 
     chartData.rect.remove();
     this.bus.off(chart.e.destroyed, this.removeFromChart);
+    console.log('TTT IA off', {ev: chart.e.resized})
     this.bus.off(chart.e.resized, chartData.handleResize);
     this.chartData.delete(chart);
   }

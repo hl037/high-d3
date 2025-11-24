@@ -71,7 +71,7 @@ export class Hd3TooltipManager {
   private seriesRenderers?: Set<string>;
   private axes?: (Hd3Axis | string)[];
 
-  constructor(options: Hd3TooltipManagerOptions) {
+  constructor(options: Hd3TooltipManagerOptions={}) {
     this.removeFromChart = this.removeFromChart.bind(this);
     this.destroy = this.destroy.bind(this);
 

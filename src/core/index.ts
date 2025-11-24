@@ -18,7 +18,6 @@ export { Hd3AxisManager } from './managers/Hd3AxisManager';
 // Axis
 export { Hd3AxisDomain, type Hd3AxisDomainOptions } from './axis/Hd3AxisDomain';
 export { Hd3Axis, type Hd3AxisOptions } from './axis/Hd3Axis';
-export { Hd3AxesDiscovery } from './axis/Hd3AxesDiscovery';
 export { scaleFactory, type ScaleType, type ScaleFactoryOptions } from './axis/scaleFactory';
 
 // Series
@@ -41,6 +40,7 @@ export {
   type Hd3CursorIndicatorCrossStyle,
   type Hd3CursorIndicatorAxisLabelStyle,
 } from './interaction/Hd3CursorIndicator';
+export {Hd3Toolbox} from './interaction/Hd3Toolbox';
 
 // Tooltip
 export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';

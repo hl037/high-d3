@@ -131,8 +131,8 @@ export class Hd3Chart implements Hd3ChartI{
     this.width = options.width || this.container.clientWidth || 800;
     this.height = options.height || this.container.clientHeight || 600;
     this.margin = options.margin || { top: 20, right: 20, bottom: 40, left: 60 };
-    this.innerWidth = this.width - this.margin.left - this.margin.right;
-    this.innerHeight = this.height - this.margin.top - this.margin.bottom;
+    this.innerWidth = Math.max(0, this.width - this.margin.left - this.margin.right);
+    this.innerHeight = Math.max(0, this.height - this.margin.top - this.margin.bottom);
 
     // Create SVG
     this.svg = d3.select(this.container)
@@ -202,14 +202,15 @@ export class Hd3Chart implements Hd3ChartI{
   resize(width: number, height: number): void {
     this.width = width;
     this.height = height;
-    this.innerWidth = width - this.margin.left - this.margin.right;
-    this.innerHeight = height - this.margin.top - this.margin.bottom;
+    this.innerWidth = Math.max(0, width - this.margin.left - this.margin.right);
+    this.innerHeight = Math.max(0, height - this.margin.top - this.margin.bottom);
     
     this.svg
       .attr('width', this.autoWidth ? '100%' : this.width)
       .attr('height', this.autoHeight ? '100%' : this.height)
       .attr('viewBox', `0 0 ${this.width} ${this.height}`);
     
+    console.log('TTT Ch', {ev: this.e.resized})
     // Emit resize event - listeners will handle the actual resizing
     this.bus.emit(this.e.resized, { width, height });
   }
@@ -217,7 +218,7 @@ export class Hd3Chart implements Hd3ChartI{
   /**
    * Destroy the chart and cleanup
    */
-  destroy(): void {
+  public destroy(): void {
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
     }

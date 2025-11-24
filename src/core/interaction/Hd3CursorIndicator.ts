@@ -32,7 +32,6 @@ export interface Hd3CursorIndicatorOptions {
   showCrossX?: boolean;
   showCrossY?: boolean;
   showAxisLabels?: boolean;
-  showMarkers?: boolean;
   crossStyle?: Hd3CursorIndicatorCrossStyle;
   axisLabelStyle?: Hd3CursorIndicatorAxisLabelStyle;
 }
@@ -43,7 +42,6 @@ interface ChartData {
   group: D3Group;
   crossLineX?: d3.Selection<SVGLineElement, unknown, null, undefined>;
   crossLineY?: d3.Selection<SVGLineElement, unknown, null, undefined>;
-  markersGroup?: D3Group;
   labelsGroup?: D3Group;
   interactionArea?: Hd3InteractionArea;
   handleMouseMove: (data: MouseEventData) => void;
@@ -60,7 +58,6 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
   private showCrossX: boolean;
   private showCrossY: boolean;
   private showAxisLabels: boolean;
-  private showMarkers: boolean;
   private crossStyle: Required<Hd3CursorIndicatorCrossStyle>;
   private axisLabelStyle: Required<Hd3CursorIndicatorAxisLabelStyle>;
   private lastMouseData?: MouseEventData;
@@ -78,7 +75,6 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     this.showCrossX = options.showCrossX ?? true;
     this.showCrossY = options.showCrossY ?? true;
     this.showAxisLabels = options.showAxisLabels ?? true;
-    this.showMarkers = options.showMarkers ?? true;
 
     this.e = {
       destroyed: createHd3Event<Hd3CursorIndicator>('cursorIndicator.destroyed'),
@@ -151,12 +147,6 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
         .style('stroke-width', this.crossStyle.strokeWidth)
         .style('stroke-dasharray', this.crossStyle.strokeDasharray)
         .style('opacity', this.crossStyle.opacity);
-    }
-
-    // Markers group
-    if (this.showMarkers) {
-      chartData.markersGroup = group.append('g')
-        .attr('class', 'cursor-markers');
     }
 
     // Labels group

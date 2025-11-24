@@ -36,5 +36,5 @@ const examples = [
   { id: 'vue', name: 'Vue' }
 ];
 
-const currentExample = ref('core');
+const currentExample = ref('vue');
 </script>

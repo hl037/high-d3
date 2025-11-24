@@ -272,7 +272,6 @@ onMounted(() => {
     showCrossX: cursorOptions.value.showCrossX,
     showCrossY: cursorOptions.value.showCrossY,
     showAxisLabels: cursorOptions.value.showAxisLabels,
-    showMarkers: cursorOptions.value.showMarkers
   });
 
   const tooltipManager1 = new Hd3TooltipManager({});
