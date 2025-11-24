@@ -210,7 +210,6 @@ export class Hd3Chart implements Hd3ChartI{
       .attr('height', this.autoHeight ? '100%' : this.height)
       .attr('viewBox', `0 0 ${this.width} ${this.height}`);
     
-    console.log('TTT Ch', {ev: this.e.resized})
     // Emit resize event - listeners will handle the actual resizing
     this.bus.emit(this.e.resized, { width, height });
   }

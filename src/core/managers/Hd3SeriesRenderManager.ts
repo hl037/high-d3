@@ -21,13 +21,16 @@ export class Hd3SeriesRendererManager {
   private series: Map<string, Hd3SeriesRenderer> = new Map();
 
   constructor(chart: Hd3Chart) {
+    this.handleAddSeries = this.handleAddSeries.bind(this);
+    this.handleRemoveSeries = this.handleRemoveSeries.bind(this);
+    this.handleGetSeriesManager = this.handleGetSeriesManager.bind(this);
     this.chart = chart;
 
     const bus = this.chart.bus;
 
-    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this.handleAddSeries.bind(this));
-    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this.handleRemoveSeries.bind(this));
-    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('getSeriesRendererManager'), this.handleGetSeriesManager.bind(this));
+    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this.handleAddSeries);
+    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this.handleRemoveSeries);
+    bus.on(chart.e<Hd3SeriesRendererManagerEvents>()('getSeriesRendererManager'), this.handleGetSeriesManager);
     bus.on(chart.e.destroyed, this.destroy.bind(this))
 
     // Announce manager on the bus
@@ -57,6 +60,9 @@ export class Hd3SeriesRendererManager {
   }
 
   destroy(): void {
+    this.chart.bus.off(this.chart.e<Hd3SeriesRendererManagerEvents>()('getSeriesRendererManager'), this.handleGetSeriesManager);
+    this.chart.bus.off(this.chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this.handleRemoveSeries);
+    this.chart.bus.off(this.chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this.handleAddSeries);
     this.chart.bus.emit(this.chart.e<Hd3SeriesRendererManagerEvents>()('seriesRendererManagerChanged'), undefined);
     (this as any).chart = undefined;
     (this as any).series  = undefined;

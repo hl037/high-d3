@@ -56,9 +56,5 @@ watchEffect( () => {
   }
 });
 
-onUnmounted(() => {
-  previousManager?.destroy();
-})
-
 </script>
 

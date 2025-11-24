@@ -1,4 +1,3 @@
-
 <template>
   <div>
     <h2>Core Example - Vanilla TypeScript</h2>

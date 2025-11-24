@@ -23,6 +23,7 @@
 
     <CoreExample v-if="currentExample === 'core'" />
     <VueExample v-if="currentExample === 'vue'" />
+    <ReactExampleWrapper v-if="currentExample === 'react'" />
   </div>
 </template>
 
@@ -30,10 +31,12 @@
 import { ref } from 'vue';
 import CoreExample from './components/CoreExample.vue';
 import VueExample from './components/VueExample.vue';
+import ReactExampleWrapper from './components/ReactExampleWrapper.vue';
 
 const examples = [
   { id: 'core', name: 'Core (Vanilla TS)' },
-  { id: 'vue', name: 'Vue' }
+  { id: 'vue', name: 'Vue' },
+  { id: 'react', name: 'React' },
 ];
 
 const currentExample = ref('vue');

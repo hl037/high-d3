@@ -80,9 +80,6 @@ export class Hd3Line extends Hd3SeriesRenderer {
 
   protected renderData(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
-    console.log({
-      'chartData' : chartData,
-    });
     const data = this.series.data;
 
     const scaleX = x?.getScale(chart);
@@ -114,9 +111,6 @@ export class Hd3Line extends Hd3SeriesRenderer {
 
   protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
-    console.log({
-      'chartData' : chartData,
-    });
     const data = this.series.data;
 
     const scaleX = x?.getScale(chart);

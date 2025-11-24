@@ -51,9 +51,9 @@ export class Hd3AxisManager {
     }
 
 
-    bus.on(this.e.addAxis, this.handleAddAxis.bind(this));
-    bus.on(this.e.removeAxis, this.handleRemoveAxis.bind(this));
-    bus.on(this.e.getAxisManager, this.handleGetAxisManager.bind(this));
+    bus.on(this.e.addAxis, this.handleAddAxis);
+    bus.on(this.e.removeAxis, this.handleRemoveAxis);
+    bus.on(this.e.getAxisManager, this.handleGetAxisManager);
     bus.on(chart.e.destroyed, this.destroy.bind(this));
 
     // Announce manager on the bus
@@ -132,6 +132,9 @@ export class Hd3AxisManager {
   }
 
   destroy(): void {
+    this.chart.bus.off(this.e.getAxisManager, this.handleGetAxisManager);
+    this.chart.bus.off(this.e.removeAxis, this.handleRemoveAxis);
+    this.chart.bus.off(this.e.addAxis, this.handleAddAxis);
     this.chart.bus.emit(this.chart.e<Hd3AxisManagerEvents>()('axisManagerChanged'), undefined);
     (this as any).chart = undefined;
     (this as any).xAxes = undefined;

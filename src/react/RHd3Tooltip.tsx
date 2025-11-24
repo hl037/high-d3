@@ -28,12 +28,6 @@ export function RHd3Tooltip({ tooltipManager, children }: RHd3TooltipProps) {
     };
   }, [tooltipManager]);
 
-  useEffect(() => {
-    return () => {
-      tooltipManager?.destroy();
-    };
-  }, [tooltipManager]);
-
   if (!tooltipTargets) return null;
 
   return (
