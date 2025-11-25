@@ -6,6 +6,8 @@ import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } fr
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManager';
+import { MergingDict } from '../utils/MergingDict';
+import { mergingDictProps } from '../utils/mergingDictProps';
 
 export interface Hd3SeriesRendererEvents{
   visibilityChanged: boolean;
@@ -13,16 +15,20 @@ export interface Hd3SeriesRendererEvents{
 }
 
 export interface Hd3SeriesRendererStyle {
-  color?: string;
+  color: string;
 }
 
-export interface Hd3SeriesRendererOptions {
+export interface Hd3SeriesRendererProps {
+  style: Hd3SeriesRendererStyle;
+  visible: boolean;
+}
+
+export interface Hd3SeriesRendererOptions<Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> {
   bus?: Hd3Bus;
   series: Hd3Series;
   axes?: (Hd3Axis | string)[];
-  style?: Hd3SeriesRendererStyle;
-  visible?: boolean;
   name?: string;
+  props?: Partial<Props>;
 }
 
 interface ChartData {
@@ -40,20 +46,20 @@ let currentId = 0;
  * Base class for series visual representations.
  * Can accept axes directly, by name, or undefined (will use first available).
  */
-export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
+export abstract class Hd3SeriesRenderer<Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents>;
   public readonly id: number;
+  public get props(): MergingDict<Props>{throw "init threw mergingDictAttr"};
+  public set props(_: Props){throw "init threw mergingDictAttr"};
   protected _series: Hd3Series;
-  protected _color: string;
-  protected _visible: boolean;
   private _name?: string;
   private axes?: (Hd3Axis | string)[];
   private chartData: Map<Hd3Chart, ChartData>;
   private axisRefCount: Map<Hd3Axis, number>;
 
   
-  constructor(options: Hd3SeriesRendererOptions) {
+  constructor(options: Hd3SeriesRendererOptions<Props>) {
     this.setVisible = this.setVisible.bind(this);
     this.tagDirty = this.tagDirty.bind(this);
     this.handleDataChanged = this.handleDataChanged.bind(this);
@@ -66,9 +72,11 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this.chartData = new Map();
     this.axisRefCount = new Map();
     this._series = options.series;
-    this._color = options.style?.color || this.getDefaultColor();
+    
     this.axes = options.axes;
     this._name = options.name;
+
+    mergingDictProps(this, options.props);
 
     this.e = {
       visibilityChanged: createHd3Event<boolean>(`series-renderer[${this.name}].visibilityChanged`),
@@ -78,7 +86,15 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
     this.bus.on(this.e.visibilityChanged, this.setVisible);
     this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.on(this.series.e.destroyed, this.destroy)
-    this._visible = options.visible ?? true;
+  }
+
+  getDefaultProps():Props{
+    return {
+      style:{
+        color: this.getDefaultColor(),
+      },
+      visible: true,
+    } as Props;
   }
 
   public get series(){
@@ -95,12 +111,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   }
 
   public get color(){
-    return this._color;
-  }
-
-  public set color(newColor: string){
-    this._color = newColor;
-    this.tagDirty(undefined, true);
+    return this.props.style.color;
   }
 
   public addToChart(chart: Hd3Chart){
@@ -207,7 +218,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
       }
     }
 
-    if(this.visible) {
+    if(this.props.visible) {
       if(chartData.transition) {
         this.renderDataWithTransition(chart, chartData.data, x, y)
       }
@@ -226,19 +237,7 @@ export abstract class Hd3SeriesRenderer implements Hd3RenderableI<Hd3Chart> {
   protected abstract renderDataWithTransition(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
 
   protected  setVisible(visible: boolean): void {
-    this.visible = visible;
-  }
-
-  public set visible(visible: boolean){
-    if(this._visible !== visible) {
-      this._visible = visible;
-      this.tagDirty(undefined, true);
-    }
-  }
-
-
-  public get visible() {
-    return this._visible;
+    this.props.visible = visible;
   }
 
   getAxes(chart: Hd3Chart ):{x?:Hd3Axis, y?:Hd3Axis}{

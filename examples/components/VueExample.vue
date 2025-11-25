@@ -223,7 +223,6 @@ const yAxis1 = new Hd3Axis({
   domain: yAxisDom1,
   scaleType: 'linear',
   position: 'left',
-  offset: '20',
 });
 
 const series1 = new Hd3Series({ name: 'Sin Wave', data: sinData });
@@ -233,19 +232,19 @@ const series4 = new Hd3Series({ name: 'Scatter', data: scatterData });
 
 const line1 = new Hd3Line({
   series: series1,
-  style: { color: '#e74c3c', strokeWidth: 2 }
+  props: {style: { color: '#e74c3c', strokeWidth: 2 }}
 });
 const area1 = new Hd3Area({
   series: series2,
-  style: { color: '#3498db', opacity: 0.3 }
+  props: {style: { color: '#3498db', opacity: 0.3 }}
 });
 const bars1 = new Hd3Bars({
   series: series3,
-  style: { color: '#2ecc71', barWidth: 15 }
+  props: {style: { color: '#2ecc71', barWidth: 15 }}
 });
 const scatter1 = new Hd3Scatter({
   series: series4,
-  style: { color: '#f39c12', radius: 5 }
+  props: {style:{ color: '#f39c12', radius: 5 }}
 });
 
 const cursor1 = new Hd3CursorIndicator();
@@ -285,7 +284,7 @@ const series5 = new Hd3Series({ name: 'Exponential', data: expData });
 const line2 = new Hd3Line({
   series: series5,
   axes: ['x2', 'y2'],
-  style: { color: '#9b59b6', strokeWidth: 3 }
+  props: {style: { color: '#9b59b6', strokeWidth: 3 }}
 });
 
 const markers2 = new Hd3TooltipMarkers({});
@@ -307,11 +306,11 @@ const series7 = new Hd3Series({ name: 'Derivative', data: cosData.map((d, i) => 
 
 const line3 = new Hd3Line({
   series: series6,
-  style: { color: '#16a085', strokeWidth: 2 }
+  props: {style: { color: '#16a085', strokeWidth: 2 }}
 });
 const line4 = new Hd3Line({
   series: series7,
-  style: { color: '#e67e22', strokeWidth: 2 }
+  props: {style: { color: '#e67e22', strokeWidth: 2 }}
 });
 
 

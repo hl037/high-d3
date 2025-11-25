@@ -90,22 +90,22 @@ export function ReactExample() {
 
   const line1 = useMemo(() => new Hd3Line({
     series: series1,
-    style: { color: '#e74c3c', strokeWidth: 2 }
+    props: {style: { color: '#e74c3c', strokeWidth: 2 }}
   }), [series1]);
 
   const area1 = useMemo(() => new Hd3Area({
     series: series2,
-    style: { color: '#3498db', opacity: 0.3 }
+    props: {style: { color: '#3498db', opacity: 0.3 }}
   }), [series2]);
 
   const bars1 = useMemo(() => new Hd3Bars({
     series: series3,
-    style: { color: '#2ecc71', barWidth: 15 }
+    props: {style: { color: '#2ecc71', barWidth: 15 }}
   }), [series3]);
 
   const scatter1 = useMemo(() => new Hd3Scatter({
     series: series4,
-    style: { color: '#f39c12', radius: 5 }
+    props: {style:{ color: '#f39c12', radius: 5 }}
   }), [series4]);
 
   const markers1 = useMemo(() => new Hd3TooltipMarkers({}), []);
@@ -134,7 +134,7 @@ export function ReactExample() {
   const line2 = useMemo(() => new Hd3Line({
     series: series5,
     axes: ['x2', 'y2'],
-    style: { color: '#9b59b6', strokeWidth: 3 }
+    props: {style: { color: '#9b59b6', strokeWidth: 3 }}
   }), [series5]);
 
   const markers2 = useMemo(() => new Hd3TooltipMarkers({}), []);
@@ -159,12 +159,12 @@ export function ReactExample() {
 
   const line3 = useMemo(() => new Hd3Line({
     series: series6,
-    style: { color: '#16a085', strokeWidth: 2 }
+    props: {style: { color: '#16a085', strokeWidth: 2 }}
   }), [series6]);
 
   const line4 = useMemo(() => new Hd3Line({
     series: series7,
-    style: { color: '#e67e22', strokeWidth: 2 }
+    props: {style: { color: '#e67e22', strokeWidth: 2 }}
   }), [series7]);
 
   // Tools and interactions

@@ -1,16 +1,18 @@
 import * as d3 from 'd3';
-import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
+import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererProps, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
 import { Hd3SeriesInterpolator } from './Hd3SeriesInterpolator';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Axis } from '../axis/Hd3Axis';
 
 export interface Hd3ScatterStyle extends Hd3SeriesRendererStyle {
-  radius?: number;
+  radius: number;
 }
 
-export interface Hd3ScatterOptions extends Hd3SeriesRendererOptions {
-  style?: Hd3ScatterStyle;
+export interface Hd3ScatterProps extends Hd3SeriesRendererProps {
+  style: Hd3ScatterStyle;
 }
+
+export type Hd3ScatterOptions = Hd3SeriesRendererOptions<Hd3ScatterProps>;
 
 type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
@@ -22,12 +24,11 @@ interface ChartData {
 /**
  * Scatter series renderer.
  */
-export class Hd3Scatter extends Hd3SeriesRenderer {
-  private radius: number;
-
-  constructor(options: Hd3ScatterOptions) {
-    super(options);
-    this.radius = options.style?.radius || 4;
+export class Hd3Scatter extends Hd3SeriesRenderer<Hd3ScatterProps> {
+  getDefaultProps(): Hd3ScatterProps {
+    const base = super.getDefaultProps();
+    base.style.radius = 4;
+    return base;
   }
 
   protected chartAdded(chart: Hd3Chart, _data: object) {
@@ -37,12 +38,12 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
     data.lastPositions = null;
   }
 
-  protected chartRemoved(chart: Hd3Chart, _data: object) {
+  protected chartRemoved(_chart: Hd3Chart, _data: object) {
     const data = _data as ChartData;
     data.group.remove();
   }
 
-  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, _x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const circles = chartData.group.selectAll('circle');
     
@@ -95,8 +96,8 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
       .data(data)
       .join('circle')
       .attr('class', 'point')
-      .attr('r', this.radius)
-      .attr('fill', this.color)
+      .attr('r', this.props.style.radius)
+      .attr('fill', this.props.style.color)
       .attr('cx', d => scaleX(d[0])!)
       .attr('cy', d => scaleY(d[1])!);
   }
@@ -124,8 +125,8 @@ export class Hd3Scatter extends Hd3SeriesRenderer {
       .data(data)
       .join('circle')
       .attr('class', 'point')
-      .attr('r', this.radius)
-      .attr('fill', this.color);
+      .attr('r', this.props.style.radius)
+      .attr('fill', this.props.style.color);
 
     chartData.group.transition()
       .duration(200)

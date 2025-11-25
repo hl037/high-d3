@@ -1,15 +1,17 @@
 import * as d3 from 'd3';
-import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
+import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererProps, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Axis } from '../axis/Hd3Axis';
 
 export interface Hd3BarsStyle extends Hd3SeriesRendererStyle {
-  barWidth?: number;
+  barWidth: number;
 }
 
-export interface Hd3BarsOptions extends Hd3SeriesRendererOptions {
-  style?: Hd3BarsStyle;
+export interface Hd3BarsProps extends Hd3SeriesRendererProps {
+  style: Hd3BarsStyle;
 }
+
+export type Hd3BarsOptions = Hd3SeriesRendererOptions<Hd3BarsProps>;
 
 type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
@@ -20,12 +22,12 @@ interface ChartData {
 /**
  * Bar series renderer.
  */
-export class Hd3Bars extends Hd3SeriesRenderer {
-  private barWidth: number;
-
-  constructor(options: Hd3BarsOptions) {
-    super(options);
-    this.barWidth = options.style?.barWidth || 20;
+export class Hd3Bars extends Hd3SeriesRenderer<Hd3BarsProps> {
+  
+  getDefaultProps(): Hd3BarsProps {
+    const base = super.getDefaultProps();
+    base.style.barWidth = 20;
+    return base;
   }
 
   protected chartAdded(chart: Hd3Chart, _data: object) {
@@ -34,12 +36,12 @@ export class Hd3Bars extends Hd3SeriesRenderer {
       .attr('class', `series-renderer-${this.id}`);
   }
 
-  protected chartRemoved(chart: Hd3Chart, _data: object) {
+  protected chartRemoved(_chart: Hd3Chart, _data: object) {
     const data = _data as ChartData;
     data.group.remove();
   }
 
-  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, _x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const rects = chartData.group.selectAll('rect');
     
@@ -75,28 +77,30 @@ export class Hd3Bars extends Hd3SeriesRenderer {
     }
 
     const y0 = scaleY(0)!;
+    
+    const style = this.props.style;
 
     chartData.group.selectAll('rect')
       .data(data)
       .join(
         enter => enter.append('rect')
           .attr('class', 'bar')
-          .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+          .attr('x', d => scaleX(d[0])! - style.barWidth / 2)
           .attr('y', y0)
-          .attr('width', this.barWidth)
+          .attr('width', style.barWidth)
           .attr('height', 0)
-          .attr('fill', this.color),
+          .attr('fill', style.color),
         update => update,
         exit => exit
           .attr('y', y0)
           .attr('height', 0)
           .remove()
       )
-      .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+      .attr('x', d => scaleX(d[0])! - style.barWidth / 2)
       .attr('y', d => Math.min(scaleY(d[1])!, y0))
-      .attr('width', this.barWidth)
+      .attr('width', style.barWidth)
       .attr('height', d => Math.abs(scaleY(d[1])! - y0))
-      .attr('fill', this.color);
+      .attr('fill', style.color);
   }
   
   protected renderDataWithTransition(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
@@ -112,17 +116,19 @@ export class Hd3Bars extends Hd3SeriesRenderer {
     }
 
     const y0 = scaleY(0)!;
+    
+    const style = this.props.style;
 
     chartData.group.selectAll('rect')
       .data(data)
       .join(
         enter => enter.append('rect')
           .attr('class', 'bar')
-          .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+          .attr('x', d => scaleX(d[0])! - style.barWidth / 2)
           .attr('y', y0)
-          .attr('width', this.barWidth)
+          .attr('width', style.barWidth)
           .attr('height', 0)
-          .attr('fill', this.color),
+          .attr('fill', style.color),
         update => update,
         exit => exit
           .transition()
@@ -133,10 +139,10 @@ export class Hd3Bars extends Hd3SeriesRenderer {
       )
       .transition()
         .duration(200)
-        .attr('x', d => scaleX(d[0])! - this.barWidth / 2)
+        .attr('x', d => scaleX(d[0])! - style.barWidth / 2)
         .attr('y', d => Math.min(scaleY(d[1])!, y0))
-        .attr('width', this.barWidth)
+        .attr('width', style.barWidth)
         .attr('height', d => Math.abs(scaleY(d[1])! - y0))
-        .attr('fill', this.color);
+        .attr('fill', style.color);
   }
 }

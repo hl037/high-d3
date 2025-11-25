@@ -6,6 +6,7 @@ import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager
 import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from './Hd3InteractionArea';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
+import { mergingDictProps } from '../utils/mergingDictProps';
 
 export interface Hd3CursorIndicatorCrossStyle {
   strokeX: string;
@@ -60,8 +61,8 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
   public readonly e: Hd3EventNameMap<Hd3CursorIndicatorEvents>;
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
-  public get props(): MergingDict<Hd3CursorIndicatorCrossOptions>{throw "init threw mergingDictAttr"};
-  public set props(_:Hd3CursorIndicatorCrossOptions){throw "init threw mergingDictAttr"};
+  public get props(): MergingDict<Hd3CursorIndicatorCrossOptions>{throw "init through mergingDictProps"};
+  public set props(_:Hd3CursorIndicatorCrossOptions){throw "init through mergingDictProps"};
   private lastMouseData?: MouseEventData;
   private isVisible: boolean = false;
 
@@ -74,39 +75,31 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
     this.axes = options.axes;
-    mergingDictAttr(
-      this,
-      'props',
-      {
-        showCrossX: true,
-        showCrossY: true,
-        showAxisLabels: true,
-        crossStyle:{
-          strokeX: '#666',
-          strokeY: '#666',
-          strokeWidth: 1,
-          strokeDasharray: '4,4',
-          opacity: 0.7,
-        },
-        axisLabelStyle:{
-          background: 'rgba(0, 0, 0, 0.8)',
-          color: '#fff',
-          fontSize: 11,
-          padding: 4,
-          borderRadius: 3,
-        }
-      },
-      {
-        afterSet: () =>{
-          this.tagDirty();
-        }
-      },
-    )
-    if(options.props !== undefined) {
-      this.props(options.props);
-    }
+    mergingDictProps(this, options.props);
     this.e = {
       destroyed: createHd3Event<Hd3CursorIndicator>('cursorIndicator.destroyed'),
+    };
+  }
+
+  getDefaultProps(){
+    return {
+      showCrossX: true,
+      showCrossY: true,
+      showAxisLabels: true,
+      crossStyle:{
+        strokeX: '#666',
+        strokeY: '#666',
+        strokeWidth: 1,
+        strokeDasharray: '4,4',
+        opacity: 0.7,
+      },
+      axisLabelStyle:{
+        background: 'rgba(0, 0, 0, 0.8)',
+        color: '#fff',
+        fontSize: 11,
+        padding: 4,
+        borderRadius: 3,
+      }
     };
   }
 

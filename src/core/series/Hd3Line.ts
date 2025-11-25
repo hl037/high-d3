@@ -1,16 +1,18 @@
 import * as d3 from 'd3';
-import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
+import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererProps, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
 import { Hd3SeriesInterpolator } from './Hd3SeriesInterpolator';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Axis } from '../axis/Hd3Axis';
 
 export interface Hd3LineStyle extends Hd3SeriesRendererStyle {
-  strokeWidth?: number;
+  strokeWidth: number;
 }
 
-export interface Hd3LineOptions extends Hd3SeriesRendererOptions {
-  style?: Hd3LineStyle;
+export interface Hd3LineProps extends Hd3SeriesRendererProps {
+  style: Hd3LineStyle;
 }
+
+export type Hd3LineOptions = Hd3SeriesRendererOptions<Hd3LineProps>;
 
 type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
@@ -22,12 +24,11 @@ interface ChartData{
 /**
  * Line series renderer.
  */
-export class Hd3Line extends Hd3SeriesRenderer {
-  private strokeWidth: number;
-
-  constructor(options: Hd3LineOptions) {
-    super(options);
-    this.strokeWidth = options.style?.strokeWidth || 2;
+export class Hd3Line extends Hd3SeriesRenderer<Hd3LineProps> {
+  getDefaultProps(): Hd3LineProps {
+    const base = super.getDefaultProps();
+    base.style.strokeWidth = 2;
+    return base;
   }
 
   protected chartAdded(chart:Hd3Chart, _data:object){
@@ -37,12 +38,12 @@ export class Hd3Line extends Hd3SeriesRenderer {
     data.lastPositions = null;
   }
   
-  protected chartRemoved(chart:Hd3Chart, _data:object){
+  protected chartRemoved(_chart:Hd3Chart, _data:object){
     const data = _data as ChartData;
     data.group.remove();
   }
 
-  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, _x:Hd3Axis|undefined, y: Hd3Axis|undefined): void {
     const chartData = _chartData as ChartData;
     const path = chartData.group.selectAll('path');
     
@@ -61,7 +62,7 @@ export class Hd3Line extends Hd3SeriesRenderer {
         .join('path')
         .attr('class', 'line')
         .attr('fill', 'none')
-        .attr('stroke', this.color)
+        .attr('stroke', this.props.style.color)
         .interrupt()
         .transition()
           .duration(200)
@@ -103,8 +104,8 @@ export class Hd3Line extends Hd3SeriesRenderer {
       .join('path')
       .attr('class', 'line')
       .attr('fill', 'none')
-      .attr('stroke', this.color)
-      .attr('stroke-width', this.strokeWidth)
+      .attr('stroke', this.props.style.color)
+      .attr('stroke-width', this.props.style.strokeWidth)
       .interrupt()
       .attr('d', line(newPositions))
   }
@@ -134,10 +135,10 @@ export class Hd3Line extends Hd3SeriesRenderer {
       .join('path')
       .attr('class', 'line')
       .attr('fill', 'none')
-      .attr('stroke', this.color)
+      .attr('stroke', this.props.style.color)
       .interrupt()
       .transition()
-        .attr('stroke-width', this.strokeWidth)
+        .attr('stroke-width', this.props.style.strokeWidth)
         .duration(200)
         .attrTween('d', () => (t) => {
           chartData.lastPositions = interpolate(t);

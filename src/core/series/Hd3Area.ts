@@ -1,16 +1,18 @@
 import * as d3 from 'd3';
-import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
+import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererProps, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
 import { Hd3SeriesInterpolator } from './Hd3SeriesInterpolator';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Axis } from '../axis/Hd3Axis';
 
 export interface Hd3AreaStyle extends Hd3SeriesRendererStyle {
-  opacity?: number;
+  opacity: number;
 }
 
-export interface Hd3AreaOptions extends Hd3SeriesRendererOptions {
-  style?: Hd3AreaStyle;
+export interface Hd3AreaProps extends Hd3SeriesRendererProps {
+  style: Hd3AreaStyle;
 }
+
+export type Hd3AreaOptions = Hd3SeriesRendererOptions<Hd3AreaProps>;
 
 type D3Group = d3.Selection<SVGGElement, unknown, null, undefined>;
 
@@ -22,12 +24,11 @@ interface ChartData {
 /**
  * Area series renderer.
  */
-export class Hd3Area extends Hd3SeriesRenderer {
-  private opacity: number;
-
-  constructor(options: Hd3AreaOptions) {
-    super(options);
-    this.opacity = options.style?.opacity || 0.5;
+export class Hd3Area extends Hd3SeriesRenderer<Hd3AreaProps> {
+  getDefaultProps(): Hd3AreaProps {
+    const base = super.getDefaultProps();
+    base.style.opacity = 0.5;
+    return base;
   }
 
   protected chartAdded(chart: Hd3Chart, _data: object) {
@@ -37,12 +38,12 @@ export class Hd3Area extends Hd3SeriesRenderer {
     data.lastPositions = null;
   }
 
-  protected chartRemoved(chart: Hd3Chart, _data: object) {
+  protected chartRemoved(_chart: Hd3Chart, _data: object) {
     const data = _data as ChartData;
     data.group.remove();
   }
 
-  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
+  protected renderDataHidden(chart: Hd3ChartI, _chartData: object, _x: Hd3Axis | undefined, y: Hd3Axis | undefined): void {
     const chartData = _chartData as ChartData;
     const path = chartData.group.selectAll('path');
     
@@ -63,7 +64,7 @@ export class Hd3Area extends Hd3SeriesRenderer {
         .interrupt()
         .transition()
         .attr('class', 'area')
-        .attr('fill', this.color)
+        .attr('fill', this.props.style.color)
         .attr('opacity', 0)
         .duration(200)
         .attrTween('d', () => (t) => {
@@ -106,8 +107,8 @@ export class Hd3Area extends Hd3SeriesRenderer {
       .join('path')
       .attr('class', 'area')
       .interrupt()
-      .attr('fill', this.color)
-      .attr('opacity', this.opacity)
+      .attr('fill', this.props.style.color)
+      .attr('opacity', this.props.style.opacity)
       .attr('d', area(newPositions))
   }
   
@@ -141,8 +142,8 @@ export class Hd3Area extends Hd3SeriesRenderer {
       .interrupt()
       .transition()
         .duration(200)
-        .attr('fill', this.color)
-        .attr('opacity', this.opacity)
+        .attr('fill', this.props.style.color)
+        .attr('opacity', this.props.style.opacity)
         .attrTween('d', () => (t) => {
           chartData.lastPositions = interpolate(t);
           return area(chartData.lastPositions)!;

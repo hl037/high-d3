@@ -4,7 +4,7 @@ import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
 import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, DragEventData, MouseEventData } from '../Hd3InteractionArea';
-import { invertScale } from '@/core/axis/invertScale';
+import { invertScale } from '../../axis/invertScale';
 
 export interface Hd3PanToolOptions {
   bus?: Hd3Bus;

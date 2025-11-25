@@ -251,19 +251,19 @@ onMounted(() => {
 
   const line1 = new Hd3Line({
     series: series1,
-    style: { color: '#e74c3c', strokeWidth: 2 }
+    props: {style: { color: '#e74c3c', strokeWidth: 2 }}
   });
   const area1 = new Hd3Area({
     series: series2,
-    style: { color: '#3498db', opacity: 0.3 }
+    props: {style: { color: '#3498db', opacity: 0.3 }}
   });
   const bars1 = new Hd3Bars({
     series: series3,
-    style: { color: '#2ecc71', barWidth: 15 }
+    props: {style: { color: '#2ecc71', barWidth: 15 }}
   });
   const scatter1 = new Hd3Scatter({
     series: series4,
-    style: { color: '#f39c12', radius: 5 }
+    props: {style:{ color: '#f39c12', radius: 5 }}
   });
   
   const interactionArea1 = new Hd3InteractionArea;
@@ -339,7 +339,7 @@ onMounted(() => {
   const line2 = new Hd3Line({
     series: series5,
     axes: ['x2', 'y2'],
-    style: { color: '#9b59b6', strokeWidth: 3 }
+    props: {style: { color: '#9b59b6', strokeWidth: 3 }}
   });
 
   xAxis2.addToChart(chart2);
@@ -381,11 +381,11 @@ onMounted(() => {
 
   const line3 = new Hd3Line({
     series: series6,
-    style: { color: '#16a085', strokeWidth: 2 }
+    props: {style: { color: '#16a085', strokeWidth: 2 }}
   });
   const line4 = new Hd3Line({
     series: series7,
-    style: { color: '#e67e22', strokeWidth: 2 }
+    props: {style: { color: '#e67e22', strokeWidth: 2 }}
   });
   
   xAxis1.addToChart(chart3);

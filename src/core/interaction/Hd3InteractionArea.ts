@@ -49,7 +49,7 @@ export interface Hd3InteractionAreaEvents {
   destroyed: Hd3InteractionArea;
 }
 
-interface GetInteractionAreaManagerCallbackI {
+export interface GetInteractionAreaManagerCallbackI {
   (m: Hd3InteractionArea): void;
 }
 
