@@ -1,0 +1,35 @@
+import { Hd3Bus, setHd3GlobalBusProvider } from "@/core/bus/Hd3Bus";
+import mitt from "mitt";
+import { App, inject, InjectionKey } from "vue";
+
+export * as VHd3Chart from "./VHd3Chart.vue";
+export * as VHd3Tooltip from "./VHd3Chart.vue";
+export { VRHd3TooltipManager } from "../core/VRHd3TooltipManager"
+
+export const vhd3BusSymbol:InjectionKey<Hd3Bus> = Symbol('VHd3Bus')
+
+let initialized = false;
+
+function vhd3GlobalBusProvider(){
+  try{
+    return useVHd3GlobalBus()
+  }
+  catch(e){
+    throw new Error('with vue, use useVHd3GlobalBus instead, and create all your objects in the setup. If you need to create outside the setup, then store a reference to the bus from useVHd3GlobalBus(), anss it explicitely');
+  }
+}
+
+export function useVHd3GlobalBus(){
+  return inject(vhd3BusSymbol)!;
+}
+
+
+export const VHd3Plugin = {
+  install(app:App) {
+    if(!initialized) {
+      initialized = true;
+      setHd3GlobalBusProvider(vhd3GlobalBusProvider);
+    }
+    app.provide(vhd3BusSymbol, mitt() as Hd3Bus);
+  }
+}

@@ -1,12 +1,14 @@
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import type { SeriesData, Data2D } from '../types';
 
+export type Hd3SeriesDomainType = number | string | Date
+
 export interface Hd3SeriesEvents {
   dataChanged: SeriesData<any>;
-  destroyed: Hd3Series<number|string|Date>
+  destroyed: Hd3Series<Hd3SeriesDomainType>
 }
 
-export interface Hd3SeriesOptions<T extends number | string | Date = number> {
+export interface Hd3SeriesOptions<T extends Hd3SeriesDomainType = number> {
   bus?: Hd3Bus;
   name: string;
   data: SeriesData<T>;
@@ -16,7 +18,7 @@ export interface Hd3SeriesOptions<T extends number | string | Date = number> {
  * Series data container. Implements Hd3Bus for change notifications.
  * Normalizes various data formats to Data2D.
  */
-export class Hd3Series<T extends number | string | Date = number> {
+export class Hd3Series<T extends Hd3SeriesDomainType = number> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesEvents>;
   public readonly name: string;

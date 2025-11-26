@@ -29,16 +29,27 @@ export interface Hd3Bus {
 // Global default singleton
 let _globalBus: Hd3Bus | null = null;
 
-export function getHd3GlobalBus(): Hd3Bus {
+function coreHd3GlobalBusProvider(): Hd3Bus {
   if (!_globalBus) {
     _globalBus = mitt() as Hd3Bus;
   }
   return _globalBus;
 }
 
+let globalBusProvider = coreHd3GlobalBusProvider;
+
+export function getHd3GlobalBus() {
+  return globalBusProvider();
+}
+
+export function setHd3GlobalBusProvider(provider: () => Hd3Bus) {
+  globalBusProvider = provider;
+}
+
 export type Hd3EventNamePayloadMap = object;
 
-export type Hd3EventNameMap<M extends Hd3EventNamePayloadMap> = {
+// `in out` to a allow passing subclass of an event payload
+export type Hd3EventNameMap<in out M extends Hd3EventNamePayloadMap> = {
   [K in keyof M]: Hd3Event<M[K]>
 }
 

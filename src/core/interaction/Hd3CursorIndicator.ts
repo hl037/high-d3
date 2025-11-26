@@ -62,7 +62,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
   public get props(): MergingDict<Hd3CursorIndicatorCrossOptions>{throw "init through mergingDictProps"};
-  public set props(_:Hd3CursorIndicatorCrossOptions){throw "init through mergingDictProps"};
+  public set props(_:Partial<Hd3CursorIndicatorCrossOptions>){throw "init through mergingDictProps"};
   private lastMouseData?: MouseEventData;
   private isVisible: boolean = false;
 

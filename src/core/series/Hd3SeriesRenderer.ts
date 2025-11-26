@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
 import type { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
-import { Hd3Series } from './Hd3Series';
+import { Hd3Series, Hd3SeriesDomainType } from './Hd3Series';
 import type { Hd3Axis } from '../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
@@ -9,9 +9,9 @@ import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManag
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
 
-export interface Hd3SeriesRendererEvents{
+export interface Hd3SeriesRendererEvents<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps>{
   visibilityChanged: boolean;
-  destroyed: Hd3SeriesRenderer;
+  destroyed: Hd3SeriesRenderer<Props>;
 }
 
 export interface Hd3SeriesRendererStyle {
@@ -23,9 +23,9 @@ export interface Hd3SeriesRendererProps {
   visible: boolean;
 }
 
-export interface Hd3SeriesRendererOptions<Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> {
+export interface Hd3SeriesRendererOptions<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> {
   bus?: Hd3Bus;
-  series: Hd3Series;
+  series: Hd3Series<Hd3SeriesDomainType>;
   axes?: (Hd3Axis | string)[];
   name?: string;
   props?: Partial<Props>;
@@ -46,13 +46,13 @@ let currentId = 0;
  * Base class for series visual representations.
  * Can accept axes directly, by name, or undefined (will use first available).
  */
-export abstract class Hd3SeriesRenderer<Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> implements Hd3RenderableI<Hd3Chart> {
+export abstract class Hd3SeriesRenderer<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
-  public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents>;
+  public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents<Props>>;
   public readonly id: number;
   public get props(): MergingDict<Props>{throw "init threw mergingDictAttr"};
-  public set props(_: Props){throw "init threw mergingDictAttr"};
-  protected _series: Hd3Series;
+  public set props(_: Partial<Props>){throw "init threw mergingDictAttr"};
+  protected _series: Hd3Series<Hd3SeriesDomainType>;
   private _name?: string;
   private axes?: (Hd3Axis | string)[];
   private chartData: Map<Hd3Chart, ChartData>;
@@ -80,7 +80,7 @@ export abstract class Hd3SeriesRenderer<Props extends Hd3SeriesRendererProps = H
 
     this.e = {
       visibilityChanged: createHd3Event<boolean>(`series-renderer[${this.name}].visibilityChanged`),
-      destroyed: createHd3Event<Hd3SeriesRenderer>(`series-renderer[${this.name}].destroyed`),
+      destroyed: createHd3Event<Hd3SeriesRenderer<Props>>(`series-renderer[${this.name}].destroyed`),
     };
 
     this.bus.on(this.e.visibilityChanged, this.setVisible);
@@ -101,7 +101,7 @@ export abstract class Hd3SeriesRenderer<Props extends Hd3SeriesRendererProps = H
     return this._series;
   }
 
-  public set series(newSeries: Hd3Series){
+  public set series(newSeries: Hd3Series<Hd3SeriesDomainType>){
     this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.off(this.series.e.destroyed, this.destroy)
     this._series = newSeries;
@@ -239,6 +239,9 @@ export abstract class Hd3SeriesRenderer<Props extends Hd3SeriesRendererProps = H
   protected  setVisible(visible: boolean): void {
     this.props.visible = visible;
   }
+
+  public get visible(){return this.props.visible;}
+  public set visible(isVisible: boolean){this.props({visible: isVisible});}
 
   getAxes(chart: Hd3Chart ):{x?:Hd3Axis, y?:Hd3Axis}{
     const res = {} as {x?:Hd3Axis, y?:Hd3Axis};

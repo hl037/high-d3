@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 /* global defineProps, defineEmits, defineExpose */
-import { ref, watchEffect } from "vue";
+import { onUnmounted, ref, watchEffect } from "vue";
 import { Hd3Chart, Hd3ChartI, Hd3ChartOptions} from "../core/chart/Hd3Chart";
 import { Hd3RenderTargetI } from "../core/managers/Hd3RenderManager";
 import { mergeArray } from "../core/utils/mergeArray";
@@ -77,6 +77,10 @@ watchEffect(() => {
     })
     .value();
 })
+
+onUnmounted(() => {
+  chart?.destroy?.();
+});
 
 
 </script>

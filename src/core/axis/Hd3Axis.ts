@@ -69,7 +69,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
   public get gridOptions(): MergingDict<Hd3AxisGridOptions>{throw "init threw mergingDictAttr"};
-  public set gridOptions(_: Hd3AxisGridOptions){throw "init threw mergingDictAttr"};
+  public set gridOptions(_: Partial<Hd3AxisGridOptions>){throw "init threw mergingDictAttr"};
   protected targetData: Map<Hd3ChartI, AxisTargetData>
 
   constructor(options: Hd3AxisOptions) {
