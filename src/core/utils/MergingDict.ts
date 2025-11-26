@@ -13,8 +13,12 @@
  * `this.prop(...)` merges with the new arguments
  */
 
+type MergingDictCall<T extends object> = {
+  bivarianceHack(update: Partial<T>): MergingDict<T>;
+}['bivarianceHack'];
+
 export type MergingDict<T extends object> =
-  T & ((update: Partial<T>) => MergingDict<T>);
+  T & MergingDictCall<T>;
 
 function deepMerge<T extends object>(target: T, source: Partial<T>): T {
   for (const key in source) {

@@ -9,9 +9,9 @@ import { Hd3SeriesRendererManagerEvents } from '../managers/Hd3SeriesRenderManag
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
 
-export interface Hd3SeriesRendererEvents<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps>{
+export interface Hd3SeriesRendererEvents{
   visibilityChanged: boolean;
-  destroyed: Hd3SeriesRenderer<Props>;
+  destroyed: Hd3SeriesRenderer<Hd3SeriesRendererProps>;
 }
 
 export interface Hd3SeriesRendererStyle {
@@ -23,12 +23,12 @@ export interface Hd3SeriesRendererProps {
   visible: boolean;
 }
 
-export interface Hd3SeriesRendererOptions<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> {
+export interface Hd3SeriesRendererOptions<Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> {
   bus?: Hd3Bus;
   series: Hd3Series<Hd3SeriesDomainType>;
   axes?: (Hd3Axis | string)[];
   name?: string;
-  props?: Partial<Props>;
+  props?: Partial<Props & Hd3SeriesRendererProps>;
 }
 
 interface ChartData {
@@ -46,9 +46,9 @@ let currentId = 0;
  * Base class for series visual representations.
  * Can accept axes directly, by name, or undefined (will use first available).
  */
-export abstract class Hd3SeriesRenderer<in out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> implements Hd3RenderableI<Hd3Chart> {
+export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps = Hd3SeriesRendererProps> implements Hd3RenderableI<Hd3Chart> {
   public readonly bus: Hd3Bus;
-  public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents<Props>>;
+  public readonly e: Hd3EventNameMap<Hd3SeriesRendererEvents>;
   public readonly id: number;
   public get props(): MergingDict<Props>{throw "init threw mergingDictAttr"};
   public set props(_: Partial<Props>){throw "init threw mergingDictAttr"};
@@ -241,7 +241,7 @@ export abstract class Hd3SeriesRenderer<in out Props extends Hd3SeriesRendererPr
   }
 
   public get visible(){return this.props.visible;}
-  public set visible(isVisible: boolean){this.props({visible: isVisible});}
+  public set visible(isVisible: boolean){this.props({visible: isVisible} as Partial<Props>);}
 
   getAxes(chart: Hd3Chart ):{x?:Hd3Axis, y?:Hd3Axis}{
     const res = {} as {x?:Hd3Axis, y?:Hd3Axis};
