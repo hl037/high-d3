@@ -5,7 +5,7 @@ import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } fr
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from './Hd3InteractionArea';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
-import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
+import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
 
 export interface Hd3CursorIndicatorCrossStyle {

@@ -43,7 +43,6 @@ export {
 export {Hd3Toolbox} from './interaction/Hd3Toolbox';
 
 // Tooltip
-export { Hd3HoverHandler } from './tooltip/Hd3HoverHandler';
 export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type Hd3TooltipData } from './tooltip/Hd3TooltipManager';
 
 export function initHd3() {

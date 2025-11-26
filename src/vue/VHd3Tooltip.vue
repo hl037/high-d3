@@ -23,7 +23,7 @@
 <script setup lang="ts">
 /* global defineProps, defineEmits, defineExpose */
 
-import { onUnmounted, ref, watchEffect } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { Hd3ForeignObjectTooltipContainer } from '../core/tooltip/Hd3ForeignObjectTooltip';
 import { VRHd3TooltipManager } from '../core/VRHd3TooltipManager';
 import { getHd3GlobalBus } from '../core/bus/Hd3Bus';

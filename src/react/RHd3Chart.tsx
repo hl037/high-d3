@@ -16,9 +16,9 @@ export interface RHd3ChartProps extends Hd3ChartOptions {
 
 export function RHd3Chart(props: RHd3ChartProps) {
   const chartEl = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<Hd3Chart | undefined>();
+  const chartRef = useRef<Hd3Chart | undefined>(undefined);
   const previousObjectsRef = useRef<RHd3ChartObject[]>([]);
-  const interactionAreaRef = useRef<Hd3InteractionArea | undefined>();
+  const interactionAreaRef = useRef<Hd3InteractionArea | undefined>(undefined);
 
   useEffect(() => {
     function changeInteractionArea(originalEvent: GetInteractionAreaManagerCallbackI) {

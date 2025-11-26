@@ -1,5 +1,4 @@
 import { Hd3Chart } from '../chart/Hd3Chart';
-import { Hd3Series } from '../series/Hd3Series';
 import { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 
 interface GetSeriesManagerCallbackI {(m:Hd3SeriesRendererManager):void}

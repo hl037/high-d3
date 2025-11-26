@@ -1,4 +1,4 @@
-import { Hd3Bus, setHd3GlobalBusProvider } from "@/core/bus/Hd3Bus";
+import { Hd3Bus, setHd3GlobalBusProvider } from "..//core/bus/Hd3Bus";
 import mitt from "mitt";
 import { App, inject, InjectionKey } from "vue";
 

@@ -159,15 +159,12 @@ export class Hd3Toolbox {
     // Find mutual exclusion group
     const group = this.mutuallyExclusiveGroups.find(g => g.has(toolName));
     
-    let previous: string | null = null;
-
     if (group) {
       // Deactivate all tools in the same group
       for (const name of group) {
         if (this.activeTools.has(name)) {
           if (name !== toolName) {
             this.deactivateTool(name);
-            previous = name;
           }
         }
       }
