@@ -32,7 +32,7 @@ export interface Hd3TooltipManagerEvents {
   show: Hd3TooltipData;
   hide: void;
   destroyed: Hd3TooltipManager;
-
+};
 
 export interface Hd3TooltipManagerOptions {
   bus?: Hd3Bus;
