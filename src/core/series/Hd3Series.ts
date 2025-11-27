@@ -4,8 +4,8 @@ import type { SeriesData, Data2D } from '../types';
 export type Hd3SeriesDomainType = number | string | Date
 
 export interface Hd3SeriesEvents {
-  dataChanged: SeriesData<any>;
-  destroyed: Hd3Series<Hd3SeriesDomainType>
+  dataChanged: Hd3Series;
+  destroyed: Hd3Series
 }
 
 export interface Hd3SeriesOptions<T extends Hd3SeriesDomainType = number> {
@@ -18,7 +18,7 @@ export interface Hd3SeriesOptions<T extends Hd3SeriesDomainType = number> {
  * Series data container. Implements Hd3Bus for change notifications.
  * Normalizes various data formats to Data2D.
  */
-export class Hd3Series<T extends Hd3SeriesDomainType = number> {
+export class Hd3Series<T extends Hd3SeriesDomainType = Hd3SeriesDomainType> {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3SeriesEvents>;
   public readonly name: string;
@@ -31,7 +31,7 @@ export class Hd3Series<T extends Hd3SeriesDomainType = number> {
     this.name = options.name;
     this._data = this.normalizeData(options.data);
     this.e = {
-      dataChanged:createHd3Event<SeriesData<string> | SeriesData<number> | SeriesData<Date>>(`series[${this.name}].dataChanged`),
+      dataChanged:createHd3Event<Hd3Series>(`series[${this.name}].dataChanged`),
       destroyed:createHd3Event<Hd3Series>(`series[${this.name}].destroyed`),
     }
   }
@@ -56,7 +56,7 @@ export class Hd3Series<T extends Hd3SeriesDomainType = number> {
 
   set data(value: SeriesData<T>) {
     this._data = this.normalizeData(value);
-    this.bus.emit(this.e.dataChanged, this._data);
+    this.bus.emit(this.e.dataChanged, this);
   }
 
   destroy(){

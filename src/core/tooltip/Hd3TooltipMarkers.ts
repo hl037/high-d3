@@ -111,6 +111,10 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
   }
 
   render(chart: Hd3Chart) {
+    // INFO - 2025-11-27 -- LF HAUCHECORNE : if a dirty event has been emitted before a destroy, we simply need to ignore.
+    if(this.bus === undefined) {
+      return;
+    }
     const chartData = this.chartData.get(chart);
     if (!chartData) return;
 
@@ -221,5 +225,6 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);
+    (this as any).bus = undefined;
   }
 }

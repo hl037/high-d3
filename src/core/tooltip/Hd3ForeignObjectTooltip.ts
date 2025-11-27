@@ -156,5 +156,6 @@ export class Hd3ForeignObjectTooltip {
     for (const chart of [...this.chartData.keys()]) {
       this.removeFromChart(chart);
     }
+    (this as any).bus = undefined
   }
 }

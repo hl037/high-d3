@@ -17,6 +17,15 @@ type MergingDictCall<T extends object> = {
   bivarianceHack(update: Partial<T>): MergingDict<T>;
 }['bivarianceHack'];
 
+export interface MergingDictHooks<T extends object>{
+  beforeSet?: (args: {
+    oldVal: MergingDict<T>;
+    newVal: MergingDict<T>;
+    merging: boolean;
+  }) => boolean;
+  afterSet?: (val: MergingDict<T>) => void;
+}
+
 export type MergingDict<T extends object> =
   T & MergingDictCall<T>;
 
@@ -48,14 +57,7 @@ export function mergingDictAttr<
   obj: Q,
   key: K,
   initial: T,
-  opts?: {
-    beforeSet?: (args: {
-      oldVal: MergingDict<T>;
-      newVal: MergingDict<T>;
-      merging: boolean;
-    }) => boolean;
-    afterSet?: (val: MergingDict<T>) => void;
-  }
+  opts?: MergingDictHooks<T>,
 ): MergingDict<T> {
   const fn = ((update: Partial<T>) => {
     if (opts?.beforeSet?.({ oldVal: fn, newVal: fn, merging: true })) {

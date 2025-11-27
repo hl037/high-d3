@@ -62,7 +62,7 @@ export class Hd3AxisManager {
 
   private handleAddAxis(axis: unknown): void {
     if (axis instanceof Hd3Axis) {
-      if(axis.orientation === 'x') {
+      if(axis.component === 'x') {
         this.xAxes.set(axis.name, axis);
       }
       else {
@@ -75,7 +75,7 @@ export class Hd3AxisManager {
 
   private handleRemoveAxis(axis: unknown): void {
     if (axis instanceof Hd3Axis) {
-      if(axis.orientation === 'x') {
+      if(axis.component === 'x') {
         this.xAxes.delete(axis.name);
       }
       else {

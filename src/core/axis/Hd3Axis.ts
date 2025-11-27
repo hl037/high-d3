@@ -8,6 +8,9 @@ import { Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
 
 
+export type Hd3AxisComponent = 'x' | 'y'
+export type Hd3AxisPosition = 'bottom' | 'top' | 'left' | 'right'
+
 export interface Hd3AxisEvents{
   visibilityChanged: Hd3AxisVisibilityChangedEvent;
   scaleChanged: null;
@@ -31,8 +34,8 @@ export interface Hd3AxisOptions {
   bus?: Hd3Bus;
   name: string;
   domain: Hd3AxisDomain;
-  orientation?: 'x' | 'y';
-  position?: 'left' | 'right' | 'bottom' | 'top';
+  component?: Hd3AxisComponent;
+  position?: Hd3AxisPosition;
   scaleType?: ScaleType;
   range?: [number, number];
   scaleOptions?: {
@@ -63,8 +66,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   public readonly e: Hd3EventNameMap<Hd3AxisEvents>;
   public name: string;
   public readonly axisDomain: Hd3AxisDomain;
-  public readonly position: 'left' | 'right' | 'bottom' | 'top';
-  public readonly orientation: 'x' | 'y'
+  public readonly position: Hd3AxisPosition;
+  public readonly component: Hd3AxisComponent;
   protected scaleType: ScaleType;
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
@@ -80,8 +83,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.bus = options.bus || getHd3GlobalBus();
     this.name = options.name;
     this.axisDomain = options.domain;
-    this.position = options.position || (options.orientation === 'x' ? 'bottom' : 'left');
-    this.orientation = this.position === 'left' || this.position === 'right' ? 'y' : 'x';
+    this.position = options.position || (options.component === 'x' ? 'bottom' : 'left');
+    this.component = this.position === 'left' || this.position === 'right' ? 'y' : 'x';
     this.scaleType = options.scaleType || 'linear';
     this.scaleOptions = options.scaleOptions || {};
     this.tickCount = options.tickCount || 10;
@@ -168,7 +171,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     return scaleFactory(this.scaleType, {
       domain: this.axisDomain.domain,
       range: (
-        this.orientation === 'x' ?
+        this.component === 'x' ?
         [0, target.innerWidth] :
         [target.innerHeight, 0]
       ),
@@ -199,12 +202,16 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   public render(target: Hd3ChartI): void {
+    // INFO - 2025-11-27 -- LF HAUCHECORNE : if a dirty event has been emitted before a destroy, we simply need to ignore.
+    if(this.bus === undefined) {
+      return;
+    }
     const targetData = this.getTargetData(target);
     
     // Grid first (so it's behind the axis)
     if (this.gridOptions.enabled && targetData.grid === undefined) {
       targetData.grid = target.layer.axis.append('g')
-        .attr('class', `${this.orientation}-grid ${this.orientation}-grid-${this.name}`)
+        .attr('class', `${this.component}-grid ${this.component}-grid-${this.name}`)
         .style('fill', 'none')  // No background fill
         .style('pointer-events', 'none');  // Optional: prevent interaction blocking
     }
@@ -216,7 +223,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     
     if(targetData.group === undefined) {
       targetData.group = target.layer.axis.append('g')
-        .attr('class', `${this.orientation}-axis ${this.orientation}-axis-${this.name}`)
+        .attr('class', `${this.component}-axis ${this.component}-axis-${this.name}`)
 
     }
     
@@ -235,7 +242,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   protected _getTranslation(target: Hd3ChartI, targetData: AxisTargetData): {x:number, y:number}{
-    if (this.orientation === 'x') {
+    if (this.component === 'x') {
       return {
         x: 0,
         y: (this.position === 'bottom' ? target.innerHeight : 0) + targetData.offset,
@@ -280,7 +287,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   protected getAxisGenerator<T extends d3.AxisDomain>(scale: d3.AxisScale<T>) {
-    if (this.orientation === 'x') {
+    if (this.component === 'x') {
       return this.position === 'bottom' ? d3.axisBottom(scale) : d3.axisTop(scale);
     } else {
       return this.position === 'left' ? d3.axisLeft(scale) : d3.axisRight(scale);
@@ -288,9 +295,9 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   protected getGridGenerator(target: Hd3ChartI, g:AxisTargetData) {
-    const tickSize = this.orientation === 'x' ? -target.innerHeight : -target.innerWidth;
+    const tickSize = this.component === 'x' ? -target.innerHeight : -target.innerWidth;
     
-    const generator = this.orientation === 'x' ? d3.axisBottom(g.scale) : d3.axisLeft(g.scale);
+    const generator = this.component === 'x' ? d3.axisBottom(g.scale) : d3.axisLeft(g.scale);
     return generator.tickSize(tickSize).tickFormat(() => '');
   }
 
@@ -325,7 +332,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.bus.off(this.axisDomain.e.domainChanged, this.handleDomainChanged);
     this.bus.off(this.e.visibilityChanged, this._setVisible);
     
-    (this as any).bus = undefined;
     (this as any).axisDomain = undefined;
+    (this as any).bus = undefined;
   }
 }

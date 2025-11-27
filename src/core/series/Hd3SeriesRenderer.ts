@@ -204,6 +204,10 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   }
 
   render(chart: Hd3Chart): void {
+    // INFO - 2025-11-27 -- LF HAUCHECORNE : if a dirty event has been emitted before a destroy, we simply need to ignore.
+    if(this.bus === undefined) {
+      return;
+    }
     const {x, y} = this.getAxes(chart);
     const chartData = this.chartData.get(chart)!;
     
@@ -262,8 +266,9 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     this.bus.off(this.e.visibilityChanged, this.setVisible);
     this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.emit(this.e.destroyed, this);
-    (this as any).series = null;
-    (this as any).charts = null;
+    (this as any).series = undefined;
+    (this as any).charts = undefined;
+    (this as any).bus = undefined;
   }
 
   get name(): string{

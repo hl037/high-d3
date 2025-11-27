@@ -27,6 +27,7 @@ export { Hd3Line, type Hd3LineOptions, type Hd3LineStyle } from './series/Hd3Lin
 export { Hd3Area, type Hd3AreaOptions, type Hd3AreaStyle } from './series/Hd3Area';
 export { Hd3Bars, type Hd3BarsOptions, type Hd3BarsStyle } from './series/Hd3Bars';
 export { Hd3Scatter, type Hd3ScatterOptions, type Hd3ScatterStyle } from './series/Hd3Scatter';
+export { Hd3AutoDomain } from './series/Hd3AutoDomain';
 
 // Interaction
 export { Hd3InteractionArea } from './interaction/Hd3InteractionArea';

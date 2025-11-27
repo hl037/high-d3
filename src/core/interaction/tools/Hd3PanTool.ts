@@ -133,8 +133,8 @@ export class Hd3PanTool {
       
       if (!initialDomain || !initialScale) continue;
 
-      const currentPixel = axis.orientation === 'x' ? dragData.x : dragData.y;
-      const startPixel = axis.orientation === 'x' ? chartData.startX : chartData.startY;
+      const currentPixel = axis.component === 'x' ? dragData.x : dragData.y;
+      const startPixel = axis.component === 'x' ? chartData.startX : chartData.startY;
       const deltaPixel = startPixel - currentPixel;
 
       const initialPixel0 = initialScale(initialDomain[0]);

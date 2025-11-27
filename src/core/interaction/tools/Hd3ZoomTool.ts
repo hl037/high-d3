@@ -95,7 +95,7 @@ export class Hd3ZoomTool {
       const rangeMin = Math.min(range[0], range[1]);
       const rangeMax = Math.max(range[0], range[1]);
 
-      const point = axis.orientation === 'x' ? mouseX : mouseY;
+      const point = axis.component === 'x' ? mouseX : mouseY;
 
       const distanceToMin = point - rangeMin;
       const distanceToMax = rangeMax - point;
