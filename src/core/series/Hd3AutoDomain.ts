@@ -65,13 +65,13 @@ export class Hd3AutoDomain{
       this.bus.on(series.e.dataChanged, this.handleSeriesDataChanged);
     }
     for(const m of mappings){
-      seriesData.mappings.add(m);
       let axisDomainData = this.axisDomainData.get(m.axisDomain)
       if(!axisDomainData) {
         axisDomainData = new Set();
         this.axisDomainData.set(m.axisDomain, axisDomainData);
         this.bus.on(m.axisDomain.e.destroyed, this.unlinkAxisDomain);
       }
+      seriesData.mappings.add(m);
       axisDomainData.add(m);
     }
     this.handleSeriesDataChanged(series);
@@ -155,6 +155,7 @@ export class Hd3AutoDomain{
     for(const series of this.seriesData.keys()){
       this.unlinkSeries(series);
     }
+    this.bus.emit(this.e.destroyed, this);
     (this as any).seriesData = undefined;
     (this as any).axisDomainData = undefined;
     (this as any).bus = undefined;
