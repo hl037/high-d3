@@ -408,15 +408,15 @@ onMounted(() => {
   toolbox.addToChart(chart3)
 
   watchEffect( () => {
-    xAxis1.gridOptions(gridOptions.value);
-    xAxis2.gridOptions(gridOptions.value);
-    yAxis1.gridOptions(gridOptions.value);
-    yAxis2.gridOptions(gridOptions.value);
-    yAxis3.gridOptions(gridOptions.value);
+    xAxis1.props({grid: gridOptions.value});
+    xAxis2.props({grid: gridOptions.value});
+    yAxis1.props({grid: gridOptions.value});
+    yAxis2.props({grid: gridOptions.value});
+    yAxis3.props({grid: gridOptions.value});
   })
 
   watchEffect( () => {
-    line1.seriesVisibility.value[0].visible;
+    line1.visible = seriesVisibility.value[0].visible;
     area1.visible = seriesVisibility.value[1].visible;
     bars1.visible = seriesVisibility.value[2].visible;
     scatter1.visible = seriesVisibility.value[3].visible;

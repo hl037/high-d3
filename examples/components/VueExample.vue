@@ -96,25 +96,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, watchEffect, watch } from 'vue';
+import { ref, reactive, watchEffect } from 'vue';
 import {
-  Hd3Chart,
   Hd3AxisDomain,
   Hd3Series,
   Hd3Line,
   Hd3Area,
   Hd3Bars,
   Hd3Scatter,
-  Hd3InteractionArea,
   Hd3PanTool,
   Hd3ZoomTool,
   Hd3ZoomToSelectionTool,
   Hd3ResetTool,
-  Hd3TooltipManager,
   Hd3CursorIndicator,
   Hd3Axis,
 } from '../../src/core';
-import { Hd3ForeignObjectTooltip, Hd3ForeignObjectTooltipContainer } from '@/core/tooltip/Hd3ForeignObjectTooltip';
 import { getHd3GlobalBus } from '@/core/bus/Hd3Bus';
 import { Hd3TooltipMarkers } from '@/core/tooltip/Hd3TooltipMarkers';
 import { Hd3Toolbox, Hd3ToolStateChangedEvent } from '@/core/interaction/Hd3Toolbox';
@@ -315,11 +311,11 @@ const line4 = new Hd3Line({
 
 
 watchEffect( () => {
-  xAxis1.gridOptions(gridOptions.value);
-  xAxis2.gridOptions(gridOptions.value);
-  yAxis1.gridOptions(gridOptions.value);
-  yAxis2.gridOptions(gridOptions.value);
-  yAxis3.gridOptions(gridOptions.value);
+  xAxis1.props({grid: gridOptions.value});
+  xAxis2.props({grid: gridOptions.value});
+  yAxis1.props({grid: gridOptions.value});
+  yAxis2.props({grid: gridOptions.value});
+  yAxis3.props({grid: gridOptions.value});
 })
 
 watchEffect( () => {

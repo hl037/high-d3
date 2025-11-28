@@ -22,6 +22,7 @@ export interface Hd3CursorIndicatorCrossOptions{
   showAxisLabels: boolean;
   crossStyle: Hd3CursorIndicatorCrossStyle;
   axisLabelStyle: Hd3CursorIndicatorAxisLabelStyle;
+  valueFormater: undefined | ((axis: Hd3Axis, value: number|string|Date) => string);
 }
 
 export interface Hd3CursorIndicatorAxisLabelStyle {
@@ -30,6 +31,7 @@ export interface Hd3CursorIndicatorAxisLabelStyle {
   fontSize: number;
   padding: number;
   borderRadius: number;
+
 }
 
 export interface Hd3CursorIndicatorEvents {
@@ -99,7 +101,8 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
         fontSize: 11,
         padding: 4,
         borderRadius: 3,
-      }
+      },
+      valueFormater: undefined,
     };
   }
 
@@ -295,7 +298,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
         const finalX = scale(value)!;
         const translation = axis.getTranslation(chart);
 
-        this.createXLabel(chartData.labelsGroup, finalX, translation.y, value);
+        this.createXLabel(chartData.labelsGroup, finalX, translation.y, axis, value);
       }
 
       // Y axis label (aggregated)
@@ -304,7 +307,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
           const scale = axis.getScale(chart);
           const value = mappedCoords[axis.name]!;
           return {
-            name: axis.name,
+            axis,
             value,
             y: scale ? scale(value)! : 0,
           };
@@ -336,8 +339,8 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     return value;
   }
 
-  private createXLabel(parent: D3Group, x: number, y: number, value: number|string|Date) {
-    const text = this.formatAxisValue(value);
+  private createXLabel(parent: D3Group, x: number, y: number, axis:Hd3Axis, value: number|string|Date) {
+    const text = this.props.valueFormater !== undefined ? this.props.valueFormater(axis, value) : this.formatAxisValue(value);
       
 
     const labelGroup = parent.append('g')
@@ -377,14 +380,21 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     parent: D3Group,
     x: number,
     y: number,
-    data: { name: string; value: number | string | Date }[],
+    data: { axis: Hd3Axis; value: number | string | Date }[],
     position: 'left' | 'right' | 'top' | 'bottom'
   ) {
     const labelGroup = parent.append('g')
       .attr('class', 'cursor-y-label');
 
     const lineHeight = this.props.axisLabelStyle.fontSize + 2;
-    const lines = data.map(d => `${d.name}: ${this.formatAxisValue(d.value)}`);
+    let lines:string[]
+    if(data.length === 1) {
+      lines = [this.props.valueFormater !== undefined ? this.props.valueFormater(data[0].axis, data[0].value) : this.formatAxisValue(data[0].value)];
+    }
+    else {
+      lines = data.map(d => `${d.axis.props.displayName}: ${this.props.valueFormater !== undefined ? this.props.valueFormater(d.axis, d.value) : this.formatAxisValue(d.value)}`);
+      
+    }
 
     // Measure text width
     let maxWidth = 0;

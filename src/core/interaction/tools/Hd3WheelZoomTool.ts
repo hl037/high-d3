@@ -3,6 +3,7 @@ import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
 import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, WheelEventData } from '../Hd3InteractionArea';
+import { invertScale } from '../../axis/invertScale';
 
 export interface Hd3WheelZoomToolOptions {
   bus?: Hd3Bus;
@@ -90,7 +91,7 @@ export class Hd3WheelZoomTool {
 
     for (const axis of allAxes) {
       const scale = axis.getScale(chart);
-      if (!scale || typeof (scale as any).invert !== 'function') continue;
+      if (!scale) continue;
 
       const range = scale.range() as [number, number];
       const rangeMin = range[0];
@@ -107,8 +108,8 @@ export class Hd3WheelZoomTool {
       const newMin = point + newDistanceToMin;
       const newMax = point + newDistanceToMax;
 
-      const newDomainMin = (scale as any).invert(newMin);
-      const newDomainMax = (scale as any).invert(newMax);
+      const newDomainMin = invertScale(scale, newMin);
+      const newDomainMax = invertScale(scale, newMax);
 
       if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') continue;
 

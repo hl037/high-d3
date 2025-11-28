@@ -217,11 +217,11 @@ export function ReactExample() {
   }, []);
 
   useEffect(() => {
-    xAxis1.gridOptions(gridOptions);
-    xAxis2.gridOptions(gridOptions);
-    yAxis1.gridOptions(gridOptions);
-    yAxis2.gridOptions(gridOptions);
-    yAxis3.gridOptions(gridOptions);
+    xAxis1.props({grid: gridOptions});
+    xAxis2.props({grid: gridOptions});
+    yAxis1.props({grid: gridOptions});
+    yAxis2.props({grid: gridOptions});
+    yAxis3.props({grid: gridOptions});
   }, [gridOptions, xAxis1, xAxis2, yAxis1, yAxis2, yAxis3]);
 
   useEffect(() => {

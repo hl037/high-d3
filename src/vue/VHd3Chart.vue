@@ -17,6 +17,7 @@ import { Hd3RenderTargetI } from "../core/managers/Hd3RenderManager";
 import { mergeArray } from "../core/utils/mergeArray";
 import { Hd3InteractionArea } from "../core";
 import { Hd3InteractionAreaManagerEvents, type GetInteractionAreaManagerCallbackI } from "../core/interaction/Hd3InteractionArea";
+import { useVHd3GlobalBus } from ".";
 
 export interface VHd3ChartObject{
   addToChart(chart: Hd3ChartI | Hd3RenderTargetI): void;
@@ -29,6 +30,8 @@ export interface Props extends Hd3ChartOptions{
 
 const props = defineProps<Props>();
 
+const bus = useVHd3GlobalBus();
+
 const chartEl = ref<HTMLElement>();
 let chart: Hd3Chart | undefined;
 let previousObjects:VHd3ChartObject[] = [];
@@ -36,7 +39,7 @@ let interactionArea: Hd3InteractionArea | undefined;
 
 function changeInteractionArea(originalEvent: GetInteractionAreaManagerCallbackI) {
   chart!.bus.off(chart!.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), changeInteractionArea);
-  interactionArea = new Hd3InteractionArea();
+  interactionArea = new Hd3InteractionArea({bus});
   interactionArea.addToChart(chart!);
   chart!.bus.emit(chart!.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), originalEvent);
 }
@@ -63,7 +66,11 @@ watchEffect(() => {
   }
   else {
     if(chart === undefined) {
-      chart = new Hd3Chart(chartEl.value, props);
+      const propsContent = {...props};
+      if(propsContent.bus === undefined){
+        propsContent.bus = bus
+      }
+      chart = new Hd3Chart(chartEl.value, propsContent);
       chart.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), changeInteractionArea);
       chart.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), handleInteractionAreaChanged);
     }

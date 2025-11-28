@@ -5,7 +5,8 @@ import { Hd3AxisDomain } from './Hd3AxisDomain';
 import { emitDirty, Hd3RenderableI, Hd3RenderTargetI } from '../managers/Hd3RenderManager';
 import { Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
-import { MergingDict, mergingDictAttr } from '../utils/MergingDict';
+import { MergingDict } from '../utils/MergingDict';
+import { mergingDictProps } from '../utils/mergingDictProps';
 
 
 export type Hd3AxisComponent = 'x' | 'y'
@@ -30,6 +31,10 @@ export interface Hd3AxisGridOptions {
   opacity?: number;
 }
 
+export interface Hd3AxisProps {
+  displayName: string;
+  grid: Partial<Hd3AxisGridOptions>;
+}
 export interface Hd3AxisOptions {
   bus?: Hd3Bus;
   name: string;
@@ -43,7 +48,7 @@ export interface Hd3AxisOptions {
     exponent?: number;
   };
   tickCount?: number;
-  grid?: Hd3AxisGridOptions;
+  props?: Partial<Hd3AxisProps>;
 }
 
 interface AxisTargetData {
@@ -71,8 +76,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   protected scaleType: ScaleType;
   protected scaleOptions: { base?: number; exponent?: number };
   protected tickCount: number;
-  public get gridOptions(): MergingDict<Hd3AxisGridOptions>{throw "init threw mergingDictAttr"};
-  public set gridOptions(_: Partial<Hd3AxisGridOptions>){throw "init threw mergingDictAttr"};
+  public get props(): MergingDict<Hd3AxisProps>{throw "init threw mergingDictAttr"};
+  public set props(_: Partial<Hd3AxisProps>){throw "init threw mergingDictAttr"};
   protected targetData: Map<Hd3ChartI, AxisTargetData>
 
   constructor(options: Hd3AxisOptions) {
@@ -88,23 +93,6 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.scaleType = options.scaleType || 'linear';
     this.scaleOptions = options.scaleOptions || {};
     this.tickCount = options.tickCount || 10;
-    mergingDictAttr(
-      this,
-      'gridOptions',
-      {
-        enabled: false,
-        stroke: '#000',
-        strokeWidth: 1,
-        strokeDasharray: '2,2',
-        opacity: 0.3,
-        ...options.grid
-      },
-      {
-        afterSet: () => {
-          this.tagDirty();
-        }
-      }
-    );
     this.targetData = new Map()
 
     this.destroy = this.destroy.bind(this);
@@ -113,8 +101,23 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
       scaleChanged: createHd3Event<null>(`axis[${this.name}].scaleChanged`),
       destroyed: createHd3Event<Hd3Axis>(`axis[${this.name}].destroyed`),
     }
+    
+    mergingDictProps(this, options.props);
 
     this.bus.on(this.axisDomain.e.domainChanged, this.handleDomainChanged);
+  }
+
+  getDefaultProps():Hd3AxisProps{
+    return {
+      displayName: this.name,
+      grid: {
+        enabled: false,
+        stroke: '#000',
+        strokeWidth: 1,
+        strokeDasharray: '2,2',
+        opacity: 0.3,
+      },
+    };
   }
 
   public addToChart(target: Hd3ChartI, offset:number=0){
@@ -209,13 +212,13 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     const targetData = this.getTargetData(target);
     
     // Grid first (so it's behind the axis)
-    if (this.gridOptions.enabled && targetData.grid === undefined) {
+    if (this.props.grid.enabled && targetData.grid === undefined) {
       targetData.grid = target.layer.axis.append('g')
         .attr('class', `${this.component}-grid ${this.component}-grid-${this.name}`)
         .style('fill', 'none')  // No background fill
         .style('pointer-events', 'none');  // Optional: prevent interaction blocking
     }
-    else if(!this.gridOptions.enabled && targetData.grid !== undefined) {
+    else if(!this.props.grid.enabled && targetData.grid !== undefined) {
       targetData.grid.remove();
       targetData.grid = undefined;
     }
@@ -272,16 +275,16 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     g.group!.call(axisGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
 
     // Draw grid
-    if (this.gridOptions.enabled) {
+    if (this.props.grid.enabled) {
       const gridGenerator = this.getGridGenerator(target, g);
       gridGenerator.ticks(this.tickCount);
 
       g.grid!.call(gridGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
       g.grid!.selectAll('line')
-        .style('stroke', this.gridOptions.stroke!)
-        .style('stroke-width', this.gridOptions.strokeWidth!)
-        .style('stroke-dasharray', this.gridOptions.strokeDasharray!)
-        .style('opacity', this.gridOptions.opacity!);
+        .style('stroke', this.props.grid.stroke!)
+        .style('stroke-width', this.props.grid.strokeWidth!)
+        .style('stroke-dasharray', this.props.grid.strokeDasharray!)
+        .style('opacity', this.props.grid.opacity!);
       g.grid!.select('.domain').remove();
     }
   }

@@ -1,3 +1,4 @@
+import { Hd3RenderManager } from "@/core";
 import { Hd3Bus, setHd3GlobalBusProvider } from "..//core/bus/Hd3Bus";
 import mitt from "mitt";
 import { App, inject, InjectionKey } from "vue";
@@ -30,6 +31,8 @@ export const VHd3Plugin = {
       initialized = true;
       setHd3GlobalBusProvider(vhd3GlobalBusProvider);
     }
-    app.provide(vhd3BusSymbol, mitt() as Hd3Bus);
+    const bus = mitt() as Hd3Bus
+    app.provide(vhd3BusSymbol, bus);
+    new Hd3RenderManager({bus})
   }
 }

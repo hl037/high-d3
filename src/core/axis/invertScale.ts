@@ -1,5 +1,5 @@
 
-export function invertScale(scale: d3.AxisScale<d3.AxisDomain> | undefined, pos: number): number | string | undefined {
+export function invertScaleRaw(scale: d3.AxisScale<d3.AxisDomain> | undefined, pos: number): number | string | Date | undefined {
   if (!scale) return undefined;
 
   // Continuous scales (linear, time, log, etc.)
@@ -24,5 +24,15 @@ export function invertScale(scale: d3.AxisScale<d3.AxisDomain> | undefined, pos:
   }
 
   return undefined;
+}
+
+export function invertScale(scale: d3.AxisScale<d3.AxisDomain> | undefined, pos: number): number | string | undefined {
+  const res = invertScaleRaw(scale, pos);
+  if(res instanceof Date) {
+    return res.valueOf()
+  }
+  else {
+    return res;
+  }
 }
 

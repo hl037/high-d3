@@ -69,19 +69,19 @@ export class Hd3AxisDomain {
 
   set domain(value: Iterable<d3.AxisDomain>) {
     this._domain = [...value];
-    if(this.props.rangeMinConstraints.min && (this._domain[0] as number) < this.props.rangeMinConstraints.min) {
+    if(this.props.rangeMinConstraints.min !== undefined && (this._domain[0] as number) < this.props.rangeMinConstraints.min) {
       this._domain[0] = this.props.rangeMinConstraints.min
     }
-    if(this.props.rangeMinConstraints.max && (this._domain[0] as number) > this.props.rangeMinConstraints.max) {
+    if(this.props.rangeMinConstraints.max !== undefined && (this._domain[0] as number) > this.props.rangeMinConstraints.max) {
       this._domain[0] = this.props.rangeMinConstraints.max
     }
-    if(this.props.rangeMaxConstraints.min && (this._domain[1] as number) < this.props.rangeMaxConstraints.min) {
+    if(this.props.rangeMaxConstraints.min !== undefined && (this._domain[1] as number) < this.props.rangeMaxConstraints.min) {
       this._domain[1] = this.props.rangeMaxConstraints.min
     }
-    if(this.props.rangeMaxConstraints.max && (this._domain[1] as number) > this.props.rangeMaxConstraints.max) {
+    if(this.props.rangeMaxConstraints.max !== undefined && (this._domain[1] as number) > this.props.rangeMaxConstraints.max) {
       this._domain[1] = this.props.rangeMaxConstraints.max
     }
-    this.bus.emit(this.e.domainChanged, value);
+    this.bus.emit(this.e.domainChanged, this._domain);
   }
 
   destroy(){
