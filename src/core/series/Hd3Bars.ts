@@ -66,7 +66,7 @@ export class Hd3Bars extends Hd3SeriesRenderer<Hd3BarsProps> {
 
     if (isBandScale(scaleX)) {
       const bandwidth = scaleX.bandwidth();
-      const barWidthFrac = style.barWidth ?? 1;
+      const barWidthFrac = style.barWidth ?? .9;
       const totalWidth = bandwidth * barWidthFrac;
       const marginPx = totalWidth * style.margin;
       const slotWidth = totalWidth / count;

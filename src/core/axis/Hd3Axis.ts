@@ -34,7 +34,8 @@ export interface Hd3AxisGridOptions {
 export interface Hd3AxisProps {
   displayName: string;
   grid: Partial<Hd3AxisGridOptions>;
-  tickFormat: (value: d3.AxisDomain) => d3.AxisDomain;
+  tickCount?: number;
+  tickFormat: null | ((value: d3.AxisDomain, index:number) => string);
   postProcess: (group: d3.Selection<SVGGElement, unknown, null, undefined>) => void;
 }
 export interface Hd3AxisOptions {
@@ -49,7 +50,6 @@ export interface Hd3AxisOptions {
     base?: number;
     exponent?: number;
   };
-  tickCount?: number;
   props?: Partial<Hd3AxisProps>;
 }
 
@@ -77,7 +77,6 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   public readonly component: Hd3AxisComponent;
   protected scaleType: ScaleType;
   protected scaleOptions: { base?: number; exponent?: number };
-  protected tickCount: number;
   public get props(): MergingDict<Hd3AxisProps>{throw "init threw mergingDictAttr"};
   public set props(_: Partial<Hd3AxisProps>){throw "init threw mergingDictAttr"};
   protected targetData: Map<Hd3ChartI, AxisTargetData>
@@ -94,7 +93,6 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     this.component = this.position === 'left' || this.position === 'right' ? 'y' : 'x';
     this.scaleType = options.scaleType || 'linear';
     this.scaleOptions = options.scaleOptions || {};
-    this.tickCount = options.tickCount || 10;
     this.targetData = new Map()
 
     this.destroy = this.destroy.bind(this);
@@ -119,7 +117,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
         strokeDasharray: '2,2',
         opacity: 0.3,
       },
-      tickFormat: d => d,
+      tickCount: 10,
+      tickFormat: null,
       postProcess: () => {},
     };
   }
@@ -274,14 +273,15 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
 
   protected updateRender(target: Hd3ChartI, g: AxisTargetData): void {
     const axisGenerator = this.getAxisGenerator(g.scale);
-    axisGenerator.ticks(this.tickCount);
+    axisGenerator.tickFormat(this.props.tickFormat!); // Could actually be null, and d3 handles it. But ts complains, so adding an assertino.
+    axisGenerator.ticks(this.props.tickCount);
 
     g.group!.call(axisGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
 
     // Draw grid
     if (this.props.grid.enabled) {
       const gridGenerator = this.getGridGenerator(target, g);
-      gridGenerator.ticks(this.tickCount);
+      gridGenerator.ticks(this.props.tickCount);
 
       g.grid!.call(gridGenerator as (selection: d3.Selection<SVGGElement, unknown, null, undefined>) => void);
       g.grid!.selectAll('line')

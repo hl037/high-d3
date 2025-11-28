@@ -85,7 +85,6 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
 
     this.bus.on(this.e.visibilityChanged, this.setVisible);
     this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
-    this.bus.on(this.series.e.destroyed, this.destroy)
   }
 
   getDefaultProps():Props{
@@ -102,11 +101,13 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   }
 
   public set series(newSeries: Hd3Series<Hd3SeriesDomainType>){
-    this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
-    this.bus.off(this.series.e.destroyed, this.destroy)
+    if(this._series !== undefined) {
+      this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
+    }
     this._series = newSeries;
-    this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
-    this.bus.on(this.series.e.destroyed, this.destroy)
+    if(this._series !== undefined) {
+      this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
+    }
     this.tagDirty(undefined, true);
   }
 
@@ -266,8 +267,7 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     this.bus.off(this.e.visibilityChanged, this.setVisible);
     this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
     this.bus.emit(this.e.destroyed, this);
-    (this as any).series = undefined;
-    (this as any).charts = undefined;
+    (this as any)._series = undefined;
     (this as any).bus = undefined;
   }
 
