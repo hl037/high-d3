@@ -78,13 +78,21 @@
       </div>
     </div>
 
-    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
-      <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
-        This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
-      </p>
-      <VHd3Chart name="chart3" :objects="[xAxis1, yAxis3, line3, line4, tooltipManager,  ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]" :height="400"/>
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
+        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+          This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
+        </p>
+        <VHd3Chart name="chart3" :objects="[xAxis1, yAxis3, line3, line4, tooltipManager,  ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]" :height="400"/>
+      </div>
+
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Chart 4 - Band Scale (Categories)</h3>
+        <VHd3Chart name="chart4" :objects="[xAxisBand, yAxisBand, barsBand1, barsBand2, markers4, cursor1, tooltipManager, toolbox]" :height="400"/>
+      </div>
     </div>
+
     <VHd3Tooltip :tooltip-manager="tooltipManager">
       <template #default="{data}">
         <div v-for="s in data.series" :key="s.renderer.name" style="margin: 2px 0;">
@@ -144,13 +152,13 @@ const toolbox = new Hd3Toolbox();
 
 const resetTool = new Hd3ResetTool();
 
-// Tools for chart 1
+// Tools - only Y axes
 const tools = [
-  new Hd3PanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3ZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3WheelPanTool({ axes: ['x1', 'x2'] }),
-  new Hd3WheelZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3ZoomToSelectionTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3PanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3ZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3WheelPanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3WheelZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3ZoomToSelectionTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
   resetTool,
 ]
 
@@ -196,6 +204,11 @@ for (let i = 0; i <= 100; i++) {
   }
   expData.push([x, Math.exp(x / 5)]);
 }
+
+// Band scale data
+const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+const bandData1: [string, number][] = categories.map(c => [c, Math.random() * 100]);
+const bandData2: [string, number][] = categories.map(c => [c, Math.random() * 100]);
 
 // Chart 1 - Multiple series types
 
@@ -310,12 +323,62 @@ const line4 = new Hd3Line({
 });
 
 
+// Chart 4 - Band scale
+const xAxisDomBand = new Hd3AxisDomain({
+  domain: categories
+});
+
+const yAxisDomBand = new Hd3AxisDomain({
+  domain: [0, 120]
+});
+
+const xAxisBand = new Hd3Axis({
+  name: 'xBand',
+  domain: xAxisDomBand,
+  scaleType: 'band',
+  position: 'bottom',
+});
+
+const yAxisBand = new Hd3Axis({
+  name: 'yBand',
+  domain: yAxisDomBand,
+  scaleType: 'linear',
+  position: 'left',
+});
+
+const seriesBand1 = new Hd3Series({ name: 'Sales', data: bandData1 });
+const seriesBand2 = new Hd3Series({ name: 'Costs', data: bandData2 });
+
+const barsBand1 = new Hd3Bars({
+  series: seriesBand1,
+  axes: ['xBand', 'yBand'],
+  props: {
+    style: { color: '#3498db', barWidth: 0.8, margin: 0.1 },
+    count: 2,
+    index: 1,
+  }
+});
+
+const barsBand2 = new Hd3Bars({
+  series: seriesBand2,
+  axes: ['xBand', 'yBand'],
+  props: {
+    style: { color: '#e74c3c', barWidth: 0.8, margin: 0.1 },
+    count: 2,
+    index: 2,
+  }
+});
+
+const markers4 = new Hd3TooltipMarkers({});
+
+
 watchEffect( () => {
   xAxis1.props({grid: gridOptions.value});
   xAxis2.props({grid: gridOptions.value});
   yAxis1.props({grid: gridOptions.value});
   yAxis2.props({grid: gridOptions.value});
   yAxis3.props({grid: gridOptions.value});
+  yAxisBand.props({grid: gridOptions.value});
 })
 
 watchEffect( () => {

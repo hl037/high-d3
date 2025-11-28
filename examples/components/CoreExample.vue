@@ -78,12 +78,19 @@
       </div>
     </div>
 
-    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-      <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
-      <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
-        This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
-      </p>
-      <div ref="chartContainer3" style="width: 100%; height: 400px;"></div>
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
+        <p style="font-size: 14px; color: #666; margin-bottom: 10px;">
+          This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
+        </p>
+        <div ref="chartContainer3" style="width: 100%; height: 400px;"></div>
+      </div>
+
+      <div style="background: white; padding: 15px; border-radius: 8px; flex: 1;">
+        <h3>Chart 4 - Band Scale (Categories)</h3>
+        <div ref="chartContainer4" style="width: 100%; height: 400px;"></div>
+      </div>
     </div>
 
     <Teleport
@@ -132,6 +139,7 @@ import { useVHd3GlobalBus } from '@/vue';
 const chartContainer1 = ref<HTMLElement>();
 const chartContainer2 = ref<HTMLElement>();
 const chartContainer3 = ref<HTMLElement>();
+const chartContainer4 = ref<HTMLElement>();
 const tooltipTargets = ref<Hd3ForeignObjectTooltipContainer[]>();
 
 let series1: Hd3Series;
@@ -166,11 +174,11 @@ const resetTool = new Hd3ResetTool();
 
 // Tools for chart 1
 const tools = [
-  new Hd3PanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3ZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3WheelPanTool({ axes: ['x1', 'x2'] }),
-  new Hd3WheelZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-  new Hd3ZoomToSelectionTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+  new Hd3PanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3ZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3WheelPanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3WheelZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3ZoomToSelectionTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
   resetTool,
 ]
 
@@ -215,6 +223,11 @@ for (let i = 0; i <= 100; i++) {
   }
   expData.push([x, Math.exp(x / 5)]);
 }
+
+// Band scale data
+const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+const bandData1: [string, number][] = categories.map(c => [c, Math.random() * 100]);
+const bandData2: [string, number][] = categories.map(c => [c, Math.random() * 100]);
 
 const xAxisDom1 = new Hd3AxisDomain({
   domain: [0, 4 * Math.PI]
@@ -305,6 +318,56 @@ const tooltipManager2 = new Hd3TooltipManager({});
 const markers2 = new Hd3TooltipMarkers({});
 
 
+// Band scale chart objects
+const xAxisDomBand = new Hd3AxisDomain({
+  domain: categories
+});
+
+const yAxisDomBand = new Hd3AxisDomain({
+  domain: [0, 120]
+});
+
+const xAxisBand = new Hd3Axis({
+  name: 'xBand',
+  domain: xAxisDomBand,
+  scaleType: 'band',
+  position: 'bottom',
+});
+
+const yAxisBand = new Hd3Axis({
+  name: 'yBand',
+  domain: yAxisDomBand,
+  scaleType: 'linear',
+  position: 'left',
+});
+
+const seriesBand1 = new Hd3Series({ name: 'Sales', data: bandData1 });
+const seriesBand2 = new Hd3Series({ name: 'Costs', data: bandData2 });
+
+const barsBand1 = new Hd3Bars({
+  series: seriesBand1,
+  axes: ['xBand', 'yBand'],
+  props: {
+    style: { color: '#3498db', barWidth: 0.8, margin: 0.1 },
+    count: 2,
+    index: 1,
+  }
+});
+
+const barsBand2 = new Hd3Bars({
+  series: seriesBand2,
+  axes: ['xBand', 'yBand'],
+  props: {
+    style: { color: '#e74c3c', barWidth: 0.8, margin: 0.1 },
+    count: 2,
+    index: 2,
+  }
+});
+
+const interactionArea4 = new Hd3InteractionArea;
+const tooltipManager4 = new Hd3TooltipManager({});
+const markers4 = new Hd3TooltipMarkers({});
+
 
 onMounted(() => {
 
@@ -339,7 +402,6 @@ onMounted(() => {
   bus.on(tooltipManager1.e.show, handleTooltipChanged);
   bus.on(tooltipManager1.e.hide, handleTooltipChanged);
   
-  
 
   
   // Chart 2 - Logarithmic axis
@@ -353,9 +415,9 @@ onMounted(() => {
   yAxis2.addToChart(chart2);
   line2.addToChart(chart2);
   
+  interactionArea1.addToChart(chart2);
   tooltipManager2.addToChart(chart2);
   markers2.addToChart(chart2);
-  interactionArea1.addToChart(chart2);
   foTooltip.addToChart(chart2);
   cursor1.addToChart(chart2);
   
@@ -407,12 +469,40 @@ onMounted(() => {
 
   toolbox.addToChart(chart3)
 
+
+  // Chart 4 - Band scale
+  const chart4 = new Hd3Chart(chartContainer4.value!, {
+    bus,
+    margin: { top: 20, right: 20, bottom: 40, left: 60 }
+  });
+
+  xAxisBand.addToChart(chart4);
+  yAxisBand.addToChart(chart4);
+
+  barsBand1.addToChart(chart4);
+  barsBand2.addToChart(chart4);
+
+  interactionArea4.addToChart(chart4);
+  tooltipManager4.addToChart(chart4);
+  foTooltip.addToChart(chart4);
+  cursor1.addToChart(chart2);
+  markers2.addToChart(chart2);
+
+  toolbox.addToChart(chart4);
+  cursor1.addToChart(chart4);
+  markers4.addToChart(chart4);
+
+  getHd3GlobalBus().on(tooltipManager4.e.show, handleTooltipChanged);
+  getHd3GlobalBus().on(tooltipManager4.e.hide, handleTooltipChanged);
+
+
   watchEffect( () => {
     xAxis1.props({grid: gridOptions.value});
     xAxis2.props({grid: gridOptions.value});
     yAxis1.props({grid: gridOptions.value});
     yAxis2.props({grid: gridOptions.value});
     yAxis3.props({grid: gridOptions.value});
+    yAxisBand.props({grid: gridOptions.value});
   })
 
   watchEffect( () => {

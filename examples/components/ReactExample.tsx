@@ -43,7 +43,12 @@ export function ReactExample() {
       expData.push([x, Math.exp(x / 5)]);
     }
 
-    return { sinData, cosData, barData, scatterData, expData };
+    // Band scale data
+    const categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const bandData1: [string, number][] = categories.map(c => [c, Math.random() * 100]);
+    const bandData2: [string, number][] = categories.map(c => [c, Math.random() * 100]);
+
+    return { sinData, cosData, barData, scatterData, expData, categories, bandData1, bandData2 };
   }, []);
 
   const [seriesVisibility, setSeriesVisibility] = useState([
@@ -167,15 +172,59 @@ export function ReactExample() {
     props: {style: { color: '#e67e22', strokeWidth: 2 }}
   }), [series7]);
 
-  // Tools and interactions
+  // Chart 4 - Band scale objects
+  const xAxisDomBand = useMemo(() => new Hd3AxisDomain({ domain: data.categories }), [data.categories]);
+  const yAxisDomBand = useMemo(() => new Hd3AxisDomain({ domain: [0, 120] }), []);
+
+  const xAxisBand = useMemo(() => new Hd3Axis({
+    name: 'xBand',
+    domain: xAxisDomBand,
+    scaleType: 'band',
+    position: 'bottom',
+  }), [xAxisDomBand]);
+
+  const yAxisBand = useMemo(() => new Hd3Axis({
+    name: 'yBand',
+    domain: yAxisDomBand,
+    scaleType: 'linear',
+    position: 'left',
+  }), [yAxisDomBand]);
+
+  const seriesBand1 = useMemo(() => new Hd3Series({ name: 'Sales', data: data.bandData1 }), [data.bandData1]);
+  const seriesBand2 = useMemo(() => new Hd3Series({ name: 'Costs', data: data.bandData2 }), [data.bandData2]);
+
+  const barsBand1 = useMemo(() => new Hd3Bars({
+    series: seriesBand1,
+    axes: ['xBand', 'yBand'],
+    props: {
+      style: { color: '#3498db', barWidth: 0.8, margin: 0.1 },
+      count: 2,
+      index: 1,
+    }
+  }), [seriesBand1]);
+
+  const barsBand2 = useMemo(() => new Hd3Bars({
+    series: seriesBand2,
+    axes: ['xBand', 'yBand'],
+    props: {
+      style: { color: '#e74c3c', barWidth: 0.8, margin: 0.1 },
+      count: 2,
+      index: 2,
+    }
+  }), [seriesBand2]);
+  
+  
+  const markers4 = useMemo(() => new Hd3TooltipMarkers({}), []);
+
+  // Tools and interactions - only Y axes
   const resetTool = useMemo(() => new Hd3ResetTool(), []);
   
   const tools = useMemo(() => [
-    new Hd3PanTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-    new Hd3ZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-    new Hd3WheelPanTool({ axes: ['x1', 'x2'] }),
-    new Hd3WheelZoomTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
-    new Hd3ZoomToSelectionTool({ axes: ['x1', 'y3', 'x2', 'y2'] }),
+    new Hd3PanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+    new Hd3ZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+    new Hd3WheelPanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+    new Hd3WheelZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+    new Hd3ZoomToSelectionTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
     resetTool,
   ], [resetTool]);
 
@@ -222,7 +271,8 @@ export function ReactExample() {
     yAxis1.props({grid: gridOptions});
     yAxis2.props({grid: gridOptions});
     yAxis3.props({grid: gridOptions});
-  }, [gridOptions, xAxis1, xAxis2, yAxis1, yAxis2, yAxis3]);
+    yAxisBand.props({grid: gridOptions});
+  }, [gridOptions, xAxis1, xAxis2, yAxis1, yAxis2, yAxis3, yAxisBand]);
 
   useEffect(() => {
     line1.visible = seriesVisibility[0].visible;
@@ -420,23 +470,34 @@ export function ReactExample() {
         <div style={{ background: 'white', padding: '15px', borderRadius: '8px', flex: 1 }}>
           <h3>Chart 2 - Logarithmic Y Axis</h3>
           <RHd3Chart 
-            name="chart1" 
-            objects={[xAxis2, yAxis2, line2, tooltipManager, markers2, cursor1, toolbox]} 
+            name="chart2" 
+            objects={[xAxis2, yAxis2, line2, tooltipManager, markers4, cursor1, toolbox]} 
             height={400}
           />
         </div>
       </div>
 
-      <div style={{ background: 'white', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
-        <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
-          This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
-        </p>
-        <RHd3Chart 
-          name="chart1" 
-          objects={[xAxis1, yAxis3, line3, line4, tooltipManager, ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]} 
-          height={400}
-        />
+      <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+        <div style={{ background: 'white', padding: '15px', borderRadius: '8px', flex: 1 }}>
+          <h3>Chart 3 - Synchronized Tooltip with Chart 1</h3>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
+            This chart shares the same interaction area as Chart 1, so hovering over Chart 1 also shows data on Chart 3.
+          </p>
+          <RHd3Chart 
+            name="chart3" 
+            objects={[xAxis1, yAxis3, line3, line4, tooltipManager, ...(cursorOptions.showMarkers ? [markers1] : []), cursor1, toolbox]} 
+            height={400}
+          />
+        </div>
+
+        <div style={{ background: 'white', padding: '15px', borderRadius: '8px', flex: 1 }}>
+          <h3>Chart 4 - Band Scale (Categories)</h3>
+          <RHd3Chart 
+            name="chart4" 
+            objects={[xAxisBand, yAxisBand, barsBand1, barsBand2, markers4, cursor1, tooltipManager, toolbox]} 
+            height={400}
+          />
+        </div>
       </div>
 
       <RHd3Tooltip tooltipManager={tooltipManager}>
