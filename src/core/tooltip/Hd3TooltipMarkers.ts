@@ -6,6 +6,7 @@ import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
+import { scaleCursorPosition } from '../axis/scaleCursorPosition';
 
 export interface Hd3TooltipMarkersProps {
   radius: number;
@@ -144,8 +145,8 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
 
       if (!scaleX || !scaleY) continue;
 
-      const cx = scaleX(series.x as any);
-      const cy = scaleY(series.y as any);
+      const cx = scaleCursorPosition(scaleX, series.x as any);
+      const cy = scaleCursorPosition(scaleY, series.y as any);
 
       if (cx === undefined || cx === null || cy === undefined || cy === null) continue;
 

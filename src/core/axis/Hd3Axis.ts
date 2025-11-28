@@ -34,6 +34,8 @@ export interface Hd3AxisGridOptions {
 export interface Hd3AxisProps {
   displayName: string;
   grid: Partial<Hd3AxisGridOptions>;
+  tickFormat: (value: d3.AxisDomain) => d3.AxisDomain;
+  postProcess: (group: d3.Selection<SVGGElement, unknown, null, undefined>) => void;
 }
 export interface Hd3AxisOptions {
   bus?: Hd3Bus;
@@ -117,6 +119,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
         strokeDasharray: '2,2',
         opacity: 0.3,
       },
+      tickFormat: d => d,
+      postProcess: () => {},
     };
   }
 
@@ -287,6 +291,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
         .style('opacity', this.props.grid.opacity!);
       g.grid!.select('.domain').remove();
     }
+    g.group!.call(this.props.postProcess);
   }
 
   protected getAxisGenerator<T extends d3.AxisDomain>(scale: d3.AxisScale<T>) {

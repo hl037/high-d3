@@ -154,11 +154,11 @@ const resetTool = new Hd3ResetTool();
 
 // Tools - only Y axes
 const tools = [
-  new Hd3PanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
-  new Hd3ZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
-  new Hd3WheelPanTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
-  new Hd3WheelZoomTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
-  new Hd3ZoomToSelectionTool({ axes: ['y1', 'y3', 'y2', 'yBand'] }),
+  new Hd3PanTool({ axes: ['x1', 'x2', 'y3', 'yBand'] }),
+  new Hd3ZoomTool({ axes: ['x1', 'x2', 'y3', 'yBand'] }),
+  new Hd3WheelPanTool({ axes: ['x1', 'x2', 'yBand'] }),
+  new Hd3WheelZoomTool({ axes: ['x1', 'x2', 'y3', 'yBand'] }),
+  new Hd3ZoomToSelectionTool({ axes: ['x1', 'x2', 'y3', 'yBand'] }),
   resetTool,
 ]
 

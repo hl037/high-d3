@@ -7,6 +7,7 @@ import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionArea
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
+import { scaleCursorPosition } from '../axis/scaleCursorPosition';
 
 export interface Hd3CursorIndicatorCrossStyle {
   strokeX: string;
@@ -249,7 +250,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     if (firstXAxis && this.props.showCrossX) {
       const scale = firstXAxis.getScale(chart);
       const xValue = mappedCoords[firstXAxis.name]!;
-      const finalX = scale!(xValue)!;
+      const finalX = scaleCursorPosition(scale!, xValue)!;
       chartData.crossLineX
         .style('display', null)
         .attr('y1', 0)
@@ -269,7 +270,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
     if (firstYAxis && this.props.showCrossY) {
       const scale = firstYAxis.getScale(chart);
       const yValue = mappedCoords[firstYAxis.name]!;
-      const finalY = scale!(yValue)!;
+      const finalY = scaleCursorPosition(scale!, yValue)!;
       chartData.crossLineY
         .style('display', null)
         .attr('y1', finalY)
@@ -295,7 +296,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
         if (!scale) continue;
 
         const value = mappedCoords[axis.name]!;
-        const finalX = scale(value)!;
+        const finalX = scaleCursorPosition(scale!, value)!;
         const translation = axis.getTranslation(chart);
 
         this.createXLabel(chartData.labelsGroup, finalX, translation.y, axis, value);
@@ -309,14 +310,15 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
           return {
             axis,
             value,
-            y: scale ? scale(value)! : 0,
+            y: scale ? scaleCursorPosition(scale, value) : undefined,
           };
         })!;
 
         // Position at the first Y axis and use average Y position
         const firstAxis = commonYAxes[0];
         const translation = firstAxis.getTranslation(chart);
-        const avgY = (yData.reduce((sum, d) => sum + d.y, 0) / yData.length)!;
+        const cleanYData = yData.filter(d => (d.y !== undefined));
+        const avgY = (cleanYData.reduce((sum, d) => sum + d.y!, 0) / cleanYData.length)!;
 
         this.createAggregatedYLabel(
           chartData.labelsGroup,
