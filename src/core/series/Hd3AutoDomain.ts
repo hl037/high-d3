@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Hd3AxisDomain } from "../axis/Hd3AxisDomain";
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from "../bus/Hd3Bus";
 import { Hd3Series } from "./Hd3Series";

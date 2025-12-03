@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+
 import { createHd3Event, createHd3EventNameMap, getHd3GlobalBus, Hd3Bus, Hd3DynamicEventNameMap } from '../bus/Hd3Bus';
 import { Hd3SeriesRendererManager } from '../managers/Hd3SeriesRenderManager';
 import { Hd3AxisManager } from '../managers/Hd3AxisManager';

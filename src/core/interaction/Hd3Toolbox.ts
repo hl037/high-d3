@@ -64,7 +64,7 @@ export class Hd3Toolbox {
 
   public removeTool(toolName: string): void {
     const tool = this.tools.get(toolName);
-    if (!tool) return;
+    if (!tool) {return;}
 
     if (this.activeTools.has(toolName)) {
       this.deactivateTool(toolName);
@@ -74,7 +74,7 @@ export class Hd3Toolbox {
   }
 
   public addToChart(chart: Hd3Chart): void {
-    if (this.charts.has(chart)) return;
+    if (this.charts.has(chart)) {return;}
 
     this.charts.add(chart);
     for (const toolName of this.activeTools) {
@@ -88,7 +88,7 @@ export class Hd3Toolbox {
   }
 
   public removeFromChart(chart: Hd3Chart): void {
-    if (!this.charts.has(chart)) return;
+    if (!this.charts.has(chart)) {return;}
 
     for (const toolName of this.activeTools) {
       const tool = this.tools.get(toolName);
@@ -107,7 +107,7 @@ export class Hd3Toolbox {
       throw new Error(`Tool "${toolName}" not found in toolbox`);
     }
 
-    if (this.activeTools.has(toolName)) return;
+    if (this.activeTools.has(toolName)) {return;}
 
     this.activeTools.add(toolName);
     for (const chart of this.charts) {
@@ -119,9 +119,9 @@ export class Hd3Toolbox {
 
   private deactivateTool(toolName: string): void {
     const tool = this.tools.get(toolName);
-    if (!tool) return;
+    if (!tool) {return;}
 
-    if (!this.activeTools.has(toolName)) return;
+    if (!this.activeTools.has(toolName)) {return;}
 
     this.activeTools.delete(toolName);
     for (const chart of this.charts) {

@@ -37,7 +37,7 @@ export class Hd3ResetTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
@@ -58,7 +58,7 @@ export class Hd3ResetTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e.destroyed, this.removeFromChart);
     this.chartData.delete(chart);
@@ -76,7 +76,7 @@ export class Hd3ResetTool {
 
   private resetChart(chart: Hd3Chart): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];

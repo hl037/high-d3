@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 

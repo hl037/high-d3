@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type Callable<
   TClass extends new (...args: any[]) => any,
   TCall extends (...args: any[]) => any
@@ -20,8 +21,8 @@ class _Hd3SeriesInterpolator{
     let lastTo = null;
     
     const nearestIn = (x:number, last:[number, number]|null, next:[number, number]|null) => {
-      if (!last) return next;
-      if (!next) return last;
+      if (!last) {return next;}
+      if (!next) {return last;}
       return (x - last[0]) <= (next[0] - x) ? last : next;
     };
 

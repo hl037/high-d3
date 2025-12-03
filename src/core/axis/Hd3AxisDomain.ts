@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
@@ -46,7 +47,7 @@ export class Hd3AxisDomain {
       options.props,
       {
         afterSet: () => {
-          this.domain = this.domain;
+          this.domain = this._domain;
         }
       }
     );

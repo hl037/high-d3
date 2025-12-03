@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
@@ -43,7 +44,7 @@ export class Hd3WheelPanTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleWheel: (data: WheelEventData) => this.handleWheel(chart, data),
@@ -67,7 +68,7 @@ export class Hd3WheelPanTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -85,10 +86,10 @@ export class Hd3WheelPanTool {
 
     for (const axis of allAxes) {
       const scale = axis.getScale(chart);
-      if (!scale || typeof (scale as any).invert !== 'function') continue;
+      if (!scale || typeof (scale as any).invert !== 'function') {continue;}
 
       const domain = [...axis.axisDomain.domain];
-      if (domain.length !== 2 || typeof domain[0] !== 'number' || typeof domain[1] !== 'number') continue;
+      if (domain.length !== 2 || typeof domain[0] !== 'number' || typeof domain[1] !== 'number') {continue;}
 
       const domainWidth = (domain[1] as number) - (domain[0] as number);
       const delta = (wheelData.delta > 0 ? 1 : -1) * domainWidth * this.panFactor;

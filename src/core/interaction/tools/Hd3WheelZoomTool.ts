@@ -44,7 +44,7 @@ export class Hd3WheelZoomTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleWheel: (data: WheelEventData) => this.handleWheel(chart, data),
@@ -68,7 +68,7 @@ export class Hd3WheelZoomTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -91,7 +91,7 @@ export class Hd3WheelZoomTool {
 
     for (const axis of allAxes) {
       const scale = axis.getScale(chart);
-      if (!scale) continue;
+      if (!scale) {continue;}
 
       const range = scale.range() as [number, number];
       const rangeMin = range[0];
@@ -111,7 +111,7 @@ export class Hd3WheelZoomTool {
       const newDomainMin = invertScale(scale, newMin);
       const newDomainMax = invertScale(scale, newMax);
 
-      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') continue;
+      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') {continue;}
 
       axis.axisDomain.domain = [newDomainMin, newDomainMax];
     }

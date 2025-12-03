@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
@@ -46,7 +48,7 @@ export class Hd3ZoomToSelectionTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
@@ -76,7 +78,7 @@ export class Hd3ZoomToSelectionTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     chartData.selectionRect?.remove();
 
@@ -94,7 +96,7 @@ export class Hd3ZoomToSelectionTool {
 
   private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     if (chartData.selectionRect) {
       chartData.selectionRect.remove();
@@ -114,7 +116,7 @@ export class Hd3ZoomToSelectionTool {
 
   private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData?.selectionRect) return;
+    if (!chartData?.selectionRect) {return;}
 
     const x = Math.min(dragData.startX, dragData.x);
     const y = Math.min(dragData.startY, dragData.y);
@@ -130,7 +132,7 @@ export class Hd3ZoomToSelectionTool {
 
   private handleDragEnd(chart: Hd3Chart, dragData: DragEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData?.selectionRect) return;
+    if (!chartData?.selectionRect) {return;}
 
     chartData.selectionRect.remove();
     chartData.selectionRect = undefined;
@@ -142,13 +144,13 @@ export class Hd3ZoomToSelectionTool {
 
     for (const axis of allAxes) {
       const scale = axis.getScale(chart);
-      if (!scale || typeof (scale as any).invert !== 'function') continue;
+      if (!scale || typeof (scale as any).invert !== 'function') {continue;}
 
       const start = startMappedCoords[axis.name];
       const end = mappedCoords[axis.name];
 
-      if (start === undefined || end === undefined) continue;
-      if (typeof start !== 'number' || typeof end !== 'number') continue;
+      if (start === undefined || end === undefined) {continue;}
+      if (typeof start !== 'number' || typeof end !== 'number') {continue;}
 
       const newDomain: [number, number] = [
         Math.min(start, end),

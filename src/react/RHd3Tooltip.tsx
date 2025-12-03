@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { Hd3ForeignObjectTooltipContainer } from '../core/tooltip/Hd3ForeignObjectTooltip';
 import { VRHd3TooltipManager } from '../core/VRHd3TooltipManager';
 import { getHd3GlobalBus } from '../core/bus/Hd3Bus';
@@ -28,7 +30,7 @@ export function RHd3Tooltip({ tooltipManager, children }: RHd3TooltipProps) {
     };
   }, [tooltipManager]);
 
-  if (!tooltipTargets) return null;
+  if (!tooltipTargets) {return null;}
 
   return (
     <>

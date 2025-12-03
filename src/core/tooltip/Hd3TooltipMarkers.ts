@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3TooltipData, TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
@@ -64,7 +66,7 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const group = chart.layer.overlay.append('g')
       .attr('class', 'tooltip-markers')
@@ -92,7 +94,7 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
 
   public removeFromChart(chart: Hd3Chart) {
     const data = this.chartData.get(chart);
-    if (!data) return;
+    if (!data) {return;}
 
     data.group.remove();
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -117,7 +119,7 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       return;
     }
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     if (!chartData.tooltipData) {
       this.hideMarkers(chartData.group);
@@ -130,7 +132,7 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
   private renderMarkers(chart: Hd3Chart, group: D3Group, tooltipData: Hd3TooltipData) {
     const { x: xAxes, y: yAxes } = this.getAxes(chart);
     
-    if (!xAxes?.length || !yAxes?.length) return;
+    if (!xAxes?.length || !yAxes?.length) {return;}
 
     // Convert series data to marker positions
     const markerData: Array<TooltipSeriesData & { cx: number; cy: number }> = [];
@@ -143,12 +145,12 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       const scaleX = xAxis?.getScale(chart);
       const scaleY = yAxis?.getScale(chart);
 
-      if (!scaleX || !scaleY) continue;
+      if (!scaleX || !scaleY) {continue;}
 
       const cx = scaleCursorPosition(scaleX, series.x as any);
       const cy = scaleCursorPosition(scaleY, series.y as any);
 
-      if (cx === undefined || cx === null || cy === undefined || cy === null) continue;
+      if (cx === undefined || cx === null || cy === undefined || cy === null) {continue;}
 
       markerData.push({
         ...series,

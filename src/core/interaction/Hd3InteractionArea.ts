@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
 import type { Hd3Axis } from '../axis/Hd3Axis';
@@ -96,7 +97,7 @@ export class Hd3InteractionArea {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
     if(chart.bus !== this.bus) {
       throw new Error('Chart and area on different buses')
     }
@@ -139,7 +140,7 @@ export class Hd3InteractionArea {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), undefined);
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleGetManager);

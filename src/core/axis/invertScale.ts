@@ -1,6 +1,6 @@
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function invertScaleRaw(scale: d3.AxisScale<d3.AxisDomain> | undefined, pos: number): number | string | Date | undefined {
-  if (!scale) return undefined;
+  if (!scale) {return undefined;}
 
   // Continuous scales (linear, time, log, etc.)
   if ((scale as any).invert) {

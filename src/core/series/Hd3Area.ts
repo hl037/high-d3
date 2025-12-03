@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+
 import { Hd3SeriesRenderer, Hd3SeriesRendererOptions, Hd3SeriesRendererProps, Hd3SeriesRendererStyle } from './Hd3SeriesRenderer';
 import { Hd3SeriesInterpolator } from './Hd3SeriesInterpolator';
 import { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';

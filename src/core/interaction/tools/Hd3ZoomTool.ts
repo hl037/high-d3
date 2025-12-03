@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
@@ -43,7 +44,7 @@ export class Hd3ZoomTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
@@ -67,7 +68,7 @@ export class Hd3ZoomTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -89,7 +90,7 @@ export class Hd3ZoomTool {
 
     for (const axis of allAxes) {
       const scale = axis.getScale(chart);
-      if (!scale || typeof (scale as any).invert !== 'function') continue;
+      if (!scale || typeof (scale as any).invert !== 'function') {continue;}
 
       const range = scale.range() as [number, number];
       const rangeMin = Math.min(range[0], range[1]);
@@ -109,7 +110,7 @@ export class Hd3ZoomTool {
       const newDomainMin = (scale as any).invert(newMin);
       const newDomainMax = (scale as any).invert(newMax);
 
-      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') continue;
+      if (typeof newDomainMin !== 'number' || typeof newDomainMax !== 'number') {continue;}
 
       const domain = [...axis.axisDomain.domain];
       const isReversed = (domain[0] as number) > (domain[1] as number);

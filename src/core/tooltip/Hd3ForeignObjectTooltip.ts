@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import { getHd3GlobalBus, type Hd3Bus } from '../bus/Hd3Bus';
 import { Hd3TooltipData as Hd3TooltipData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
@@ -43,7 +45,7 @@ export class Hd3ForeignObjectTooltip {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const foreignObject = chart.layer.overlay.append('foreignObject')
       .attr('class', 'tooltip-foreign-object')
@@ -83,7 +85,7 @@ export class Hd3ForeignObjectTooltip {
 
   public removeFromChart(chart: Hd3Chart) {
     const data = this.chartData.get(chart);
-    if (!data) return;
+    if (!data) {return;}
 
     data.foreignObject.remove();
     this.bus.off(chart.e.destroyed, this.removeFromChart);

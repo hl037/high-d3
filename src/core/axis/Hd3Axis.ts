@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import { scaleFactory, ScaleType } from './scaleFactory';
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3AxisDomain } from './Hd3AxisDomain';

@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import type { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 import type { Hd3Axis } from '../axis/Hd3Axis';
@@ -88,7 +90,7 @@ export class Hd3TooltipManager {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleMouseMove: (data: MouseEventData) => this.handleMouseMove(chart, data),
@@ -115,7 +117,7 @@ export class Hd3TooltipManager {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -132,7 +134,7 @@ export class Hd3TooltipManager {
     const mappedCoords = mouseData.mappedCoords;
     const xAxisNames = Object.keys(mappedCoords);
 
-    if (xAxisNames.length === 0) return;
+    if (xAxisNames.length === 0) {return;}
 
     const yVpRatio = (mouseData.y) / chartOrigin.innerHeight;
     const globalSeriesData = this.getChartSeriesData(chartOrigin, yVpRatio, mappedCoords);
@@ -185,7 +187,7 @@ export class Hd3TooltipManager {
       return undefined;
     }
     
-    const xAxisDataList = targetXAxes.map((ax) => {
+    const xAxisDataList = targetXAxes.map((ax) => {
       const xDomain = mappedCoords[ax.name];
       const scale = ax.getScale(chartTarget);
       return scale && {
@@ -254,7 +256,7 @@ export class Hd3TooltipManager {
       const data = renderer.series.data;
       const closestPoint = this.findClosestPoint(data, d.xDomain);
 
-      if (!closestPoint) continue;
+      if (!closestPoint) {continue;}
 
       seriesData.push({
         renderer,
@@ -264,7 +266,7 @@ export class Hd3TooltipManager {
       });
     }
 
-    let finalY = yVpRatio * chartTarget.innerHeight;
+    const finalY = yVpRatio * chartTarget.innerHeight;
 
     return {
       x: xVpValue,
@@ -279,7 +281,7 @@ export class Hd3TooltipManager {
     data: [number | string | Date, number][],
     xValue: d3.AxisDomain
   ): [number | string | Date, number] | undefined {
-    if (data.length === 0) return undefined;
+    if (data.length === 0) {return undefined;}
 
     if (typeof xValue === 'number' || xValue instanceof Date) {
       const bisector = d3.bisector<[number | string | Date, number], number | Date>(d => d[0] as number | Date).center;

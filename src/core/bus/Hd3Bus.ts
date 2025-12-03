@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import mitt from "mitt";
 
 // -------------------------------------------------------------
@@ -55,7 +56,7 @@ export type Hd3EventNameMap<in out M extends Hd3EventNamePayloadMap> = {
 
 type _Hd3EventMetaFactory = 
   & (<E extends Hd3EventNamePayloadMap>(namespace?:string)=>(<K extends keyof E>(evName:K)=>Hd3Event<E[K]>))
-  & (<_ extends void = void>(namespace?:string)=>(<K>(evName:string)=>Hd3Event<K>))
+  & (<_ extends void = void>(namespace?:string)=>(<K>(evName:string)=>Hd3Event<K>)) // eslint-disable-line @typescript-eslint/no-unused-vars
   ;
 
 export type Hd3DynamicEventNameMap<M extends Hd3EventNamePayloadMap> = Hd3EventNameMap<M> & _Hd3EventMetaFactory;

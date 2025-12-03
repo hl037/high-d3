@@ -69,7 +69,7 @@ export class Hd3RenderManager {
     }
   }
 
-  private handleRender(_:null){
+  private handleRender(){
     const dirtyList = this.dirtyList;
     this.dirtyList = new Map();
     for(const [target, renderableSet] of dirtyList){

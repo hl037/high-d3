@@ -7,7 +7,7 @@ export function scaleCursorPosition<T extends d3.AxisDomain>(
   if ('bandwidth' in scale) {
     // Band or Point scale
     const pos = scale(value);
-    if (pos === undefined) return undefined;
+    if (pos === undefined) {return undefined;}
     return pos + (scale.bandwidth?.() ?? 0) / 2;
   }
   // Continuous scale (Linear, Time, Log, etc.)

@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
@@ -48,7 +49,7 @@ export class Hd3PanTool {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       initialDomains: null,
@@ -82,7 +83,7 @@ export class Hd3PanTool {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -98,7 +99,7 @@ export class Hd3PanTool {
 
   private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
@@ -121,8 +122,8 @@ export class Hd3PanTool {
 
   private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
     const chartData = this.chartData.get(chart);
-    if (!chartData || !chartData.initialDomains || !chartData.initialScales) return;
-    if (chartData.startX === null || chartData.startY === null) return;
+    if (!chartData || !chartData.initialDomains || !chartData.initialScales) {return;}
+    if (chartData.startX === null || chartData.startY === null) {return;}
 
     const axes = this.getAxes(chart);
     const allAxes = [...(axes.x || []), ...(axes.y || [])];
@@ -131,7 +132,7 @@ export class Hd3PanTool {
       const initialDomain = chartData.initialDomains.get(axis.name);
       const initialScale = chartData.initialScales.get(axis.name);
       
-      if (!initialDomain || !initialScale) continue;
+      if (!initialDomain || !initialScale) {continue;}
       
       const currentPixel = axis.component === 'x' ? dragData.x : dragData.y;
       const startPixel = axis.component === 'x' ? chartData.startX : chartData.startY;
@@ -146,7 +147,7 @@ export class Hd3PanTool {
       const newDomain0 = invertScale(initialScale, newPixel0);
       const newDomain1 = invertScale(initialScale, newPixel1);
 
-      if (typeof newDomain0 !== 'number' || typeof newDomain1 !== 'number') continue;
+      if (typeof newDomain0 !== 'number' || typeof newDomain1 !== 'number') {continue;}
 
       axis.axisDomain.domain = [newDomain0, newDomain1];
     }

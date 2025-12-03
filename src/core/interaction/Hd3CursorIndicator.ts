@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import type { Hd3Axis } from '../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
@@ -108,7 +109,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const group = chart.layer.overlay.append('g')
       .attr('class', 'cursor-indicator')
@@ -162,7 +163,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     chartData.group.remove();
@@ -189,7 +190,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
 
   render(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     if (!this.isVisible || !this.lastMouseData) {
       chartData.group.style('display', 'none');
@@ -202,7 +203,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
 
   private handleResize(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     if (chartData.crossLineX) {
       chartData.crossLineX.attr('y2', chart.innerHeight);
@@ -293,7 +294,7 @@ export class Hd3CursorIndicator implements Hd3RenderableI<Hd3Chart> {
       // X axis labels (one per axis)
       for (const axis of commonXAxes) {
         const scale = axis.getScale(chart);
-        if (!scale) continue;
+        if (!scale) {continue;}
 
         const value = mappedCoords[axis.name]!;
         const finalX = scaleCursorPosition(scale!, value)!;

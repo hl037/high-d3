@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as d3 from 'd3';
+
 import type { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
 import { Hd3Series, Hd3SeriesDomainType } from './Hd3Series';
 import type { Hd3Axis } from '../axis/Hd3Axis';
@@ -132,6 +134,7 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected chartAdded(_chart:Hd3Chart, _data:object){
     
   }
@@ -148,6 +151,7 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     }
   }
   
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected chartRemoved(_chart:Hd3Chart, _data:object){
     
   }

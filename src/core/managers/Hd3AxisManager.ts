@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3DynamicEventNameMapProvider, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3Axis } from '../axis/Hd3Axis';

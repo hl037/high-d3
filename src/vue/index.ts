@@ -1,7 +1,8 @@
-import { Hd3RenderManager } from "@/core";
-import { Hd3Bus, setHd3GlobalBusProvider } from "..//core/bus/Hd3Bus";
 import mitt from "mitt";
 import { App, inject, InjectionKey } from "vue";
+
+import { Hd3RenderManager } from "@/core";
+import { Hd3Bus, setHd3GlobalBusProvider } from "..//core/bus/Hd3Bus";
 
 export * as VHd3Chart from "./VHd3Chart.vue";
 export * as VHd3Tooltip from "./VHd3Chart.vue";
