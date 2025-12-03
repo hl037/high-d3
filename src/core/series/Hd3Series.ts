@@ -41,7 +41,7 @@ export class Hd3Series<T extends Hd3SeriesDomainType = Hd3SeriesDomainType> {
       if (Array.isArray(data[0])) {
         return data as Data2D<T>;
       } else if (typeof data[0] === 'object') {
-        return (data as { x?: T; y?: number }[]).filter(d => (d.x !== undefined && d.x !== null && d.y !== undefined && d.y !== null)).map(d => [d.x!, d.y!]);
+        return (data as { x?: T; y?: number }[]).filter(d => ('x' in d && 'y' in d)).map(d => [d.x!, d.y!]);
       } else {
         // Data1D - use index as x
         return (data as number[]).map((y, i) => [i as T, y]);
