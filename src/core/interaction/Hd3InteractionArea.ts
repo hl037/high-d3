@@ -115,7 +115,7 @@ export class Hd3InteractionArea {
       cb(this);
     };
 
-    const rect = chart.layer.interaction.append('rect')
+    const rect = chart.layer.interaction.back.append('rect')
       .attr('class', 'interaction-area')
       .attr('width', chart.innerWidth)
       .attr('height', chart.innerHeight)

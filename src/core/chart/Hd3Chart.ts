@@ -41,7 +41,12 @@ export interface Hd3ChartLayersI{
     front: D3Group;
   }
   overlay: D3Group;
-  interaction: D3Group;
+  interactionRoot: D3Group;
+  interaction: {
+    back: D3Group;
+    middle: D3Group;
+    front: D3Group;
+  }
 }
 
 export interface Hd3ChartI extends Hd3RenderTargetI{
@@ -61,10 +66,13 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
   
   const annotationBack = annotationRoot.append('g').attr('class', 'layer-annotation-back');
   const annotationMiddle = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
-  const annotationFront = annotationRoot.append('g').attr('class', 'layer-annotation-middle');
+  const annotationFront = annotationRoot.append('g').attr('class', 'layer-annotation-front');
   
   const overlay = group.append('g').attr('class', 'layer-overlay');
-  const interaction = group.append('g').attr('class', 'layer-interaction');
+  const interactionRoot = group.append('g').attr('class', 'layer-interaction');
+  const interactionBack = interactionRoot.append('g').attr('class', 'layer-interaction-back');
+  const interactionMiddle = interactionRoot.append('g').attr('class', 'layer-interaction-middle');
+  const interactionFront = interactionRoot.append('g').attr('class', 'layer-interaction-front');
 
   return {
     background,
@@ -82,7 +90,12 @@ function buildLayers(target: Hd3RenderTargetI): Hd3ChartLayersI {
       front: annotationFront,
     },
     overlay,
-    interaction,
+    interactionRoot,
+    interaction: {
+      back: interactionBack,
+      middle: interactionMiddle,
+      front: interactionFront,
+    }
   }
 
 
@@ -113,7 +126,7 @@ export class Hd3Chart implements Hd3ChartI{
   
   public width!: number;
   public height!: number;
-  public margin: { top: number; right: number; bottom: number; left: number };
+  public readonly margin: { top: number; right: number; bottom: number; left: number };
   public innerWidth!: number;
   public innerHeight!: number;
 

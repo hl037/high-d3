@@ -3,86 +3,54 @@ import type { Hd3Chart } from '../../chart/Hd3Chart';
 import type { Hd3Axis } from '../../axis/Hd3Axis';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../../bus/Hd3Bus';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../../managers/Hd3AxisManager';
-import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from '../Hd3InteractionArea';
 import { invertScale } from '../../axis/invertScale';
 
-export interface Hd3ZoomToolOptions {
+export interface Hd3PassiveZoomToolOptions {
   bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
   zoomFactor?: number;
 }
 
-export interface Hd3ZoomToolEvents {
-  destroyed: Hd3ZoomTool;
+export interface Hd3PassiveZoomToolEvents {
+  destroyed: Hd3PassiveZoomTool;
 }
 
-interface ChartData {
-  interactionArea?: Hd3InteractionArea;
-  handleMouseDown: (data: MouseEventData) => void;
-  handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
-}
-
-export class Hd3ZoomTool {
+export class Hd3PassiveZoomTool {
   public readonly bus: Hd3Bus;
-  public readonly e: Hd3EventNameMap<Hd3ZoomToolEvents>;
-  public readonly name = 'zoom-click';
-  private chartData: Map<Hd3Chart, ChartData>;
+  public readonly e: Hd3EventNameMap<Hd3PassiveZoomToolEvents>;
+  public readonly name = 'zoom';
+  private chartData: Set<Hd3Chart>;
   private axes?: (Hd3Axis | string)[];
   private zoomFactor: number;
 
-  constructor(options: Hd3ZoomToolOptions = {}) {
+  constructor(options: Hd3PassiveZoomToolOptions = {}) {
     this.removeFromChart = this.removeFromChart.bind(this);
     this.destroy = this.destroy.bind(this);
 
     this.bus = options.bus || getHd3GlobalBus();
-    this.chartData = new Map();
+    this.chartData = new Set();
     this.axes = options.axes;
     this.zoomFactor = options.zoomFactor ?? 0.8;
 
     this.e = {
-      destroyed: createHd3Event<Hd3ZoomTool>('clickZoomTool.destroyed'),
+      destroyed: createHd3Event<Hd3PassiveZoomTool>('clickZoomTool.destroyed'),
     };
   }
 
   public addToChart(chart: Hd3Chart) {
     if (this.chartData.has(chart)) {return;}
 
-    const chartData: ChartData = {
-      handleMouseDown: (data: MouseEventData) => this.handleMouseDown(chart, data),
-      handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => {
-        if (chartData.interactionArea !== undefined) {
-          this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
-        }
-        chartData.interactionArea = interactionArea;
-        if (chartData.interactionArea !== undefined) {
-          this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
-        }
-      }
-    };
-
-    this.chartData.set(chart, chartData);
+    this.chartData.add(chart);
 
     this.bus.on(chart.e.destroyed, this.removeFromChart);
-    this.bus.emit(chart.e<Hd3InteractionAreaManagerEvents>()('getInteractionArea'), chartData.handleInteractionAreaChanged);
-    this.bus.on(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
   }
 
   public removeFromChart(chart: Hd3Chart) {
-    const chartData = this.chartData.get(chart);
-    if (!chartData) {return;}
+    if (!this.chartData.has(chart)) {return;}
 
-    this.bus.off(chart.e<Hd3InteractionAreaManagerEvents>()('interactionAreaChanged'), chartData.handleInteractionAreaChanged);
     this.bus.off(chart.e.destroyed, this.removeFromChart);
 
-    if (chartData.interactionArea) {
-      this.bus.off(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), chartData.handleMouseDown);
-    }
-
     this.chartData.delete(chart);
-  }
-
-  private handleMouseDown(chart: Hd3Chart, mouseData: MouseEventData): void {
-    this.zoom(chart, mouseData.x, mouseData.y, this.zoomFactor);
   }
   
   public centeredZoom(chart: Hd3Chart, factor: number): void {
@@ -133,7 +101,7 @@ export class Hd3ZoomTool {
   
   public zoomAll(factor: number): void {
     const axesZoomed = new Set();
-    for(const chart of this.chartData.keys()){
+    for(const chart of this.chartData){
       const mouseX = chart.innerWidth / 2;
       const mouseY = chart.innerHeight / 2;
       const axes = this.getAxes(chart);
@@ -178,11 +146,11 @@ export class Hd3ZoomTool {
   }
 
   public zoomInAll(){
-    this.zoomAll(this.zoomFactor);
+    this.zoomAll(1/this.zoomFactor);
   }
   
   public zoomOutAll(){
-    this.zoomAll(1/this.zoomFactor);
+    this.zoomAll(this.zoomFactor);
   }
 
   private getAxes(chart: Hd3Chart): { x?: Hd3Axis[]; y?: Hd3Axis[] } {
@@ -196,7 +164,7 @@ export class Hd3ZoomTool {
   }
 
   destroy(): void {
-    for (const chart of [...this.chartData.keys()]) {
+    for (const chart of [...this.chartData]) {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);

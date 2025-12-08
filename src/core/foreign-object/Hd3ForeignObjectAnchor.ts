@@ -54,8 +54,8 @@ export class Hd3ForeignObjectAnchor {
       .attr('class', 'foreign-object-anchor')
       .attr('width', '100%')
       .attr('height', '100%')
-      .attr('x', 0)
-      .attr('y', 0)
+      .attr('x', -chart.margin.left)
+      .attr('y', -chart.margin.top)
       .style('pointer-events', 'none')
       .style('overflow', 'visible');
 
