@@ -46,6 +46,9 @@ export {Hd3Toolbox} from './interaction/Hd3Toolbox';
 // Tooltip
 export { Hd3TooltipManager, type Hd3TooltipManagerOptions, type Hd3TooltipData } from './tooltip/Hd3TooltipManager';
 
+// Legend
+export { Hd3LegendManager, type Hd3LegendManagerOptions, type Hd3LegendData, type LegendSeriesData } from './legend/Hd3LegendManager';
+
 // ForeignObject
 export { Hd3ForeignObjectAnchor, type Hd3ForeignObjectAnchorOptions, type Hd3ForeignObjectAnchorContainer } from './foreign-object/Hd3ForeignObjectAnchor';
 

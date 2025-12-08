@@ -6,8 +6,10 @@ import { Hd3Bus, setHd3GlobalBusProvider } from "..//core/bus/Hd3Bus";
 
 export * as VHd3Chart from "./VHd3Chart.vue";
 export * as VHd3Tooltip from "./VHd3Tooltip.vue";
+export * as VHd3Legend from "./VHd3Legend.vue";
 export * as VHd3ForeignObject from "./VHd3ForeignObject.vue";
 export { VRHd3TooltipManager } from "../core/VRHd3TooltipManager"
+export { VRHd3LegendManager } from "../core/VRHd3LegendManager"
 
 export const vhd3BusSymbol:InjectionKey<Hd3Bus> = Symbol('VHd3Bus')
 
