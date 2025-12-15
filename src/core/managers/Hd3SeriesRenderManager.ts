@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 
@@ -64,7 +64,5 @@ export class Hd3SeriesRendererManager {
     this.chart.bus.off(this.chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this.handleRemoveSeries);
     this.chart.bus.off(this.chart.e<Hd3SeriesRendererManagerEvents>()('addSeriesRenderer'), this.handleAddSeries);
     this.chart.bus.emit(this.chart.e<Hd3SeriesRendererManagerEvents>()('seriesRendererManagerChanged'), undefined);
-    (this as any).chart = undefined;
-    (this as any).series  = undefined;
   }
 }

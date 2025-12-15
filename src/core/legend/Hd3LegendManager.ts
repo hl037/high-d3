@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import type { Hd3SeriesRenderer } from '../series/Hd3SeriesRenderer';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
@@ -59,7 +59,7 @@ export class Hd3LegendManager {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     const chartData: ChartData = {
       handleSeriesListChanged: (renderers: Hd3SeriesRenderer[]) => {
@@ -88,7 +88,7 @@ export class Hd3LegendManager {
 
   public removeFromChart(chart: Hd3Chart) {
     const chartData = this.chartData.get(chart);
-    if (!chartData) return;
+    if (!chartData) {return;}
 
     // Cleanup all renderer subscriptions
     for (const cleanup of chartData.rendererCleanups.values()) {
@@ -186,7 +186,5 @@ export class Hd3LegendManager {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);
-    (this as any).seriesFilter = null;
-    (this as any).chartData = null;
   }
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { createHd3Event, getHd3GlobalBus, Hd3Bus, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { MergingDict } from '../utils/MergingDict';
 import { mergingDictProps } from '../utils/mergingDictProps';
@@ -87,7 +87,5 @@ export class Hd3AxisDomain {
 
   destroy(){
     this.bus.emit(this.e.destroyed, this);
-    (this as any)._domain = undefined;
-    (this as any).bus = undefined;
   }
 }

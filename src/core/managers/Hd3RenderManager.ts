@@ -43,7 +43,7 @@ export const render = createHd3Event<null>()
 export class Hd3RenderManager {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3RenderManagerEvents>;
-  private dirtyList: Map<unknown, Set<Hd3RenderableI<unknown>>>;
+  private dirtyList: Map<unknown, Set<[Hd3RenderableI<unknown>, DirtyEvent<unknown>]>>;
 
   constructor(options: Hd3RenderManagerOptions) {
     this.handleDirty = this.handleDirty.bind(this);
@@ -57,13 +57,17 @@ export class Hd3RenderManager {
   }
 
   private handleDirty(dirty: DirtyEvent<unknown>): void {
+    if((dirty.target as {isDestroying?:boolean}).isDestroying) {
+      throw new Error('Trying to render on destroying target');
+    }
+    Error.captureStackTrace(dirty)
     const needRender = this.dirtyList.size === 0; // INFO - 2025-11-19 -- hl037 : If dirtyList is not empty, a render has already been scheduled, so we don't need to schedule another one.
     let renderableSet = this.dirtyList.get(dirty.target);
     if(renderableSet === undefined) {
-      renderableSet = new Set<Hd3RenderableI<unknown>>();
+      renderableSet = new Set<[Hd3RenderableI<unknown>, DirtyEvent<unknown>]>();
       this.dirtyList.set(dirty.target, renderableSet);
     }
-    renderableSet!.add(dirty.renderable);
+    renderableSet!.add([dirty.renderable, dirty]);
     if(needRender) {
       setTimeout(this.handleRender, 0);
     }
@@ -73,7 +77,11 @@ export class Hd3RenderManager {
     const dirtyList = this.dirtyList;
     this.dirtyList = new Map();
     for(const [target, renderableSet] of dirtyList){
-      for(const renderable of renderableSet){
+      if((target as {isDestroying?:boolean}).isDestroying) {
+        continue;
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for(const [renderable, _event] of renderableSet){
         renderable.render(target);
       }
     }

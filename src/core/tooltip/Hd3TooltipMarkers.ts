@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 import type { Hd3Chart } from '../chart/Hd3Chart';
 import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } from '../bus/Hd3Bus';
-import { Hd3TooltipData, TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
+import { Hd3TooltipData, Hd3TooltipSeriesData, Hd3TooltipManagerChartEvents } from './Hd3TooltipManager';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { emitDirty, Hd3RenderableI } from '../managers/Hd3RenderManager';
 import { MergingDict } from '../utils/MergingDict';
@@ -135,9 +135,12 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
     if (!xAxes?.length || !yAxes?.length) {return;}
 
     // Convert series data to marker positions
-    const markerData: Array<TooltipSeriesData & { cx: number; cy: number }> = [];
+    const markerData: Array<Hd3TooltipSeriesData & { cx: number; cy: number }> = [];
 
     for (const series of tooltipData.series) {
+      if(!series.renderer.visible) {
+        continue;
+      }
       // Find axes for this series (for now use first available)
       const xAxis = xAxes[0];
       const yAxis = yAxes[0];
@@ -228,6 +231,5 @@ export class Hd3TooltipMarkers implements Hd3RenderableI<Hd3Chart> {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);
-    (this as any).bus = undefined;
   }
 }

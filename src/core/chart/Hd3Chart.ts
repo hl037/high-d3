@@ -123,6 +123,7 @@ export class Hd3Chart implements Hd3ChartI{
   private autoHeight: boolean;
   private resizeTimeout?: number;
   private resizeDebounceMs: number = 0;
+  protected isDestroying?: boolean;
   
   public width!: number;
   public height!: number;
@@ -247,17 +248,6 @@ export class Hd3Chart implements Hd3ChartI{
     this.bus.emit(this.e.resized, { width, height });
   }
 
-  /**
-   * Destroy the chart and cleanup
-   */
-  public destroy(): void {
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
-    }
-    this.resizeObserver?.disconnect();
-    this.bus.emit(this.e.destroyed, this);
-    this.svg.remove();
-  }
 
   /**
    * Export chart as SVG string
@@ -331,5 +321,19 @@ export class Hd3Chart implements Hd3ChartI{
     link.href = dataUrl;
     link.download = filename;
     link.click();
+  }
+  
+  
+  /**
+   * Destroy the chart and cleanup
+   */
+  public destroy(): void {
+    this.isDestroying = true;
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    this.resizeObserver?.disconnect();
+    this.bus.emit(this.e.destroyed, this);
+    this.svg.remove();
   }
 }

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { Hd3Chart } from '../chart/Hd3Chart';
 import { Hd3DynamicEventNameMapProvider, Hd3EventNameMap } from '../bus/Hd3Bus';
 import { Hd3Axis } from '../axis/Hd3Axis';
@@ -34,6 +34,8 @@ export class Hd3AxisManager {
   private xAxes: Map<string, Hd3Axis> = new Map();
   private yAxes: Map<string, Hd3Axis> = new Map();
   public readonly e: Hd3EventNameMap<Hd3AxisManagerEvents>;
+  protected isDestroying?: boolean;
+  
 
   constructor(chart: Hd3Chart) {
     this.chart = chart;
@@ -75,6 +77,9 @@ export class Hd3AxisManager {
   }
 
   private handleRemoveAxis(axis: unknown): void {
+    if(this.isDestroying) {
+      return;
+    }
     if (axis instanceof Hd3Axis) {
       if(axis.component === 'x') {
         this.xAxes.delete(axis.name);
@@ -133,12 +138,10 @@ export class Hd3AxisManager {
   }
 
   destroy(): void {
+    this.isDestroying = true;
     this.chart.bus.off(this.e.getAxisManager, this.handleGetAxisManager);
     this.chart.bus.off(this.e.removeAxis, this.handleRemoveAxis);
     this.chart.bus.off(this.e.addAxis, this.handleAddAxis);
     this.chart.bus.emit(this.chart.e<Hd3AxisManagerEvents>()('axisManagerChanged'), undefined);
-    (this as any).chart = undefined;
-    (this as any).xAxes = undefined;
-    (this as any).yAxes = undefined;
   }
 }

@@ -11,7 +11,7 @@
   >
     <div>
       <template v-if="target.data">
-        <slot :data="target.data">
+        <slot :data="target.data" :chart="chart">
           <div
             v-for="s in target.data.series"
             :key="s.renderer.name"
@@ -68,7 +68,7 @@ watchEffect(() => {
       getHd3GlobalBus().off(previousManager.manager.e.changed, handleLegendChanged);
     }
     previousManager = props.legendManager;
-    getHd3GlobalBus().on(previousManager.manager.e.changed, handleLegendChanged);
+    getHd3GlobalBus().on(previousManager!.manager.e.changed, handleLegendChanged);
     // Get initial state
     handleLegendChanged();
   }

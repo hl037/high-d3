@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import * as d3 from 'd3';
 
 import type { Hd3Chart } from '../chart/Hd3Chart';
@@ -38,7 +38,7 @@ export class Hd3ForeignObjectLegend {
   }
 
   public addToChart(chart: Hd3Chart) {
-    if (this.chartData.has(chart)) return;
+    if (this.chartData.has(chart)) {return;}
 
     // Compensate for layer translation (margin top/left)
     const foreignObject = chart.layer.overlay.append('foreignObject')
@@ -77,7 +77,7 @@ export class Hd3ForeignObjectLegend {
 
   public removeFromChart(chart: Hd3Chart) {
     const data = this.chartData.get(chart);
-    if (!data) return;
+    if (!data) {return;}
 
     data.foreignObject.remove();
     this.bus.off(chart.e.destroyed, this.removeFromChart);
@@ -128,6 +128,5 @@ export class Hd3ForeignObjectLegend {
     for (const chart of [...this.chartData.keys()]) {
       this.removeFromChart(chart);
     }
-    (this as any).bus = undefined;
   }
 }

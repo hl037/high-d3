@@ -10,7 +10,7 @@
   >
     <div>
       <template v-if="target.data">
-        <slot :data="target.data">
+        <slot :data="target.data" :chart="target.chart">
           <div v-for="s in target.data.series" :key="s.renderer.name" style="margin: 2px 0;">
             <strong>{{ s.renderer.name }}:</strong> {{ s.y.toFixed(2) }}
           </div>
@@ -28,14 +28,11 @@ import { Hd3ForeignObjectTooltipContainer } from '../core/tooltip/Hd3ForeignObje
 import { VRHd3TooltipManager } from '../core/VRHd3TooltipManager';
 import { getHd3GlobalBus } from '../core/bus/Hd3Bus';
 
-
 const props = defineProps<{
   tooltipManager: VRHd3TooltipManager,
 }>();
 
-
 const tooltipTargets = ref<Hd3ForeignObjectTooltipContainer[]>();
-
 
 function handleTooltipChanged(){
   tooltipTargets.value = props.tooltipManager.foTooltip.getContainers();
@@ -51,8 +48,8 @@ watchEffect( () => {
       
     }
     previousManager = props.tooltipManager;
-    getHd3GlobalBus().on(previousManager.manager.e.show, handleTooltipChanged);
-    getHd3GlobalBus().on(previousManager.manager.e.hide, handleTooltipChanged);
+    getHd3GlobalBus().on(previousManager!.manager.e.show, handleTooltipChanged);
+    getHd3GlobalBus().on(previousManager!.manager.e.hide, handleTooltipChanged);
   }
 });
 

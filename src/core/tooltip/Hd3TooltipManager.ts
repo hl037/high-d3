@@ -10,7 +10,7 @@ import { Hd3SeriesRendererManager, Hd3SeriesRendererManagerEvents } from '../man
 import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionAreaChartEvents, MouseEventData } from '../interaction/Hd3InteractionArea';
 import { invertScale } from '../axis/invertScale';
 
-export interface TooltipSeriesData {
+export interface Hd3TooltipSeriesData {
   renderer: Hd3SeriesRenderer;
   x: number | string | Date;
   y: number;
@@ -22,7 +22,7 @@ export interface Hd3TooltipData {
   y: number;
   xSide: 'left' | 'right';
   ySide: 'top' | 'bottom';
-  series: TooltipSeriesData[];
+  series: Hd3TooltipSeriesData[];
 }
 
 export interface Hd3TooltipManagerChartEvents {
@@ -170,7 +170,7 @@ export class Hd3TooltipManager {
       y: mouseData.y,
       xSide: mouseData.x > chartOrigin.innerWidth / 2 ? 'left' : 'right',
       ySide: mouseData.y > chartOrigin.innerHeight / 2 ? 'top' : 'bottom',
-      series: globalSeriesData.series
+      series: globalSeriesData.series,
     };
 
     this.bus.emit(this.e.show, tooltipData);
@@ -238,7 +238,7 @@ export class Hd3TooltipManager {
 
     const seriesRenderersData = this.getSeriesRenderers(chartTarget).filter(({x, y}) => (x && y));
     
-    const seriesData: TooltipSeriesData[] = [];
+    const seriesData: Hd3TooltipSeriesData[] = [];
 
     for (const {renderer, x} of seriesRenderersData) {
       const d = commonXAxisData[x!.name];
@@ -330,7 +330,5 @@ export class Hd3TooltipManager {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);
-    (this as any).seriesRenderers = null;
-    (this as any).chartData = null;
   }
 }

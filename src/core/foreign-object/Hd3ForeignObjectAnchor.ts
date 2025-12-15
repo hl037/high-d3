@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import * as d3 from 'd3';
 
 import type { Hd3Chart, Hd3ChartLayersI } from '../chart/Hd3Chart';
@@ -102,6 +102,5 @@ export class Hd3ForeignObjectAnchor {
       this.removeFromChart(chart);
     }
     this.bus.emit(this.e.destroyed, this);
-    (this as any).chartData = undefined;
   }
 }

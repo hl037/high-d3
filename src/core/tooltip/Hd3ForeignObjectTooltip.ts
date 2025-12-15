@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import * as d3 from 'd3';
 
 import type { Hd3Chart } from '../chart/Hd3Chart';
@@ -158,6 +158,5 @@ export class Hd3ForeignObjectTooltip {
     for (const chart of [...this.chartData.keys()]) {
       this.removeFromChart(chart);
     }
-    (this as any).bus = undefined
   }
 }

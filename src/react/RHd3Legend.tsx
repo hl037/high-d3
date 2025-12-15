@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -7,10 +7,11 @@ import { Hd3LegendData } from '../core/legend/Hd3LegendManager';
 import { VRHd3LegendManager } from '../core/VRHd3LegendManager';
 import { Hd3SeriesRenderer } from '../core/series/Hd3SeriesRenderer';
 import { getHd3GlobalBus } from '../core/bus/Hd3Bus';
+import { Hd3Chart } from '../core';
 
 interface RHd3LegendProps {
   legendManager: VRHd3LegendManager;
-  children?: (data: Hd3LegendData) => React.ReactNode;
+  children?: (data: Hd3LegendData, chart:Hd3Chart) => React.ReactNode;
 }
 
 function toggleVisibility(renderer: Hd3SeriesRenderer) {
@@ -36,7 +37,7 @@ export function RHd3Legend({ legendManager, children }: RHd3LegendProps) {
     };
   }, [legendManager]);
 
-  if (!legendTargets) return null;
+  if (!legendTargets) {return null;}
 
   return (
     <>
@@ -45,7 +46,7 @@ export function RHd3Legend({ legendManager, children }: RHd3LegendProps) {
           <div key={target.chart.id}>
             {target.data && (
               children ? (
-                children(target.data)
+                children(target.data, target.chart)
               ) : (
                 target.data.series.map((s) => (
                   <div

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import * as d3 from 'd3';
 
 import type { Hd3Chart, Hd3ChartI } from '../chart/Hd3Chart';
@@ -59,6 +59,7 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   private axes?: (Hd3Axis | string)[];
   private chartData: Map<Hd3Chart, ChartData>;
   private axisRefCount: Map<Hd3Axis, number>;
+  protected isDestroying?: boolean;
 
   
   constructor(options: Hd3SeriesRendererOptions<Props>) {
@@ -78,14 +79,17 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     this.axes = options.axes;
     this._name = options.name;
 
-    mergingDictProps(this, options.props);
+    mergingDictProps(this, options.props,{
+      afterSet: () => {
+        this.tagDirty(undefined, true)
+      }
+    });
 
     this.e = {
       visibilityChanged: createHd3Event<boolean>(`series-renderer[${this.name}].visibilityChanged`),
       destroyed: createHd3Event<Hd3SeriesRenderer<Props>>(`series-renderer[${this.name}].destroyed`),
     };
 
-    this.bus.on(this.e.visibilityChanged, this.setVisible);
     this.bus.on(this.series.e.dataChanged, this.handleDataChanged);
   }
 
@@ -145,6 +149,14 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
       
       this.bus.emit(chart.e<Hd3SeriesRendererManagerEvents>()('removeSeriesRenderer'), this);
       this.chartRemoved(chart, chartData.data);
+      if(this.decAxesCount(chartData.x)) {
+        this.bus.off(chartData.x!.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        chartData.x = undefined;
+      }
+      if(this.decAxesCount(chartData.y)) {
+        this.bus.off(chartData.y!.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        chartData.y = undefined;
+      }
       this.bus.off(chart.e.destroyed, this.removeFromChart);
       this.bus.off(chart.e<Hd3AxisManagerEvents>()('axesListChanged'), chartData.tagDirtyWithTransition);
       this.chartData.delete(chart);
@@ -167,6 +179,9 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   }
 
   tagDirty(chart?: Hd3Chart, transition:boolean=false){
+    if(this.isDestroying) {
+      return;
+    }
     if(chart === undefined) {
       for(const chart of this.chartData.keys()){
         const chartData = this.chartData.get(chart)!;
@@ -185,7 +200,10 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     }
   }
 
-  private incAxesCount(ax: Hd3Axis): boolean{
+  private incAxesCount(ax: Hd3Axis|undefined): boolean{
+    if(ax === undefined) {
+      return false;
+    }
     const count = this.axisRefCount.get(ax);
     if(count === undefined) {
       this.axisRefCount.set(ax, 1);
@@ -195,7 +213,10 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
     return false;
   }
   
-  private decAxesCount(ax: Hd3Axis): boolean{
+  private decAxesCount(ax: Hd3Axis|undefined): boolean{
+    if(ax === undefined) {
+      return false;
+    }
     const count = this.axisRefCount.get(ax);
     if(count === undefined) {
       throw new Error('Axes not used ???');
@@ -210,22 +231,29 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
 
   render(chart: Hd3Chart): void {
     // INFO - 2025-11-27 -- LF HAUCHECORNE : if a dirty event has been emitted before a destroy, we simply need to ignore.
-    if(this.bus === undefined) {
+    if(this.isDestroying) {
       return;
     }
     const {x, y} = this.getAxes(chart);
     const chartData = this.chartData.get(chart)!;
+    if(chartData === undefined) {
+      console.error('Possible Corruption in Series renderer');
+      return;
+    }
     
     for(const [ax, old_ax] of [[x, chartData.x], [y, chartData.y]]){
       if(ax !== chartData.x) {
-        if(old_ax !== undefined && this.decAxesCount(old_ax)) {
-          this.bus.off(old_ax.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        if(this.decAxesCount(old_ax)) {
+          this.bus.off(old_ax!.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
         }
-        if(ax !== undefined && this.incAxesCount(ax)) {
-          this.bus.on(ax.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
+        if(this.incAxesCount(ax)) {
+          this.bus.on(ax!.e.scaleChanged, chartData.tagDirty); // Destroyed is handled by the axis manager, that will emit a axesListChanged event.
         }
       }
     }
+
+    chartData.x = x;
+    chartData.y = y;
 
     if(this.props.visible) {
       if(chartData.transition) {
@@ -245,12 +273,15 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   protected abstract renderData(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
   protected abstract renderDataWithTransition(chart: Hd3ChartI, chartData: object, x:Hd3Axis|undefined, y:Hd3Axis|undefined): void;
 
-  protected  setVisible(visible: boolean): void {
+  protected setVisible(visible: boolean): void {
     this.props.visible = visible;
   }
 
   public get visible(){return this.props.visible;}
-  public set visible(isVisible: boolean){this.props({visible: isVisible} as Partial<Props>);}
+  public set visible(isVisible: boolean){
+    this.props({visible: isVisible} as Partial<Props>);
+    this.bus.emit(this.e.visibilityChanged, isVisible);
+  }
 
   getAxes(chart: Hd3Chart ):{x?:Hd3Axis, y?:Hd3Axis}{
     const res = {} as {x?:Hd3Axis, y?:Hd3Axis};
@@ -263,16 +294,13 @@ export abstract class Hd3SeriesRenderer<out Props extends Hd3SeriesRendererProps
   }
 
   destroy(): void {
-    this.bus.off(this.series.e.destroyed, this.handleDataChanged);
+    this.isDestroying = true;
+    this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
     for(const chart of this.chartData.keys()){
       this.removeFromChart(chart);
     }
-    
-    this.bus.off(this.e.visibilityChanged, this.setVisible);
-    this.bus.off(this.series.e.dataChanged, this.handleDataChanged);
+    this.bus.off(this.series.e.destroyed, this.handleDataChanged);
     this.bus.emit(this.e.destroyed, this);
-    (this as any)._series = undefined;
-    (this as any).bus = undefined;
   }
 
   get name(): string{

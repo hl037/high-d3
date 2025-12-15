@@ -10,6 +10,7 @@ import { Hd3InteractionArea, Hd3InteractionAreaManagerEvents, Hd3InteractionArea
 export interface Hd3ZoomToSelectionToolOptions {
   bus?: Hd3Bus;
   axes?: (Hd3Axis | string)[];
+  minDelta?: number;
 }
 
 export interface Hd3ZoomToSelectionToolEvents {
@@ -25,12 +26,14 @@ interface ChartData {
   handleDrag: (data: DragEventData) => void;
   handleDragEnd: (data: DragEventData) => void;
   handleInteractionAreaChanged: (interactionArea: Hd3InteractionArea) => void;
+  minDeltaReached: boolean;
 }
 
 export class Hd3ZoomToSelectionTool {
   public readonly bus: Hd3Bus;
   public readonly e: Hd3EventNameMap<Hd3ZoomToSelectionToolEvents>;
   public readonly name = 'zoom-selection';
+  public minDelta: number;
   private chartData: Map<Hd3Chart, ChartData>;
   private axes?: (Hd3Axis | string)[];
 
@@ -41,6 +44,7 @@ export class Hd3ZoomToSelectionTool {
     this.bus = options.bus || getHd3GlobalBus();
     this.chartData = new Map();
     this.axes = options.axes;
+    this.minDelta = options.minDelta || 3;
 
     this.e = {
       destroyed: createHd3Event<Hd3ZoomToSelectionTool>('zoomToSelectionTool.destroyed'),
@@ -66,7 +70,8 @@ export class Hd3ZoomToSelectionTool {
           this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('drag'), chartData.handleDrag);
           this.bus.on(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), chartData.handleDragEnd);
         }
-      }
+      },
+      minDeltaReached: false,
     };
 
     this.chartData.set(chart, chartData);
@@ -112,6 +117,8 @@ export class Hd3ZoomToSelectionTool {
       .attr('stroke', 'rgba(50, 100, 200, 0.8)')
       .attr('stroke-width', 1)
       .style('pointer-events', 'none');
+
+    chartData.minDeltaReached = false;
   }
 
   private handleDrag(chart: Hd3Chart, dragData: DragEventData): void {
@@ -122,6 +129,9 @@ export class Hd3ZoomToSelectionTool {
     const y = Math.min(dragData.startY, dragData.y);
     const width = Math.abs(dragData.x - dragData.startX);
     const height = Math.abs(dragData.y - dragData.startY);
+    if(width + height >= this.minDelta) {
+      chartData.minDeltaReached = true;
+    }
 
     chartData.selectionRect
       .attr('x', x)
@@ -136,6 +146,10 @@ export class Hd3ZoomToSelectionTool {
 
     chartData.selectionRect.remove();
     chartData.selectionRect = undefined;
+
+    if(!chartData.minDeltaReached) {
+      return;
+    }
 
     const { startMappedCoords, mappedCoords } = dragData;
 

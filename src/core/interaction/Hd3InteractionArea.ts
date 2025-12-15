@@ -5,6 +5,7 @@ import { createHd3Event, getHd3GlobalBus, type Hd3Bus, type Hd3EventNameMap } fr
 import type { Hd3Axis } from '../axis/Hd3Axis';
 import { Hd3AxisManager, Hd3AxisManagerEvents } from '../managers/Hd3AxisManager';
 import { invertScale } from '../axis/invertScale';
+import { MappedEvent, startTracking } from '../utils/tracking';
 
 export type Hd3MappedCoords = Record<string, number | string | Date | undefined>
 
@@ -153,66 +154,85 @@ export class Hd3InteractionArea {
 
   private setupEvents(chart: Hd3Chart, chartData: ChartData) {
     const { rect } = chartData;
-
+    
     rect.on('mousedown', (event: MouseEvent) => {
-      const [x, y] = d3.pointer(event);
-      const mappedCoords = this.getMappedCoordinates(chart, x, y);
-      chartData.isDragging = true;
-      chartData.dragStart = {
-        x,
-        y,
-        mappedCoords,
-      };
-      this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), { x, y, event, mappedCoords });
-    });
+      startTracking(
+        event,
+        rect.node()!,
+        {
+          mouseDown: (event: MappedEvent) => {
+            const {x, y} = event.element;
+            const mappedCoords = this.getMappedCoordinates(chart, x, y);
+            chartData.isDragging = true;
+            chartData.dragStart = {
+              x,
+              y,
+              mappedCoords,
+            };
+            this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mousedown'), { x, y, event: event.original, mappedCoords });
+            event.original.stopPropagation();
+            event.original.preventDefault();
+          },
+          mouseMove: (event: MappedEvent) => {
+            const {x, y} = event.element;
+            const mappedCoords = this.getMappedCoordinates(chart, x, y);
+            this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mousemove'), { x, y, event:event.original, mappedCoords });
+
+            if (chartData.isDragging && chartData.dragStart) {
+              this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('drag'), {
+                x, y,
+                dx: x - chartData.dragStart.x,
+                dy: y - chartData.dragStart.y,
+                startX: chartData.dragStart.x,
+                startY: chartData.dragStart.y,
+                mappedCoords,
+                startMappedCoords: chartData.dragStart.mappedCoords,
+                event: event.original,
+              });
+            }
+            event.original.stopPropagation();
+            event.original.preventDefault();
+          },
+          mouseUp: (event: MappedEvent) => {
+            const {x, y} = event.element;
+            const mappedCoords = this.getMappedCoordinates(chart, x, y);
+            this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mouseup'), { x, y, event:event.element, mappedCoords });
+
+            if (chartData.isDragging && chartData.dragStart) {
+              this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), {
+                x, y,
+                dx: x - chartData.dragStart.x,
+                dy: y - chartData.dragStart.y,
+                startX: chartData.dragStart.x,
+                startY: chartData.dragStart.y,
+                mappedCoords,
+                startMappedCoords: chartData.dragStart.mappedCoords,
+                event: event.original,
+              });
+            }
+            chartData.isDragging = false;
+            chartData.dragStart = undefined;
+            event.original.stopPropagation();
+            event.original.preventDefault();
+          }
+  
+        }
+      );
+    })
 
     rect.on('mousemove', (event: MouseEvent) => {
+      if (chartData.isDragging) {
+        return; // Handled in tracking
+      }
       const [x, y] = d3.pointer(event);
       const mappedCoords = this.getMappedCoordinates(chart, x, y);
       this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mousemove'), { x, y, event, mappedCoords });
-
-      if (chartData.isDragging && chartData.dragStart) {
-        this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('drag'), {
-          x, y,
-          dx: x - chartData.dragStart.x,
-          dy: y - chartData.dragStart.y,
-          startX: chartData.dragStart.x,
-          startY: chartData.dragStart.y,
-          mappedCoords,
-          startMappedCoords: chartData.dragStart.mappedCoords,
-          event,
-        });
-      }
-    });
-
-    rect.on('mouseup', (event: MouseEvent) => {
-      const [x, y] = d3.pointer(event);
-      const mappedCoords = this.getMappedCoordinates(chart, x, y);
-      this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mouseup'), { x, y, event, mappedCoords });
-
-      if (chartData.isDragging && chartData.dragStart) {
-        this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('dragend'), {
-          x, y,
-          dx: x - chartData.dragStart.x,
-          dy: y - chartData.dragStart.y,
-          startX: chartData.dragStart.x,
-          startY: chartData.dragStart.y,
-          mappedCoords,
-          startMappedCoords: chartData.dragStart.mappedCoords,
-          event,
-        });
-      }
-
-      chartData.isDragging = false;
-      chartData.dragStart = undefined;
     });
 
     rect.on('mouseleave', (event: MouseEvent) => {
       const [x, y] = d3.pointer(event);
       const mappedCoords = this.getMappedCoordinates(chart, x, y);
       this.bus.emit(chart.e<Hd3InteractionAreaChartEvents>()('mouseleave'), { x, y, event, mappedCoords });
-      chartData.isDragging = false;
-      chartData.dragStart = undefined;
     });
 
     rect.on('wheel', (event: WheelEvent) => {

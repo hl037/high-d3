@@ -71,6 +71,7 @@ export function RHd3Chart(props: RHd3ChartProps) {
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = undefined;
       }
     };
   }, []);

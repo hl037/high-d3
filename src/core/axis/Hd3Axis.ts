@@ -81,7 +81,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   protected scaleOptions: { base?: number; exponent?: number };
   public get props(): MergingDict<Hd3AxisProps>{throw "init threw mergingDictAttr"};
   public set props(_: Partial<Hd3AxisProps>){throw "init threw mergingDictAttr"};
-  protected targetData: Map<Hd3ChartI, AxisTargetData>
+  protected targetData: Map<Hd3ChartI, AxisTargetData>;
+  protected isDestroying?: boolean;
 
   constructor(options: Hd3AxisOptions) {
     this.handleDomainChanged = this.handleDomainChanged.bind(this);
@@ -150,8 +151,8 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
     const targetData = this.targetData.get(target)!;
     this.bus.off(target.e.resized, targetData.handleResize)
     this.bus.off(target.e.destroyed, this.handleTargetDestroyed)
-    this.targetData.delete(target);
     this.bus.emit(target.e<Hd3AxisManagerEvents>()('removeAxis'), this);
+    this.targetData.delete(target);
   }
   
   public setOffset(target: Hd3ChartI, offset:number=0){
@@ -211,7 +212,7 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
 
   public render(target: Hd3ChartI): void {
     // INFO - 2025-11-27 -- LF HAUCHECORNE : if a dirty event has been emitted before a destroy, we simply need to ignore.
-    if(this.bus === undefined) {
+    if(this.isDestroying) {
       return;
     }
     const targetData = this.getTargetData(target);
@@ -335,14 +336,12 @@ export class Hd3Axis implements Hd3RenderableI<Hd3ChartI> {
   }
 
   destroy(): void {
+    this.isDestroying = true;
     for(const target of [...this.targetData.keys()]){
       this.removeFromChart(target)
     }
     this.bus.emit(this.e.destroyed, this);
     this.bus.off(this.axisDomain.e.domainChanged, this.handleDomainChanged);
     this.bus.off(this.e.visibilityChanged, this._setVisible);
-    
-    (this as any).axisDomain = undefined;
-    (this as any).bus = undefined;
   }
 }
